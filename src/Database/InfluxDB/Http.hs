@@ -74,16 +74,19 @@ writePoints
   -> a
   -- ^ Series data
   -> Write ()
-writePoints _name _data = error "writePoints: not implemented"
+writePoints name a = tell . DL.singleton $ Series
+  { seriesName = name
+  , seriesData = toSeriesData a
+  }
 
 writeSeries
   :: ToSeries a
   => a
   -> Write ()
-writeSeries _ = error "writeSeries: not implemented"
+writeSeries = tell . DL.singleton . toSeries
 
 writeSeriesList
   :: [Series]
   -> Write ()
-writeSeriesList _ = error "writeSeriesList: not implemented"
+writeSeriesList = tell . DL.fromList
 
