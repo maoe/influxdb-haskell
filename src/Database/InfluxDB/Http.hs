@@ -12,6 +12,10 @@ module Database.InfluxDB.Http
   , writePoints
   , writeSeries
   , writeSeriesList
+
+  -- * Administration & Security
+  , createDatabase
+  , dropDatabase
   ) where
 
 import Control.Applicative (Applicative)
@@ -106,3 +110,11 @@ writeSeriesList
   -> Write ()
 writeSeriesList = tell . DL.fromList
 
+-----------------------------------------------------------
+-- Administration & Security
+
+createDatabase :: Settings Server -> HC.Manager -> IO Database
+createDatabase = error "createDatabase: not implemented"
+
+dropDatabase :: Settings Database -> HC.Manager -> IO ()
+dropDatabase = error "deleteDatabase: not implemented"
