@@ -21,6 +21,7 @@ library
     -- Database.InfluxDB.Decode
     Database.InfluxDB.Encode
     Database.InfluxDB.Http
+    Database.InfluxDB.Lens
     -- Database.InfluxDB.Protobuf
     -- Database.InfluxDB.Query
     Database.InfluxDB.Types
@@ -49,6 +50,7 @@ executable influx-example-random
     , bytestring
     , http-client
     , influxdb
+    , lens
     , random
     , vector
   default-language: Haskell2010
