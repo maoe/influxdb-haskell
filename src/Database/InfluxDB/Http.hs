@@ -2,12 +2,11 @@
 {-# LANGUAGE OverloadedStrings #-}
 {-# LANGUAGE RecordWildCards #-}
 module Database.InfluxDB.Http
-  ( Config, defaultConfig
-  , configHost
-  , configPort
-  , configUser
-  , configPassword
-  , configDatabase
+  ( Settings(..)
+  , Server(..), defaultServer
+  , Database(..)
+
+  -- * Writing Data
   , post
   , Write
   , writePoints
@@ -29,44 +28,52 @@ import qualified Network.HTTP.Client as HC
 import Database.InfluxDB.Encode
 import Database.InfluxDB.Types
 
-data Config = Config
-  { configHost :: !ByteString
-  , configPort :: !Int
-  , configUser :: !ByteString
-  , configPassword :: !ByteString
-  , configDatabase :: !ByteString
+data Settings a = Settings
+  { settingsUser :: ByteString
+  , settingsPassword :: ByteString
+  , settingsEndpoint :: a
+  } deriving Show
+
+data Server = Server
+  { serverHost :: ByteString
+  , serverPort :: Int
+  } deriving Show
+
+defaultServer :: Server
+defaultServer = Server
+  { serverHost = "localhost"
+  , serverPort = 8086
   }
 
-defaultConfig :: Config
-defaultConfig = Config
-  { configHost = "localhost"
-  , configPort = 8086
-  , configUser = "root"
-  , configPassword = "root"
-  , configDatabase = "" -- bogus value
-  }
+data Database = Database
+  { databaseServer :: Server
+  , databaseName :: ByteString
+  } deriving Show
 
-configToUrl :: Config -> String
-configToUrl Config {..} = printf "http://%s:%s/db/%s/series?u=%s&p=%s"
-  (BS8.unpack configHost)
-  (show configPort)
-  (BS8.unpack configDatabase)
-  (BS8.unpack configUser)
-  (BS8.unpack configPassword)
+-----------------------------------------------------------
+-- Writing Data
 
-post :: Config -> HC.Manager -> Write a -> IO a
-post config manager write = do
+post :: Settings Database -> HC.Manager -> Write a -> IO a
+post Settings {..} manager write = do
   request <- makeRequest
   HC.httpLbs request manager
   return a
   where
     (a, series) = runWrite write
     makeRequest = do
-      request <- HC.parseUrl $ configToUrl config
+      request <- HC.parseUrl url
       return request
         { HC.method = "POST"
         , HC.requestBody = HC.RequestBodyLBS $ AE.encode series
         }
+    url = printf "http://%s:%s/db/%s/series?u=%s&p=%s"
+      (BS8.unpack serverHost)
+      (show serverPort)
+      (BS8.unpack databaseName)
+      (BS8.unpack settingsUser)
+      (BS8.unpack settingsPassword)
+    Database {..} = settingsEndpoint
+    Server {..} = databaseServer
 
 newtype Write a = Write (Writer (DList Series) a)
   deriving (Functor, Applicative, Monad, MonadWriter (DList Series))
