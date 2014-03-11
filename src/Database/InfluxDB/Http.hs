@@ -2,7 +2,7 @@
 {-# LANGUAGE OverloadedStrings #-}
 {-# LANGUAGE RecordWildCards #-}
 module Database.InfluxDB.Http
-  ( Config
+  ( Config, defaultConfig
   , configHost
   , configPort
   , configUser
@@ -35,6 +35,15 @@ data Config = Config
   , configUser :: !ByteString
   , configPassword :: !ByteString
   , configDatabase :: !ByteString
+  }
+
+defaultConfig :: Config
+defaultConfig = Config
+  { configHost = "localhost"
+  , configPort = 8086
+  , configUser = "root"
+  , configPassword = "root"
+  , configDatabase = "" -- bogus value
   }
 
 configToUrl :: Config -> String
