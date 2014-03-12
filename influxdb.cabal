@@ -25,6 +25,7 @@ library
     -- Database.InfluxDB.Protobuf
     -- Database.InfluxDB.Query
     Database.InfluxDB.Types
+  ghc-options: -Wall
   build-depends:
       base >= 4 && < 4.8
     , aeson
@@ -45,6 +46,7 @@ executable influx-example-random
     buildable: False
   hs-source-dirs: examples
   main-is: random.hs
+  ghc-options: -Wall
   build-depends:
       base
     , bytestring
