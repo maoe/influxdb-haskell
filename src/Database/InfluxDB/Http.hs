@@ -24,6 +24,7 @@ import Control.Monad.Writer
 import Data.ByteString (ByteString)
 import Text.Printf (printf)
 import qualified Data.ByteString.Char8 as BS8
+import qualified Data.Text.Encoding as TE
 
 import Data.Aeson ((.=))
 import Data.DList (DList)
@@ -141,7 +142,7 @@ createDatabase Settings {..} manager name = do
       return request
         { HC.method = "POST"
         , HC.requestBody = HC.RequestBodyLBS $ AE.encode $ A.object
-            [ "name" .= name
+            [ "name" .= TE.decodeUtf8 name
             ]
         }
     url = printf "http://%s:%s/db?u=%s&p=%s"
