@@ -24,7 +24,9 @@ import Data.ByteString (ByteString)
 import Text.Printf (printf)
 import qualified Data.ByteString.Char8 as BS8
 
+import Data.Aeson ((.=))
 import Data.DList (DList)
+import qualified Data.Aeson as A
 import qualified Data.Aeson.Encode as AE
 import qualified Data.DList as DL
 import qualified Network.HTTP.Client as HC
@@ -113,8 +115,29 @@ writeSeriesList = tell . DL.fromList
 -----------------------------------------------------------
 -- Administration & Security
 
-createDatabase :: Settings Server -> HC.Manager -> IO Database
-createDatabase = error "createDatabase: not implemented"
+createDatabase :: Settings Server -> HC.Manager -> ByteString -> IO Database
+createDatabase Settings {..} manager name = do
+  request <- makeRequest
+  HC.httpLbs request manager
+  return Database
+    { databaseName = name
+    , databaseServer = settingsEndpoint
+    }
+  where
+    makeRequest = do
+      request <- HC.parseUrl url
+      return request
+        { HC.method = "POST"
+        , HC.requestBody = HC.RequestBodyLBS $ AE.encode $ A.object
+            [ "name" .= name
+            ]
+        }
+    url = printf "http://%s:%s/db?u=%s&p=%s"
+      (BS8.unpack serverHost)
+      (show serverPort)
+      (BS8.unpack settingsUser)
+      (BS8.unpack settingsPassword)
+    Server {..} = settingsEndpoint
 
 dropDatabase :: Settings Database -> HC.Manager -> IO ()
 dropDatabase = error "deleteDatabase: not implemented"
