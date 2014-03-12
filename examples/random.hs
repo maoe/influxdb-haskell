@@ -6,28 +6,35 @@ import Control.Applicative
 import Control.Monad
 import Data.Function (fix)
 import Data.Maybe
-import qualified Data.ByteString.Char8 as BS8
+import System.Console.GetOpt
 import System.Environment
+import System.Exit
+import System.IO
 import System.Random
+import qualified Data.ByteString.Char8 as BS8
 
+import Control.Lens
 import qualified Data.Vector as V
 import qualified Network.HTTP.Client as HC
 
 import Database.InfluxDB.Encode
 import Database.InfluxDB.Http
 import Database.InfluxDB.Types
+import Database.InfluxDB.Lens
 
 main :: IO ()
 main = do
-  [read -> maxTimes] <- getArgs
-  config <- getConfigFromEnv
+  hSetBuffering stdout NoBuffering
+  (settings, [read -> maxTimes]) <- parseOptions =<< getArgs
   HC.withManager HC.defaultManagerSettings $ \manager ->
     flip fix maxTimes $ \loop !n ->
       when (n > 0) $ do
         r <- randomRIO (0, 10000)
-        post config manager $ do
+        post settings manager $ do
           writePoints "random" (r :: RandVal)
+        putStr "."
         loop $ n - 1
+  putStrLn ""
 
 newtype RandVal = RandVal Int deriving (Num, Random, ToValue)
 
@@ -37,21 +44,41 @@ instance ToSeriesData RandVal where
     , seriesDataPoints = [V.fromList [toValue n]]
     }
 
-getConfigFromEnv :: IO Config
-getConfigFromEnv = do
-  host <- lookupEnvFor (BS8.unpack . configHost) "INFLUX_HOST"
-  port <- lookupEnvFor (show . configPort) "INFLUX_PORT"
-  user <- lookupEnvFor (BS8.unpack . configUser) "INFLUX_USER"
-  password <- lookupEnvFor (BS8.unpack . configPassword) "INFLUX_PASSWORD"
-  database <- lookupEnvFor (BS8.unpack . configDatabase) "INFLUX_DATABASE"
-  return defaultConfig
-    { configHost = BS8.pack host
-    , configPort = read port
-    , configUser = BS8.pack user
-    , configPassword = BS8.pack password
-    , configDatabase = BS8.pack database
-    }
+defaultSettings :: Settings Database
+defaultSettings = Settings
+  { settingsUser = "root"
+  , settingsPassword = "root"
+  , settingsEndpoint = Database
+      { databaseServer = defaultServer
+      , databaseName = "testdb"
+      }
+  }
+
+options :: [OptDescr (Settings Database -> Settings Database)]
+options =
+  [ Option ['h'] ["host"]
+      (ReqArg (\a s -> s & endpoint.server.host .~ BS8.pack a) "HOST")
+      "Server host"
+  , Option ['p'] ["port"]
+      (ReqArg (\a s -> s & endpoint.server.port .~ read a) "PORT")
+      "Server port"
+  , Option ['u'] ["user"]
+      (ReqArg (\a s -> s & user .~ BS8.pack a) "USERNAME")
+      "User name"
+  , Option ['P'] ["password"]
+      (ReqArg (\a s -> s & password .~ BS8.pack a) "PASSWORD")
+      "Password"
+  , Option ['d'] ["database"]
+      (ReqArg (\a s -> s & endpoint.database .~ BS8.pack a) "DATABASE")
+      "Database name"
+  ]
+
+parseOptions :: [String] -> IO (Settings Database, [String])
+parseOptions args = case getOpt Permute options args of
+  (o, n, [])
+    | not (null n) -> return (foldl (flip id) defaultSettings o, n)
+  (_, _, errors) -> do
+    putStrLn $ concat errors ++ usageInfo header options
+    exitFailure
   where
-    lookupEnvFor :: (Config -> String) -> String -> IO String
-    lookupEnvFor field key =
-      fromMaybe (field defaultConfig) <$> lookupEnv key
+    header = "Usage: ./influx-example-random [OPTION...] NUM_OF_ITER"
