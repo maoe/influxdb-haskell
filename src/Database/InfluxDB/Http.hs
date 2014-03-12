@@ -52,8 +52,8 @@ defaultCreds = Credentials
   }
 
 data Server = Server
-  { serverHost :: ByteString
-  , serverPort :: Int
+  { serverHost :: !ByteString
+  , serverPort :: !Int
   } deriving Show
 
 defaultServer :: Server
@@ -63,8 +63,8 @@ defaultServer = Server
   }
 
 data Database = Database
-  { databaseServer :: Server
-  , databaseName :: ByteString
+  { databaseServer :: !Server
+  , databaseName :: !ByteString
   } deriving Show
 
 -----------------------------------------------------------
