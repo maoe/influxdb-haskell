@@ -2,10 +2,8 @@
 {-# LANGUAGE ViewPatterns #-}
 {-# LANGUAGE OverloadedStrings #-}
 {-# LANGUAGE GeneralizedNewtypeDeriving #-}
-import Control.Applicative
 import Control.Monad
 import Data.Function (fix)
-import Data.Maybe
 import System.Console.GetOpt
 import System.Environment
 import System.Exit
@@ -27,7 +25,7 @@ main = do
   hSetBuffering stdout NoBuffering
   (settings, [read -> maxTimes]) <- parseOptions =<< getArgs
   HC.withManager HC.defaultManagerSettings $ \manager ->
-    flip fix maxTimes $ \loop !n ->
+    flip fix (maxTimes :: Int) $ \loop !n ->
       when (n > 0) $ do
         r <- randomRIO (0, 10000)
         post settings manager $ do
