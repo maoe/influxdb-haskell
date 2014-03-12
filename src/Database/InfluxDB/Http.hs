@@ -62,7 +62,7 @@ data Database = Database
 post :: Settings Database -> HC.Manager -> Write a -> IO a
 post Settings {..} manager write = do
   request <- makeRequest
-  HC.httpLbs request manager
+  void $ HC.httpLbs request manager
   return a
   where
     (a, series) = runWrite write
@@ -118,7 +118,7 @@ writeSeriesList = tell . DL.fromList
 createDatabase :: Settings Server -> HC.Manager -> ByteString -> IO Database
 createDatabase Settings {..} manager name = do
   request <- makeRequest
-  HC.httpLbs request manager
+  void $ HC.httpLbs request manager
   return Database
     { databaseName = name
     , databaseServer = settingsEndpoint
