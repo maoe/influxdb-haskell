@@ -44,8 +44,7 @@ instance ToSeriesData RandVal where
 
 defaultSettings :: Settings Database
 defaultSettings = Settings
-  { settingsUser = "root"
-  , settingsPassword = "root"
+  { settingsCreds = defaultCreds
   , settingsEndpoint = Database
       { databaseServer = defaultServer
       , databaseName = "testdb"
@@ -61,10 +60,10 @@ options =
       (ReqArg (\a s -> s & endpoint.server.port .~ read a) "PORT")
       "Server port"
   , Option ['u'] ["user"]
-      (ReqArg (\a s -> s & user .~ BS8.pack a) "USERNAME")
+      (ReqArg (\a s -> s & credentials.user .~ BS8.pack a) "USERNAME")
       "User name"
   , Option ['P'] ["password"]
-      (ReqArg (\a s -> s & password .~ BS8.pack a) "PASSWORD")
+      (ReqArg (\a s -> s & credentials.password .~ BS8.pack a) "PASSWORD")
       "Password"
   , Option ['d'] ["database"]
       (ReqArg (\a s -> s & endpoint.database .~ BS8.pack a) "DATABASE")

@@ -8,15 +8,20 @@ import Database.InfluxDB.Http
 type Lens s t a b = Functor f => (a -> f b) -> s -> f t
 type Lens' s a = Lens s s a a
 
-user :: Lens' (Settings a) ByteString
-user f s = set <$> f (settingsUser s)
+credentials :: Lens' (Settings a) Credentials
+credentials f s = set <$> f (settingsCreds s)
   where
-    set u = s { settingsUser = u }
+    set c = s { settingsCreds = c }
 
-password :: Lens' (Settings a) ByteString
-password f s = set <$> f (settingsPassword s)
+user :: Lens' Credentials ByteString
+user f s = set <$> f (credsUser s)
   where
-    set p = s { settingsPassword = p }
+    set u = s { credsUser = u }
+
+password :: Lens' Credentials ByteString
+password f s = set <$> f (credsPassword s)
+  where
+    set p = s { credsPassword = p }
 
 endpoint :: Lens' (Settings a) a
 endpoint f s = set <$> f (settingsEndpoint s)

@@ -3,6 +3,7 @@
 {-# LANGUAGE RecordWildCards #-}
 module Database.InfluxDB.Http
   ( Settings(..)
+  , Credentials(..), defaultCreds
   , Server(..), defaultServer
   , Database(..)
 
@@ -35,10 +36,20 @@ import Database.InfluxDB.Encode
 import Database.InfluxDB.Types
 
 data Settings a = Settings
-  { settingsUser :: ByteString
-  , settingsPassword :: ByteString
-  , settingsEndpoint :: a
+  { settingsCreds :: !Credentials
+  , settingsEndpoint :: !a
   } deriving Show
+
+data Credentials = Credentials
+  { credsUser :: !ByteString
+  , credsPassword :: !ByteString
+  } deriving Show
+
+defaultCreds :: Credentials
+defaultCreds = Credentials
+  { credsUser = "root"
+  , credsPassword = "root"
+  }
 
 data Server = Server
   { serverHost :: ByteString
@@ -76,10 +87,11 @@ post Settings {..} manager write = do
       (BS8.unpack serverHost)
       (show serverPort)
       (BS8.unpack databaseName)
-      (BS8.unpack settingsUser)
-      (BS8.unpack settingsPassword)
+      (BS8.unpack credsUser)
+      (BS8.unpack credsPassword)
     Database {..} = settingsEndpoint
     Server {..} = databaseServer
+    Credentials {..} = settingsCreds
 
 newtype Write a = Write (Writer (DList Series) a)
   deriving (Functor, Applicative, Monad, MonadWriter (DList Series))
@@ -135,9 +147,27 @@ createDatabase Settings {..} manager name = do
     url = printf "http://%s:%s/db?u=%s&p=%s"
       (BS8.unpack serverHost)
       (show serverPort)
-      (BS8.unpack settingsUser)
-      (BS8.unpack settingsPassword)
+      (BS8.unpack credsUser)
+      (BS8.unpack credsPassword)
     Server {..} = settingsEndpoint
+    Credentials {..} = settingsCreds
 
 dropDatabase :: Settings Database -> HC.Manager -> IO ()
-dropDatabase = error "deleteDatabase: not implemented"
+dropDatabase Settings {..} manager = do
+  request <- makeRequest
+  void $ HC.httpLbs request manager
+  where
+    makeRequest = do
+      request <- HC.parseUrl url
+      return request
+        { HC.method = "DELETE"
+        }
+    url = printf "http://%s:%s/db/%s?u=%s&p=%s"
+      (BS8.unpack serverHost)
+      (show serverPort)
+      (BS8.unpack databaseName)
+      (BS8.unpack credsUser)
+      (BS8.unpack credsPassword)
+    Database {..} = settingsEndpoint
+    Server {..} = databaseServer
+    Credentials {..} = settingsCreds
