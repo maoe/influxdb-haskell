@@ -1,34 +1,32 @@
 {-# LANGUAGE RankNTypes #-}
-module Database.InfluxDB.Lens where
+module Database.InfluxDB.Lens
+  ( credentials, user, password
+  , server, host, port
+  ) where
 import Control.Applicative
-import Data.ByteString (ByteString)
+import Data.Text (Text)
 
 import Database.InfluxDB.Http
 
 type Lens s t a b = Functor f => (a -> f b) -> s -> f t
 type Lens' s a = Lens s s a a
 
-credentials :: Lens' (Settings a) Credentials
-credentials f s = set <$> f (settingsCreds s)
+credentials :: Lens' Config Credentials
+credentials f r = set <$> f (configCreds r)
   where
-    set c = s { settingsCreds = c }
+    set c = r { configCreds = c }
 
-user :: Lens' Credentials ByteString
-user f s = set <$> f (credsUser s)
+user :: Lens' Credentials Text
+user f c = set <$> f (credsUser c)
   where
-    set u = s { credsUser = u }
+    set u = c { credsUser = u }
 
-password :: Lens' Credentials ByteString
+password :: Lens' Credentials Text
 password f s = set <$> f (credsPassword s)
   where
     set p = s { credsPassword = p }
 
-endpoint :: Lens' (Settings a) a
-endpoint f s = set <$> f (settingsEndpoint s)
-  where
-    set a = s { settingsEndpoint = a }
-
-host :: Lens' Server ByteString
+host :: Lens' Server Text
 host f s = set <$> f (serverHost s)
   where
     set h = s { serverHost = h }
@@ -38,12 +36,7 @@ port f s = set <$> f (serverPort s)
   where
     set p = s { serverPort = p }
 
-server :: Lens' Database Server
-server f s = set <$> f (databaseServer s)
+server :: Lens' Config Server
+server f r = set <$> f (configServer r)
   where
-    set srv = s { databaseServer = srv }
-
-database :: Lens' Database ByteString
-database f s = set <$> f (databaseName s)
-  where
-    set name = s { databaseName = name }
+    set srv = r { configServer = srv }

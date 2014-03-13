@@ -25,10 +25,12 @@ library
     -- Database.InfluxDB.Protobuf
     -- Database.InfluxDB.Query
     Database.InfluxDB.Types
+  other-modules:
+    Database.InfluxDB.Types.Internal
   ghc-options: -Wall
   build-depends:
       base >= 4 && < 4.8
-    , aeson
+    , aeson >= 0.7
     , bytestring
     , dlist
     , http-client
@@ -39,7 +41,7 @@ library
   hs-source-dirs: src
   default-language: Haskell2010
 
-executable influx-example-random
+executable influx-random
   if flag(examples)
     buildable: True
   else
@@ -54,6 +56,26 @@ executable influx-example-random
     , influxdb
     , lens
     , random
+    , text
+    , vector
+  default-language: Haskell2010
+
+executable influx-random-points
+  if flag(examples)
+    buildable: True
+  else
+    buildable: False
+  hs-source-dirs: examples
+  main-is: random-points.hs
+  ghc-options: -Wall
+  build-depends:
+      base
+    , bytestring
+    , http-client
+    , influxdb
+    , lens
+    , random
+    , text
     , vector
   default-language: Haskell2010
 

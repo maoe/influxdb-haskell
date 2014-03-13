@@ -9,7 +9,7 @@ import System.Environment
 import System.Exit
 import System.IO
 import System.Random
-import qualified Data.ByteString.Char8 as BS8
+import qualified Data.Text as T
 
 import Control.Lens
 import qualified Data.Vector as V
@@ -23,12 +23,12 @@ import Database.InfluxDB.Lens
 main :: IO ()
 main = do
   hSetBuffering stdout NoBuffering
-  (settings, [read -> maxTimes]) <- parseOptions =<< getArgs
+  ((config, database), [read -> maxTimes]) <- parseOptions =<< getArgs
   HC.withManager HC.defaultManagerSettings $ \manager ->
     flip fix (maxTimes :: Int) $ \loop !n ->
       when (n > 0) $ do
         r <- randomRIO (0, 10000)
-        post settings manager $ do
+        post config manager database $
           writePoints "random" (r :: RandVal)
         putStr "."
         loop $ n - 1
@@ -42,38 +42,38 @@ instance ToSeriesData RandVal where
     , seriesDataPoints = [V.fromList [toValue n]]
     }
 
-defaultSettings :: Settings Database
-defaultSettings = Settings
-  { settingsCreds = defaultCreds
-  , settingsEndpoint = Database
-      { databaseServer = defaultServer
-      , databaseName = "testdb"
+defaultConfig :: (Config, Database)
+defaultConfig = (config, db)
+  where
+    config = Config
+      { configCreds = rootCreds
+      , configServer = localServer
       }
-  }
+    db = Database "testdb" Nothing
 
-options :: [OptDescr (Settings Database -> Settings Database)]
+options :: [OptDescr ((Config, Database) -> (Config, Database))]
 options =
   [ Option ['h'] ["host"]
-      (ReqArg (\a s -> s & endpoint.server.host .~ BS8.pack a) "HOST")
+      (ReqArg (\a s -> s & _1.server.host .~ T.pack a) "HOST")
       "Server host"
   , Option ['p'] ["port"]
-      (ReqArg (\a s -> s & endpoint.server.port .~ read a) "PORT")
+      (ReqArg (\a s -> s & _1.server.port .~ read a) "PORT")
       "Server port"
   , Option ['u'] ["user"]
-      (ReqArg (\a s -> s & credentials.user .~ BS8.pack a) "USERNAME")
+      (ReqArg (\a s -> s & _1.credentials.user .~ T.pack a) "USERNAME")
       "User name"
   , Option ['P'] ["password"]
-      (ReqArg (\a s -> s & credentials.password .~ BS8.pack a) "PASSWORD")
+      (ReqArg (\a s -> s & _1.credentials.password .~ T.pack a) "PASSWORD")
       "Password"
   , Option ['d'] ["database"]
-      (ReqArg (\a s -> s & endpoint.database .~ BS8.pack a) "DATABASE")
+      (ReqArg (\a s -> s & _2 .~ Database (T.pack a) Nothing) "DATABASE")
       "Database name"
   ]
 
-parseOptions :: [String] -> IO (Settings Database, [String])
+parseOptions :: [String] -> IO ((Config, Database), [String])
 parseOptions args = case getOpt Permute options args of
   (o, n, [])
-    | not (null n) -> return (foldl (flip id) defaultSettings o, n)
+    | not (null n) -> return (foldl (flip id) defaultConfig o, n)
   (_, _, errors) -> do
     putStrLn $ concat errors ++ usageInfo header options
     exitFailure

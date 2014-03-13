@@ -1,6 +1,7 @@
 {-# LANGUAGE DeriveDataTypeable #-}
 {-# LANGUAGE OverloadedStrings #-}
 {-# LANGUAGE RecordWildCards #-}
+{-# LANGUAGE TemplateHaskell #-}
 module Database.InfluxDB.Types
   ( Series(..)
   , seriesColumns
@@ -8,22 +9,29 @@ module Database.InfluxDB.Types
   , SeriesData(..)
   , Column
   , Value(..)
+
+  , Credentials(..)
+  , Server(..)
+  , Database(..)
+  , ScheduledDelete(..)
+  , User(..)
+  , Admin(..)
   ) where
 
-import Control.Applicative
-import Data.ByteString (ByteString)
 import Data.Data (Data)
 import Data.Int (Int64)
 import Data.Text (Text)
 import Data.Typeable (Typeable)
-import qualified Data.Text.Encoding as TE
 
 import Data.Aeson ((.=))
+import Data.Aeson.TH
 import Data.Vector (Vector)
 import qualified Data.Aeson as A
 
+import Database.InfluxDB.Types.Internal (stripPrefixOptions)
+
 data Series = Series
-  { seriesName :: {-# UNPACK #-} !ByteString
+  { seriesName :: {-# UNPACK #-} !Text
   , seriesData :: {-# UNPACK #-} !SeriesData
   }
 
@@ -35,8 +43,8 @@ seriesPoints = seriesDataPoints . seriesData
 
 instance A.ToJSON Series where
   toJSON Series {..} = A.object
-    [ "name" .= TE.decodeUtf8 seriesName
-    , "columns" .= (TE.decodeUtf8 <$> seriesDataColumns)
+    [ "name" .= seriesName
+    , "columns" .= seriesDataColumns
     , "points" .= seriesDataPoints
     ]
     where
@@ -47,7 +55,7 @@ data SeriesData = SeriesData
   , seriesDataPoints :: [Vector Value]
   }
 
-type Column = ByteString
+type Column = Text
 
 data Value
   = Int !Int64
@@ -63,3 +71,40 @@ instance A.ToJSON Value where
   toJSON (String xs) = A.toJSON xs
   toJSON (Bool b) = A.toJSON b
   toJSON Null = A.Null
+
+-----------------------------------------------------------
+
+data Credentials = Credentials
+  { credsUser :: !Text
+  , credsPassword :: !Text
+  } deriving Show
+
+data Server = Server
+  { serverHost :: !Text
+  , serverPort :: !Int
+  } deriving Show
+
+data Database = Database
+  { databaseName :: !Text
+  , databaseReplicationFactor :: !(Maybe Int)
+  } deriving Show
+
+newtype ScheduledDelete = ScheduledDelete
+  { scheduledDeleteId :: Int
+  } deriving Show
+
+newtype User = User
+  { userName :: Text
+  } deriving Show
+
+newtype Admin = Admin
+  { adminUsername :: Text
+  } deriving Show
+
+
+-----------------------------------------------------------
+-- Aeson instances
+
+deriveFromJSON (stripPrefixOptions "database") ''Database
+deriveFromJSON (stripPrefixOptions "admin") ''Admin
+deriveFromJSON (stripPrefixOptions "user") ''User
