@@ -17,7 +17,6 @@ import qualified Network.HTTP.Client as HC
 
 import Database.InfluxDB.Encode
 import Database.InfluxDB.Http
-import Database.InfluxDB.Types
 import Database.InfluxDB.Lens
 
 main :: IO ()
@@ -29,7 +28,7 @@ main = do
       when (n > 0) $ do
         r <- randomRIO (0, 10000)
         post config manager database $
-          writePoints "random" (r :: RandVal)
+          writeSeries "random" (r :: RandVal)
         putStr "."
         loop $ n - 1
   putStrLn ""
@@ -37,10 +36,8 @@ main = do
 newtype RandVal = RandVal Int deriving (Num, Random, ToValue)
 
 instance ToSeriesData RandVal where
-  toSeriesData (RandVal n) = SeriesData
-    { seriesDataColumns = V.fromList ["value"]
-    , seriesDataPoints = [V.fromList [toValue n]]
-    }
+  toSeriesColumns _ = V.fromList ["value"]
+  toSeriesPoints (RandVal n) = V.fromList [toValue n]
 
 defaultConfig :: (Config, Database)
 defaultConfig = (config, db)

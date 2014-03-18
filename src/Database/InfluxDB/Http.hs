@@ -17,10 +17,10 @@ module Database.InfluxDB.Http
 
   -- ** Updating Points
   , post, postWithPrecision
-  , Write
-  , writePoints
+  , SeriesT, ValueT
   , writeSeries
-  , writeSeriesList
+  , withSeries
+  , writePoints
 
   -- ** Deleting Points
   -- *** One Time Deletes (not implemented)
@@ -56,15 +56,16 @@ module Database.InfluxDB.Http
 import Control.Applicative (Applicative)
 import Control.Monad.Identity
 import Control.Monad.Writer
+import Data.DList (DList)
 import Data.Text (Text)
+import Data.Vector (Vector)
 import Text.Printf (printf)
+import qualified Data.DList as DL
 import qualified Data.Text as T
 
 import Data.Aeson ((.=))
-import Data.DList (DList)
 import qualified Data.Aeson as A
 import qualified Data.Aeson.Encode as AE
-import qualified Data.DList as DL
 import qualified Network.HTTP.Client as HC
 
 import Database.InfluxDB.Encode
@@ -104,10 +105,10 @@ post
   :: Config
   -> HC.Manager
   -> Database
-  -> WriteT IO a
+  -> SeriesT IO a
   -> IO a
 post Config {..} manager database write = do
-  (a, series) <- runWriteT write
+  (a, series) <- runSeriesT write
   request <- makeRequest series
   void $ HC.httpLbs request manager
   return a
@@ -133,10 +134,10 @@ postWithPrecision
   -> HC.Manager
   -> Database
   -> TimePrecision
-  -> WriteT IO a
+  -> SeriesT IO a
   -> IO a
 postWithPrecision Config {..} manager database timePrec write = do
-  (a, series) <- runWriteT write
+  (a, series) <- runSeriesT write
   request <- makeRequest series
   void $ HC.httpLbs request manager
   return a
@@ -158,45 +159,60 @@ postWithPrecision Config {..} manager database timePrec write = do
     Server {..} = configServer
     Credentials {..} = configCreds
 
-type Write = WriteT Identity
-
-newtype WriteT m a = WriteT (WriterT (DList Series) m a)
+newtype SeriesT m a = SeriesT (WriterT (DList Series) m a)
   deriving
     ( Functor, Applicative, Monad, MonadIO, MonadTrans
     , MonadWriter (DList Series)
     )
 
-runWriteT :: Monad m => WriteT m a -> m (a, [Series])
-runWriteT (WriteT w) = do
+newtype ValueT m a = ValueT (WriterT (DList (Vector Value)) m a)
+  deriving
+    ( Functor, Applicative, Monad, MonadIO, MonadTrans
+    , MonadWriter (DList (Vector Value))
+    )
+
+runSeriesT :: Monad m => SeriesT m a -> m (a, [Series])
+runSeriesT (SeriesT w) = do
   (a, series) <- runWriterT w
   return (a, DL.toList series)
 
 -- runWrite :: Write a -> (a, [Series])
 -- runWrite = runIdentity . runWriteT
 
-writePoints
+writeSeries
   :: (Monad m, ToSeriesData a)
   => Text
   -- ^ Series name
   -> a
   -- ^ Series data
-  -> WriteT m ()
-writePoints name a = tell . DL.singleton $ Series
+  -> SeriesT m ()
+writeSeries name a = tell . DL.singleton $ Series
   { seriesName = name
   , seriesData = toSeriesData a
   }
 
-writeSeries
-  :: (Monad m, ToSeries a)
-  => a
-  -> WriteT m ()
-writeSeries = tell . DL.singleton . toSeries
-
-writeSeriesList
+withSeries
   :: Monad m
-  => [Series]
-  -> WriteT m ()
-writeSeriesList = tell . DL.fromList
+  => Text
+  -- ^ Series name
+  -> Vector Column
+  -> ValueT m ()
+  -> SeriesT m ()
+withSeries name columns (ValueT w) = do
+  (_, values) <- lift $ runWriterT w
+  tell $ DL.singleton $ Series
+    { seriesName = name
+    , seriesData = SeriesData
+        { seriesDataColumns = columns
+        , seriesDataPoints = values
+        }
+    }
+
+writePoints
+  :: (Monad m, ToSeriesData a)
+  => a
+  -> ValueT m ()
+writePoints = tell . DL.singleton . toSeriesPoints
 
 -- TODO: Delete API hasn't been implemented in InfluxDB yet
 --

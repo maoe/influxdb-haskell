@@ -33,14 +33,17 @@ main = do
     db <- createDatabase config manager "ctx"
     flip fix batches $ \outerLoop !m -> when (m > 0) $ do
       postWithPrecision config manager db SecondsPrecision $
-        flip fix numPoints $ \innerLoop !n -> when (n > 0) $ do
-          liftIO $ print (m, n)
-          !timestamp <- liftIO $ (-)
-            <$> getPOSIXTime
-            <*> (fromIntegral <$> randomRIO (0, oneWeekInSeconds))
-          !value <- liftIO randomIO
-          writePoints "ct1" $ Point value timestamp
-          innerLoop (n - 1)
+        withSeries "ct1" (V.fromList ["value", "time"]) $ do
+          flip fix numPoints $ \innerLoop !n -> when (n > 0) $ do
+            liftIO $ print (m, n)
+            !timestamp <- liftIO $ (-)
+              <$> getPOSIXTime
+              <*> (fromIntegral <$> randomRIO (0, oneWeekInSeconds))
+            !value <- liftIO randomIO
+            let !point = Point value timestamp
+            liftIO $ putStrLn $ "Writing " ++ show point
+            writePoints point
+            innerLoop (n - 1)
       outerLoop (m - 1)
 
 config :: Config
@@ -54,15 +57,14 @@ managerSettings = HC.defaultManagerSettings
   { HC.managerResponseTimeout = Just $ 60*(10 :: Int)^(6 :: Int)
   }
 
-data Point = Point !Name !POSIXTime
+data Point = Point !Name !POSIXTime deriving Show
 
 instance ToSeriesData Point where
-  toSeriesData (Point value time) = SeriesData
-    { seriesDataColumns = V.fromList ["value", "time"]
-    , seriesDataPoints =
-        [ V.fromList [toValue value, epochInSeconds time]
-        ]
-    }
+  toSeriesColumns _ = V.fromList ["value", "time"]
+  toSeriesPoints (Point value time) = V.fromList
+    [ toValue value
+    , epochInSeconds time
+    ]
 
 epochInSeconds :: POSIXTime -> Value
 epochInSeconds = Int . floor
@@ -73,7 +75,7 @@ data Name
   | Baz
   | Quu
   | Qux
-  deriving (Enum, Bounded)
+  deriving (Enum, Bounded, Show)
 
 instance ToValue Name where
   toValue Foo = String "foo"

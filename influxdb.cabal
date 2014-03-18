@@ -52,6 +52,7 @@ executable influx-random
   build-depends:
       base
     , bytestring
+    , dlist
     , http-client
     , influxdb
     , lens
@@ -71,6 +72,7 @@ executable influx-random-points
   build-depends:
       base
     , bytestring
+    , dlist
     , http-client
     , influxdb
     , lens

@@ -18,14 +18,16 @@ module Database.InfluxDB.Types
   , Admin(..)
   ) where
 
+import Data.DList (DList)
 import Data.Data (Data)
 import Data.Int (Int64)
 import Data.Text (Text)
 import Data.Typeable (Typeable)
+import Data.Vector (Vector)
+import qualified Data.DList as DL
 
 import Data.Aeson ((.=))
 import Data.Aeson.TH
-import Data.Vector (Vector)
 import qualified Data.Aeson as A
 
 import Database.InfluxDB.Types.Internal (stripPrefixOptions)
@@ -38,21 +40,21 @@ data Series = Series
 seriesColumns :: Series -> Vector Column
 seriesColumns = seriesDataColumns . seriesData
 
-seriesPoints :: Series -> [Vector Value]
+seriesPoints :: Series -> DList (Vector Value)
 seriesPoints = seriesDataPoints . seriesData
 
 instance A.ToJSON Series where
   toJSON Series {..} = A.object
     [ "name" .= seriesName
     , "columns" .= seriesDataColumns
-    , "points" .= seriesDataPoints
+    , "points" .= DL.toList seriesDataPoints
     ]
     where
       SeriesData {..} = seriesData
 
 data SeriesData = SeriesData
-  { seriesDataColumns :: !(Vector Column)
-  , seriesDataPoints :: [Vector Value]
+  { seriesDataColumns :: Vector Column
+  , seriesDataPoints :: DList (Vector Value)
   }
 
 type Column = Text
