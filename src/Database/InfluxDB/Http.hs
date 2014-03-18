@@ -6,6 +6,7 @@ module Database.InfluxDB.Http
   ( Config(..)
   , Credentials(..), rootCreds
   , Server(..), localServer
+  , TimePrecision(..)
   , Database(..)
   , Series(..)
   -- , ScheduledDelete(..)
@@ -15,7 +16,7 @@ module Database.InfluxDB.Http
   -- * Writing Data
 
   -- ** Updating Points
-  , post
+  , post, postWithPrecision
   , Write
   , writePoints
   , writeSeries
@@ -53,6 +54,7 @@ module Database.InfluxDB.Http
   ) where
 
 import Control.Applicative (Applicative)
+import Control.Monad.Identity
 import Control.Monad.Writer
 import Data.Text (Text)
 import Text.Printf (printf)
@@ -85,17 +87,32 @@ localServer = Server
   , serverPort = 8086
   }
 
+data TimePrecision
+  = SecondsPrecision
+  | MillisecondsPrecision
+  | MicrosecondsPrecision
+
+timePrecChar :: TimePrecision -> Char
+timePrecChar SecondsPrecision = 's'
+timePrecChar MillisecondsPrecision = 'm'
+timePrecChar MicrosecondsPrecision = 'u'
+
 -----------------------------------------------------------
 -- Writing Data
 
-post :: Config -> HC.Manager -> Database -> Write a -> IO a
+post
+  :: Config
+  -> HC.Manager
+  -> Database
+  -> WriteT IO a
+  -> IO a
 post Config {..} manager database write = do
-  request <- makeRequest
+  (a, series) <- runWriteT write
+  request <- makeRequest series
   void $ HC.httpLbs request manager
   return a
   where
-    (a, series) = runWrite write
-    makeRequest = do
+    makeRequest series = do
       request <- HC.parseUrl url
       return request
         { HC.method = "POST"
@@ -111,35 +128,74 @@ post Config {..} manager database write = do
     Server {..} = configServer
     Credentials {..} = configCreds
 
-newtype Write a = Write (Writer (DList Series) a)
-  deriving (Functor, Applicative, Monad, MonadWriter (DList Series))
-
-runWrite :: Write a -> (a, [Series])
-runWrite (Write w) = (a, DL.toList series)
+postWithPrecision
+  :: Config
+  -> HC.Manager
+  -> Database
+  -> TimePrecision
+  -> WriteT IO a
+  -> IO a
+postWithPrecision Config {..} manager database timePrec write = do
+  (a, series) <- runWriteT write
+  request <- makeRequest series
+  void $ HC.httpLbs request manager
+  return a
   where
-    (a, series) = runWriter w
+    makeRequest series = do
+      request <- HC.parseUrl url
+      return request
+        { HC.method = "POST"
+        , HC.requestBody = HC.RequestBodyLBS $ AE.encode series
+        }
+    url = printf "http://%s:%s/db/%s/series?u=%s&p=%s&time_precision=%c"
+      (T.unpack serverHost)
+      (show serverPort)
+      (T.unpack databaseName)
+      (T.unpack credsUser)
+      (T.unpack credsPassword)
+      (timePrecChar timePrec)
+    Database {databaseName} = database
+    Server {..} = configServer
+    Credentials {..} = configCreds
+
+type Write = WriteT Identity
+
+newtype WriteT m a = WriteT (WriterT (DList Series) m a)
+  deriving
+    ( Functor, Applicative, Monad, MonadIO, MonadTrans
+    , MonadWriter (DList Series)
+    )
+
+runWriteT :: Monad m => WriteT m a -> m (a, [Series])
+runWriteT (WriteT w) = do
+  (a, series) <- runWriterT w
+  return (a, DL.toList series)
+
+-- runWrite :: Write a -> (a, [Series])
+-- runWrite = runIdentity . runWriteT
 
 writePoints
-  :: ToSeriesData a
+  :: (Monad m, ToSeriesData a)
   => Text
   -- ^ Series name
   -> a
   -- ^ Series data
-  -> Write ()
+  -> WriteT m ()
 writePoints name a = tell . DL.singleton $ Series
   { seriesName = name
   , seriesData = toSeriesData a
   }
 
 writeSeries
-  :: ToSeries a
+  :: (Monad m, ToSeries a)
   => a
-  -> Write ()
+  -> WriteT m ()
 writeSeries = tell . DL.singleton . toSeries
 
 writeSeriesList
-  :: [Series]
-  -> Write ()
+  :: Monad m
+  => [Series]
+  -> WriteT m ()
 writeSeriesList = tell . DL.fromList
 
 -- TODO: Delete API hasn't been implemented in InfluxDB yet
