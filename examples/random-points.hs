@@ -1,12 +1,14 @@
 {-# LANGUAGE BangPatterns #-}
 {-# LANGUAGE OverloadedStrings #-}
 {-# LANGUAGE ScopedTypeVariables #-}
+{-# LANGUAGE ViewPatterns #-}
 import Control.Applicative
 import Control.Exception
 import Control.Monad
 import Control.Monad.Trans
 import Data.Function (fix)
 import Data.Time.Clock.POSIX
+import System.Environment
 import System.IO
 import System.Random
 import qualified Data.Vector as V
@@ -20,30 +22,26 @@ import Database.InfluxDB.Types
 oneWeekInSeconds :: Int
 oneWeekInSeconds = 7*24*60*60
 
-numPoints :: Int
-numPoints = 100
-
-batches :: Int
-batches = 100
-
 main :: IO ()
 main = do
+  [read -> (numPoints :: Int), read -> (batches :: Int)] <- getArgs
   hSetBuffering stdout NoBuffering
   HC.withManager managerSettings $ \manager -> do
     dropDatabase config manager (Database "ctx" Nothing)
-      `catch` \(_ :: HC.HttpException) -> return ()
+      `catch`
+        \(_ :: HC.HttpException) -> return ()
     db <- createDatabase config manager "ctx"
-    flip fix batches $ \outerLoop !m -> do
+    flip fix batches $ \outerLoop !m -> when (m > 0) $ do
       postWithPrecision config manager db SecondsPrecision $
-        flip fix numPoints $ \innerLoop !n -> do
+        flip fix numPoints $ \innerLoop !n -> when (n > 0) $ do
           liftIO $ print (m, n)
           !timestamp <- liftIO $ (-)
             <$> getPOSIXTime
             <*> (fromIntegral <$> randomRIO (0, oneWeekInSeconds))
           !value <- liftIO randomIO
           writePoints "ct1" $ Point value timestamp
-          when (n > 0) $ innerLoop (n - 1)
-      when (m > 0) $ outerLoop (m - 1)
+          innerLoop (n - 1)
+      outerLoop (m - 1)
 
 config :: Config
 config = Config
@@ -53,7 +51,7 @@ config = Config
 
 managerSettings :: HC.ManagerSettings
 managerSettings = HC.defaultManagerSettings
-  { HC.managerResponseTimeout = Just $ 60*10^6
+  { HC.managerResponseTimeout = Just $ 60*(10 :: Int)^(6 :: Int)
   }
 
 data Point = Point !Name !POSIXTime
