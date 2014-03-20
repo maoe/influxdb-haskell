@@ -79,7 +79,6 @@ executable influx-random-points
     , lens
     , mtl
     , random
-    , tagged
     , text
     , time
     , vector

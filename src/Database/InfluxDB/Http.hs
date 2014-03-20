@@ -2,6 +2,7 @@
 {-# LANGUAGE NamedFieldPuns #-}
 {-# LANGUAGE OverloadedStrings #-}
 {-# LANGUAGE RecordWildCards #-}
+{-# LANGUAGE ScopedTypeVariables #-}
 module Database.InfluxDB.Http
   ( Config(..)
   , Credentials(..), rootCreds
@@ -193,18 +194,17 @@ writeSeries name a = tell . DL.singleton $ Series
   }
 
 withSeries
-  :: (Monad m, ToSeriesData p)
+  :: forall m p. (Monad m, ToSeriesData p)
   => Text
   -- ^ Series name
-  -> Proxy p
   -> ValueT p m ()
   -> SeriesT m ()
-withSeries name p (ValueT w) = do
+withSeries name (ValueT w) = do
   (_, values) <- lift $ runWriterT w
   tell $ DL.singleton $ Series
     { seriesName = name
     , seriesData = SeriesData
-        { seriesDataColumns = toSeriesColumns p
+        { seriesDataColumns = toSeriesColumns (Proxy :: Proxy p)
         , seriesDataPoints = values
         }
     }
