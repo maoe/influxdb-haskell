@@ -7,6 +7,7 @@ import Control.Exception
 import Control.Monad
 import Control.Monad.Trans
 import Data.Function (fix)
+import Data.Proxy (Proxy(..))
 import Data.Time.Clock.POSIX
 import System.Environment
 import System.IO
@@ -33,7 +34,7 @@ main = do
     db <- createDatabase config manager "ctx"
     flip fix batches $ \outerLoop !m -> when (m > 0) $ do
       postWithPrecision config manager db SecondsPrecision $
-        withSeries "ct1" (V.fromList ["value", "time"]) $ do
+        withSeries "ct1" Proxy $ do
           flip fix numPoints $ \innerLoop !n -> when (n > 0) $ do
             liftIO $ print (m, n)
             !timestamp <- liftIO $ (-)

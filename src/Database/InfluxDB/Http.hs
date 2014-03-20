@@ -57,6 +57,7 @@ import Control.Applicative (Applicative)
 import Control.Monad.Identity
 import Control.Monad.Writer
 import Data.DList (DList)
+import Data.Proxy
 import Data.Text (Text)
 import Data.Vector (Vector)
 import Text.Printf (printf)
@@ -165,7 +166,7 @@ newtype SeriesT m a = SeriesT (WriterT (DList Series) m a)
     , MonadWriter (DList Series)
     )
 
-newtype ValueT m a = ValueT (WriterT (DList (Vector Value)) m a)
+newtype ValueT p m a = ValueT (WriterT (DList (Vector Value)) m a)
   deriving
     ( Functor, Applicative, Monad, MonadIO, MonadTrans
     , MonadWriter (DList (Vector Value))
@@ -192,26 +193,26 @@ writeSeries name a = tell . DL.singleton $ Series
   }
 
 withSeries
-  :: Monad m
+  :: (Monad m, ToSeriesData p)
   => Text
   -- ^ Series name
-  -> Vector Column
-  -> ValueT m ()
+  -> Proxy p
+  -> ValueT p m ()
   -> SeriesT m ()
-withSeries name columns (ValueT w) = do
+withSeries name p (ValueT w) = do
   (_, values) <- lift $ runWriterT w
   tell $ DL.singleton $ Series
     { seriesName = name
     , seriesData = SeriesData
-        { seriesDataColumns = columns
+        { seriesDataColumns = toSeriesColumns p
         , seriesDataPoints = values
         }
     }
 
 writePoints
-  :: (Monad m, ToSeriesData a)
-  => a
-  -> ValueT m ()
+  :: (Monad m, ToSeriesData p)
+  => p
+  -> ValueT p m ()
 writePoints = tell . DL.singleton . toSeriesPoints
 
 -- TODO: Delete API hasn't been implemented in InfluxDB yet

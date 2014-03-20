@@ -35,6 +35,7 @@ library
     , dlist
     , http-client
     , mtl
+    , tagged
     , text
     , time
     , vector
@@ -78,6 +79,7 @@ executable influx-random-points
     , lens
     , mtl
     , random
+    , tagged
     , text
     , time
     , vector

@@ -1,4 +1,6 @@
+{-# LANGUAGE ScopedTypeVariables #-}
 module Database.InfluxDB.Encode where
+import Data.Proxy
 import Data.Vector (Vector)
 import qualified Data.DList as DL
 
@@ -8,12 +10,12 @@ class ToSeries a where
   toSeries :: a -> Series
 
 class ToSeriesData a where
-  toSeriesColumns :: a -> Vector Column
+  toSeriesColumns :: Proxy a -> Vector Column
   toSeriesPoints :: a -> Vector Value
 
-toSeriesData :: ToSeriesData a => a -> SeriesData
+toSeriesData :: forall a. ToSeriesData a => a -> SeriesData
 toSeriesData a = SeriesData
-  { seriesDataColumns = toSeriesColumns a
+  { seriesDataColumns = toSeriesColumns (Proxy :: Proxy a)
   , seriesDataPoints = DL.singleton (toSeriesPoints a)
   }
 
