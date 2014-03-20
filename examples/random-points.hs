@@ -32,19 +32,15 @@ main = do
         \(_ :: HC.HttpException) -> return ()
     db <- createDatabase config manager "ctx"
     flip fix batches $ \outerLoop !m -> when (m > 0) $ do
-      postWithPrecision config manager db SecondsPrecision $
-        withSeries "ct1" $ do
-          flip fix numPoints $ \innerLoop !n -> when (n > 0) $ do
-            liftIO $ print (m, n)
-            !timestamp <- liftIO $ (-)
-              <$> getPOSIXTime
-              <*> (fromIntegral <$> randomRIO (0, oneWeekInSeconds))
-            !value <- liftIO randomIO
-            let !point = Point value timestamp
-            liftIO $ putStrLn $ "Writing " ++ show point
-            writePoints point
-            innerLoop (n - 1)
-      outerLoop (m - 1)
+      postWithPrecision config manager db SecondsPrecision $ withSeries "ct1" $
+        flip fix numPoints $ \innerLoop !n -> when (n > 0) $ do
+          !timestamp <- liftIO $ (-)
+            <$> getPOSIXTime
+            <*> (fromIntegral <$> randomRIO (0, oneWeekInSeconds))
+          !value <- liftIO randomIO
+          writePoints $ Point value timestamp
+          innerLoop $ n - 1
+      outerLoop $ m - 1
 
 config :: Config
 config = Config
