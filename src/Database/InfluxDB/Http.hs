@@ -88,6 +88,7 @@ localServer :: Server
 localServer = Server
   { serverHost = "localhost"
   , serverPort = 8086
+  , serverSsl = False
   }
 
 data TimePrecision
@@ -120,6 +121,7 @@ post Config {..} manager database write = do
       return request
         { HC.method = "POST"
         , HC.requestBody = HC.RequestBodyLBS $ AE.encode series
+        , HC.secure = serverSsl
         }
     url = printf "http://%s:%s/db/%s/series?u=%s&p=%s"
       (T.unpack serverHost)
@@ -149,6 +151,7 @@ postWithPrecision Config {..} manager database timePrec write = do
       return request
         { HC.method = "POST"
         , HC.requestBody = HC.RequestBodyLBS $ AE.encode series
+        , HC.secure = serverSsl
         }
     url = printf "http://%s:%s/db/%s/series?u=%s&p=%s&time_precision=%c"
       (T.unpack serverHost)
@@ -258,7 +261,10 @@ listDatabases Config {..} manager = do
     Nothing -> fail $ show response
     Just xs -> return xs
   where
-    makeRequest = HC.parseUrl url
+    makeRequest = do
+      request <- HC.parseUrl url
+      return request
+        { HC.secure = serverSsl }
     url = printf "http://%s:%s/db?u=%s&p=%s"
       (T.unpack serverHost)
       (show serverPort)
@@ -283,6 +289,7 @@ createDatabase Config {..} manager name = do
         , HC.requestBody = HC.RequestBodyLBS $ AE.encode $ A.object
             [ "name" .= name
             ]
+        , HC.secure = serverSsl
         }
     url = printf "http://%s:%s/db?u=%s&p=%s"
       (T.unpack serverHost)
@@ -301,6 +308,7 @@ dropDatabase Config {..} manager database = do
       request <- HC.parseUrl url
       return request
         { HC.method = "DELETE"
+        , HC.secure = serverSsl
         }
     url = printf "http://%s:%s/db/%s?u=%s&p=%s"
       (T.unpack serverHost)
@@ -323,7 +331,11 @@ listClusterAdmins Config {..} manager = do
     Nothing -> fail $ show response
     Just xs -> return xs
   where
-    makeRequest = HC.parseUrl url
+    makeRequest = do
+      request <- HC.parseUrl url
+      return request
+        { HC.secure = serverSsl
+        }
     url = printf "http://%s:%s/cluster_admins?u=%s&p=%s"
       (T.unpack serverHost)
       (show serverPort)
@@ -350,6 +362,7 @@ addClusterAdmin Config {..} manager name = do
         { HC.requestBody = HC.RequestBodyLBS $ AE.encode $ A.object
             [ "name" .= name
             ]
+        , HC.secure = serverSsl
         }
     url = printf "http://%s:%s/cluster_admins?u=%s&p=%s"
       (T.unpack serverHost)
@@ -376,6 +389,7 @@ updateClusterAdminPassword Config {..} manager admin password = do
         , HC.requestBody = HC.RequestBodyLBS $ AE.encode $ A.object
             [ "password" .= password
             ]
+        , HC.secure = serverSsl
         }
     url = printf "http://%s:%s/cluster_admins/%s?u=%s&p=%s"
       (T.unpack serverHost)
@@ -400,6 +414,7 @@ deleteClusterAdmin Config {..} manager admin = do
       request <- HC.parseUrl url
       return request
         { HC.method = "DELETE"
+        , HC.secure = serverSsl
         }
     url = printf "http://%s:%s/cluster_admins/%s?u=%s&p=%s"
       (T.unpack serverHost)
@@ -422,7 +437,11 @@ listDatabaseUsers Config {..} manager = do
     Nothing -> fail $ show response
     Just xs -> return xs
   where
-    makeRequest = HC.parseUrl url
+    makeRequest = do
+      request <- HC.parseUrl url
+      return request
+        { HC.secure = serverSsl
+        }
     url = printf "http://%s:%s/db/%s/users?u=%s&p=%s"
       (T.unpack serverHost)
       (show serverPort)
@@ -450,6 +469,7 @@ addDatabaseUser Config {..} manager database name = do
         { HC.requestBody = HC.RequestBodyLBS $ AE.encode $ A.object
             [ "name" .= name
             ]
+        , HC.secure = serverSsl
         }
     url = printf "http://%s:%s/db/%s/users?u=%s&p=%s"
       (T.unpack serverHost)
@@ -475,6 +495,7 @@ deleteDatabaseUser Config {..} manager database user = do
       request <- HC.parseUrl url
       return request
         { HC.method = "DELETE"
+        , HC.secure = serverSsl
         }
     url = printf "http://%s:%s/db/%s/users/%s?u=%s&p=%s"
       (T.unpack serverHost)
@@ -506,6 +527,7 @@ updateDatabaseUserPassword Config {..} manager database user password = do
         , HC.requestBody = HC.RequestBodyLBS $ AE.encode $ A.object
             [ "password" .= password
             ]
+        , HC.secure = serverSsl
         }
     url = printf "http://%s:%s/db/%s/users/%s?u=%s&p=%s"
       (T.unpack serverHost)
@@ -536,6 +558,7 @@ grantAdminPrivilegeTo Config {..} manager database user = do
         , HC.requestBody = HC.RequestBodyLBS $ AE.encode $ A.object
             [ "admin" .= True
             ]
+        , HC.secure = serverSsl
         }
     url = printf "http://%s:%s/db/%s/users/%s?u=%s&p=%s"
       (T.unpack serverHost)
@@ -566,6 +589,7 @@ revokeAdminPrivilegeFrom Config {..} manager database user = do
         , HC.requestBody = HC.RequestBodyLBS $ AE.encode $ A.object
             [ "admin" .= False
             ]
+        , HC.secure = serverSsl
         }
     url = printf "http://%s:%s/db/%s/users/%s?u=%s&p=%s"
       (T.unpack serverHost)

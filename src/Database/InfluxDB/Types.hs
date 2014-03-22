@@ -84,6 +84,7 @@ data Credentials = Credentials
 data Server = Server
   { serverHost :: !Text
   , serverPort :: !Int
+  , serverSsl :: !Bool
   } deriving Show
 
 data Database = Database
