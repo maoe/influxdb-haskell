@@ -78,7 +78,7 @@ executable influx-random-points
     , influxdb
     , lens
     , mtl
-    , random
+    , mwc-random
     , text
     , time
     , vector

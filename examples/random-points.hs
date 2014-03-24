@@ -10,10 +10,11 @@ import Data.Function (fix)
 import Data.Time.Clock.POSIX
 import System.Environment
 import System.IO
-import System.Random
 import qualified Data.Vector as V
 
+import System.Random.MWC (Variate(..))
 import qualified Network.HTTP.Client as HC
+import qualified System.Random.MWC as MWC
 
 import Database.InfluxDB.Encode
 import Database.InfluxDB.Http
@@ -31,13 +32,14 @@ main = do
       `catch`
         \(_ :: HC.HttpException) -> return ()
     db <- createDatabase config manager "ctx"
+    gen <- MWC.create
     flip fix batches $ \outerLoop !m -> when (m > 0) $ do
       postWithPrecision config manager db SecondsPrecision $ withSeries "ct1" $
         flip fix numPoints $ \innerLoop !n -> when (n > 0) $ do
           !timestamp <- liftIO $ (-)
             <$> getPOSIXTime
-            <*> (fromIntegral <$> randomRIO (0, oneWeekInSeconds))
-          !value <- liftIO randomIO
+            <*> (fromIntegral <$> uniformR (0, oneWeekInSeconds) gen)
+          !value <- liftIO $ uniform gen
           writePoints $ Point value timestamp
           innerLoop $ n - 1
       outerLoop $ m - 1
@@ -80,8 +82,8 @@ instance ToValue Name where
   toValue Quu = String "quu"
   toValue Qux = String "qux"
 
-instance Random Name where
-  random = randomR (minBound, maxBound)
-  randomR (lower, upper) g = (toEnum a, g')
-    where
-      (a, g') = randomR (fromEnum lower, fromEnum upper) g
+instance Variate Name where
+  uniform = uniformR (minBound, maxBound)
+  uniformR (lower, upper) g = do
+    name <- uniformR (fromEnum lower, fromEnum upper) g
+    return $! toEnum name
