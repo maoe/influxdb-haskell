@@ -33,6 +33,7 @@ library
     , aeson >= 0.7
     , bytestring
     , containers
+    , data-default-class
     , dlist
     , http-client
     , lifted-base

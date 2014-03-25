@@ -74,6 +74,7 @@ import qualified Data.Text as T
 import Control.Exception.Lifted (Handler(..))
 import Control.Retry
 import Data.Aeson ((.=))
+import Data.Default.Class (Default(def))
 import qualified Data.Aeson as A
 import qualified Data.Aeson.Encode as AE
 import qualified Network.HTTP.Client as HC
@@ -120,20 +121,19 @@ post
   -> IO a
 post Config {..} manager database write = do
   (a, series) <- runSeriesT write
-  request <- makeRequest series
-  void $ httpLbsWithRetry configServerPool request manager
+  void $ httpLbsWithRetry configServerPool (makeRequest series) manager
   return a
   where
-    makeRequest series = do
-      request <- HC.parseUrl url
-      return request
-        { HC.method = "POST"
-        , HC.requestBody = HC.RequestBodyLBS $ AE.encode series
-        }
-    url = printf "http://localhost/db/%s/series?u=%s&p=%s"
-      (T.unpack databaseName)
-      (T.unpack credsUser)
-      (T.unpack credsPassword)
+    makeRequest :: [Series] -> HC.Request
+    makeRequest series = def
+      { HC.method = "POST"
+      , HC.requestBody = HC.RequestBodyLBS $ AE.encode series
+      , HC.path = escapeString $ printf "/db/%s/series"
+          (T.unpack databaseName)
+      , HC.queryString = escapeString $ printf "u=%s&p=%s"
+          (T.unpack credsUser)
+          (T.unpack credsPassword)
+      }
     Database {databaseName} = database
     Credentials {..} = configCreds
 
@@ -146,21 +146,19 @@ postWithPrecision
   -> IO a
 postWithPrecision Config {..} manager database timePrec write = do
   (a, series) <- runSeriesT write
-  request <- makeRequest series
-  void $ httpLbsWithRetry configServerPool request manager
+  void $ httpLbsWithRetry configServerPool (makeRequest series) manager
   return a
   where
-    makeRequest series = do
-      request <- HC.parseUrl url
-      return request
-        { HC.method = "POST"
-        , HC.requestBody = HC.RequestBodyLBS $ AE.encode series
-        }
-    url = printf "http://localhost/db/%s/series?u=%s&p=%s&time_precision=%c"
-      (T.unpack databaseName)
-      (T.unpack credsUser)
-      (T.unpack credsPassword)
-      (timePrecChar timePrec)
+    makeRequest series = def
+      { HC.method = "POST"
+      , HC.requestBody = HC.RequestBodyLBS $ AE.encode series
+      , HC.path = escapeString $ printf "/db/%s/series"
+          (T.unpack databaseName)
+      , HC.queryString = escapeString $ printf "u=%s&p=%s&time_precision=%c"
+          (T.unpack credsUser)
+          (T.unpack credsPassword)
+          (timePrecChar timePrec)
+      }
     Database {databaseName} = database
     Credentials {..} = configCreds
 
@@ -255,54 +253,51 @@ writePoints = tell . DL.singleton . toSeriesPoints
 
 listDatabases :: Config -> HC.Manager -> IO [Database]
 listDatabases Config {..} manager = do
-  request <- makeRequest
-  response <- httpLbsWithRetry configServerPool request manager
+  response <- httpLbsWithRetry configServerPool makeRequest manager
   case A.decode (HC.responseBody response) of
     Nothing -> fail $ show response
     Just xs -> return xs
   where
-    makeRequest = HC.parseUrl url
-    url = printf "http://localhost/db?u=%s&p=%s"
-      (T.unpack credsUser)
-      (T.unpack credsPassword)
+    makeRequest = def
+      { HC.path = "/db"
+      , HC.queryString = escapeString $ printf "u=%s&p=%s"
+          (T.unpack credsUser)
+          (T.unpack credsPassword)
+      }
     Credentials {..} = configCreds
 
 createDatabase :: Config -> HC.Manager -> Text -> IO Database
 createDatabase Config {..} manager name = do
-  request <- makeRequest
-  void $ httpLbsWithRetry configServerPool request manager
+  void $ httpLbsWithRetry configServerPool makeRequest manager
   return Database
     { databaseName = name
     , databaseReplicationFactor = Nothing
     }
   where
-    makeRequest = do
-      request <- HC.parseUrl url
-      return request
-        { HC.method = "POST"
-        , HC.requestBody = HC.RequestBodyLBS $ AE.encode $ A.object
-            [ "name" .= name
-            ]
-        }
-    url = printf "http://localhost/db?u=%s&p=%s"
-      (T.unpack credsUser)
-      (T.unpack credsPassword)
+    makeRequest = def
+      { HC.method = "POST"
+      , HC.requestBody = HC.RequestBodyLBS $ AE.encode $ A.object
+          [ "name" .= name
+          ]
+      , HC.path = "/db"
+      , HC.queryString = escapeString $ printf "u=%s&p=%s"
+          (T.unpack credsUser)
+          (T.unpack credsPassword)
+      }
     Credentials {..} = configCreds
 
 dropDatabase :: Config -> HC.Manager -> Database -> IO ()
 dropDatabase Config {..} manager database = do
-  request <- makeRequest
-  void $ httpLbsWithRetry configServerPool request manager
+  void $ httpLbsWithRetry configServerPool makeRequest manager
   where
-    makeRequest = do
-      request <- HC.parseUrl url
-      return request
-        { HC.method = "DELETE"
-        }
-    url = printf "http://localhost/db/%s?u=%s&p=%s"
-      (T.unpack databaseName)
-      (T.unpack credsUser)
-      (T.unpack credsPassword)
+    makeRequest = def
+      { HC.method = "DELETE"
+      , HC.path = escapeString $ printf "/db/%s"
+          (T.unpack databaseName)
+      , HC.queryString = escapeString $ printf "u=%s&p=%s"
+          (T.unpack credsUser)
+          (T.unpack credsPassword)
+      }
     Database {databaseName} = database
     Credentials {..} = configCreds
 
@@ -311,16 +306,17 @@ listClusterAdmins
   -> HC.Manager
   -> IO [Admin]
 listClusterAdmins Config {..} manager = do
-  request <- makeRequest
-  response <- httpLbsWithRetry configServerPool request manager
+  response <- httpLbsWithRetry configServerPool makeRequest manager
   case A.decode (HC.responseBody response) of
     Nothing -> fail $ show response
     Just xs -> return xs
   where
-    makeRequest = HC.parseUrl url
-    url = printf "http://localhost/cluster_admins?u=%s&p=%s"
-      (T.unpack credsUser)
-      (T.unpack credsPassword)
+    makeRequest = def
+      { HC.path = "/cluster_admins"
+      , HC.queryString = escapeString $ printf "u=%s&p=%s"
+          (T.unpack credsUser)
+          (T.unpack credsPassword)
+      }
     Credentials {..} = configCreds
 
 addClusterAdmin
@@ -329,22 +325,20 @@ addClusterAdmin
   -> Text
   -> IO Admin
 addClusterAdmin Config {..} manager name = do
-  request <- makeRequest
-  void $ httpLbsWithRetry configServerPool request manager
+  void $ httpLbsWithRetry configServerPool makeRequest manager
   return Admin
     { adminUsername = name
     }
   where
-    makeRequest = do
-      request <- HC.parseUrl url
-      return request
-        { HC.requestBody = HC.RequestBodyLBS $ AE.encode $ A.object
-            [ "name" .= name
-            ]
-        }
-    url = printf "http://localhost/cluster_admins?u=%s&p=%s"
-      (T.unpack credsUser)
-      (T.unpack credsPassword)
+    makeRequest = def
+      { HC.requestBody = HC.RequestBodyLBS $ AE.encode $ A.object
+          [ "name" .= name
+          ]
+      , HC.path = "/cluster_admins"
+      , HC.queryString = escapeString $ printf "u=%s&p=%s"
+          (T.unpack credsUser)
+          (T.unpack credsPassword)
+      }
     Credentials {..} = configCreds
 
 updateClusterAdminPassword
@@ -353,22 +347,20 @@ updateClusterAdminPassword
   -> Admin
   -> Text
   -> IO ()
-updateClusterAdminPassword Config {..} manager admin password = do
-  request <- makeRequest
-  void $ httpLbsWithRetry configServerPool request manager
+updateClusterAdminPassword Config {..} manager admin password =
+  void $ httpLbsWithRetry configServerPool makeRequest manager
   where
-    makeRequest = do
-      request <- HC.parseUrl url
-      return request
-        { HC.method = "POST"
-        , HC.requestBody = HC.RequestBodyLBS $ AE.encode $ A.object
-            [ "password" .= password
-            ]
-        }
-    url = printf "http://localhost/cluster_admins/%s?u=%s&p=%s"
-      (T.unpack adminUsername)
-      (T.unpack credsUser)
-      (T.unpack credsPassword)
+    makeRequest = def
+      { HC.method = "POST"
+      , HC.requestBody = HC.RequestBodyLBS $ AE.encode $ A.object
+          [ "password" .= password
+          ]
+      , HC.path = escapeString $ printf "/cluster_admins/%s"
+          (T.unpack adminUsername)
+      , HC.queryString = escapeString $ printf "u=%s&p=%s"
+          (T.unpack credsUser)
+          (T.unpack credsPassword)
+      }
     Admin {adminUsername} = admin
     Credentials {..} = configCreds
 
@@ -377,37 +369,38 @@ deleteClusterAdmin
   -> HC.Manager
   -> Admin
   -> IO ()
-deleteClusterAdmin Config {..} manager admin = do
-  request <- makeRequest
-  void $ httpLbsWithRetry configServerPool request manager
+deleteClusterAdmin Config {..} manager admin =
+  void $ httpLbsWithRetry configServerPool makeRequest manager
   where
-    makeRequest = do
-      request <- HC.parseUrl url
-      return request
-        { HC.method = "DELETE"
-        }
-    url = printf "http://localhost/cluster_admins/%s?u=%s&p=%s"
-      (T.unpack adminUsername)
-      (T.unpack credsUser)
-      (T.unpack credsPassword)
+    makeRequest = def
+      { HC.method = "DELETE"
+      , HC.path = escapeString $ printf "/cluster_admins/%s"
+          (T.unpack adminUsername)
+      , HC.queryString = escapeString $ printf "u=%s&p=%s"
+          (T.unpack credsUser)
+          (T.unpack credsPassword)
+      }
     Admin {adminUsername} = admin
     Credentials {..} = configCreds
 
 listDatabaseUsers
   :: Config
   -> HC.Manager
+  -> Text
   -> IO [User]
-listDatabaseUsers Config {..} manager = do
-  request <- makeRequest
-  response <- httpLbsWithRetry configServerPool request manager
+listDatabaseUsers Config {..} manager database = do
+  response <- httpLbsWithRetry configServerPool makeRequest manager
   case A.decode (HC.responseBody response) of
     Nothing -> fail $ show response
     Just xs -> return xs
   where
-    makeRequest = HC.parseUrl url
-    url = printf "http://localhost/db/%s/users?u=%s&p=%s"
-      (T.unpack credsUser)
-      (T.unpack credsPassword)
+    makeRequest = def
+      { HC.path = escapeString $ printf "/db/%s/users"
+          (T.unpack database)
+      , HC.queryString = escapeString $ printf "u=%s&p=%s"
+          (T.unpack credsUser)
+          (T.unpack credsPassword)
+      }
     Credentials {..} = configCreds
 
 addDatabaseUser
@@ -417,23 +410,21 @@ addDatabaseUser
   -> Text
   -> IO User
 addDatabaseUser Config {..} manager database name = do
-  request <- makeRequest
-  void $ httpLbsWithRetry configServerPool request manager
+  void $ httpLbsWithRetry configServerPool makeRequest manager
   return User
     { userName = name
     }
   where
-    makeRequest = do
-      request <- HC.parseUrl url
-      return request
-        { HC.requestBody = HC.RequestBodyLBS $ AE.encode $ A.object
-            [ "name" .= name
-            ]
-        }
-    url = printf "http://localhost/db/%s/users?u=%s&p=%s"
-      (T.unpack databaseName)
-      (T.unpack credsUser)
-      (T.unpack credsPassword)
+    makeRequest = def
+      { HC.requestBody = HC.RequestBodyLBS $ AE.encode $ A.object
+          [ "name" .= name
+          ]
+      , HC.path = escapeString $ printf "/db/%s/users"
+          (T.unpack databaseName)
+      , HC.queryString = escapeString $ printf "u=%s&p=%s"
+          (T.unpack credsUser)
+          (T.unpack credsPassword)
+      }
     Database {databaseName} = database
     Credentials {..} = configCreds
 
@@ -443,20 +434,18 @@ deleteDatabaseUser
   -> Database
   -> User
   -> IO ()
-deleteDatabaseUser Config {..} manager database user = do
-  request <- makeRequest
-  void $ httpLbsWithRetry configServerPool request manager
+deleteDatabaseUser Config {..} manager database user =
+  void $ httpLbsWithRetry configServerPool makeRequest manager
   where
-    makeRequest = do
-      request <- HC.parseUrl url
-      return request
-        { HC.method = "DELETE"
-        }
-    url = printf "http://localhost/db/%s/users/%s?u=%s&p=%s"
-      (T.unpack databaseName)
-      (T.unpack userName)
-      (T.unpack credsUser)
-      (T.unpack credsPassword)
+    makeRequest = def
+      { HC.method = "DELETE"
+      , HC.path = escapeString $ printf "/db/%s/users/%s"
+          (T.unpack databaseName)
+          (T.unpack userName)
+      , HC.queryString = escapeString $ printf "u=%s&p=%s"
+          (T.unpack credsUser)
+          (T.unpack credsPassword)
+      }
     Database {databaseName} = database
     User {userName} = user
     Credentials {..} = configCreds
@@ -468,23 +457,21 @@ updateDatabaseUserPassword
   -> User
   -> Text
   -> IO ()
-updateDatabaseUserPassword Config {..} manager database user password = do
-  request <- makeRequest
-  void $ HC.httpLbs request manager
+updateDatabaseUserPassword Config {..} manager database user password =
+  void $ HC.httpLbs makeRequest manager
   where
-    makeRequest = do
-      request <- HC.parseUrl url
-      return request
-        { HC.method = "POST"
-        , HC.requestBody = HC.RequestBodyLBS $ AE.encode $ A.object
-            [ "password" .= password
-            ]
-        }
-    url = printf "http://localhost/db/%s/users/%s?u=%s&p=%s"
-      (T.unpack databaseName)
-      (T.unpack userName)
-      (T.unpack credsUser)
-      (T.unpack credsPassword)
+    makeRequest = def
+      { HC.method = "POST"
+      , HC.requestBody = HC.RequestBodyLBS $ AE.encode $ A.object
+          [ "password" .= password
+          ]
+      , HC.path = escapeString $ printf "/db/%s/users/%s"
+          (T.unpack databaseName)
+          (T.unpack userName)
+      , HC.queryString = escapeString $ printf "u=%s&p=%s"
+          (T.unpack credsUser)
+          (T.unpack credsPassword)
+      }
     Database {databaseName} = database
     User {userName} = user
     Credentials {..} = configCreds
@@ -495,23 +482,21 @@ grantAdminPrivilegeTo
   -> Database
   -> User
   -> IO ()
-grantAdminPrivilegeTo Config {..} manager database user = do
-  request <- makeRequest
-  void $ httpLbsWithRetry configServerPool request manager
+grantAdminPrivilegeTo Config {..} manager database user =
+  void $ httpLbsWithRetry configServerPool makeRequest manager
   where
-    makeRequest = do
-      request <- HC.parseUrl url
-      return request
-        { HC.method = "POST"
-        , HC.requestBody = HC.RequestBodyLBS $ AE.encode $ A.object
-            [ "admin" .= True
-            ]
-        }
-    url = printf "http://localhost/db/%s/users/%s?u=%s&p=%s"
-      (T.unpack databaseName)
-      (T.unpack userName)
-      (T.unpack credsUser)
-      (T.unpack credsPassword)
+    makeRequest = def
+      { HC.method = "POST"
+      , HC.requestBody = HC.RequestBodyLBS $ AE.encode $ A.object
+          [ "admin" .= True
+          ]
+      , HC.path = escapeString $ printf "/db/%s/users/%s"
+          (T.unpack databaseName)
+          (T.unpack userName)
+      , HC.queryString = escapeString $ printf "u=%s&p=%s"
+          (T.unpack credsUser)
+          (T.unpack credsPassword)
+      }
     Database {databaseName} = database
     User {userName} = user
     Credentials {..} = configCreds
@@ -522,23 +507,21 @@ revokeAdminPrivilegeFrom
   -> Database
   -> User
   -> IO ()
-revokeAdminPrivilegeFrom Config {..} manager database user = do
-  request <- makeRequest
-  void $ httpLbsWithRetry configServerPool request manager
+revokeAdminPrivilegeFrom Config {..} manager database user =
+  void $ httpLbsWithRetry configServerPool makeRequest manager
   where
-    makeRequest = do
-      request <- HC.parseUrl url
-      return request
-        { HC.method = "POST"
-        , HC.requestBody = HC.RequestBodyLBS $ AE.encode $ A.object
-            [ "admin" .= False
-            ]
-        }
-    url = printf "http://localhost/db/%s/users/%s?u=%s&p=%s"
-      (T.unpack databaseName)
-      (T.unpack userName)
-      (T.unpack credsUser)
-      (T.unpack credsPassword)
+    makeRequest = def
+      { HC.method = "POST"
+      , HC.requestBody = HC.RequestBodyLBS $ AE.encode $ A.object
+          [ "admin" .= False
+          ]
+      , HC.path = escapeString $ printf "/db/%s/users/%s"
+          (T.unpack databaseName)
+          (T.unpack userName)
+      , HC.queryString = escapeString $ printf "u=%s&p=%s"
+          (T.unpack credsUser)
+          (T.unpack credsPassword)
+      }
     Database {databaseName} = database
     User {userName} = user
     Credentials {..} = configCreds
@@ -576,4 +559,7 @@ defaultRetrySettings = RetrySettings
   }
 
 escapeText :: Text -> BS.ByteString
-escapeText = BS8.pack . escapeURIString isAllowedInURI . T.unpack
+escapeText = escapeString . T.unpack
+
+escapeString :: String -> BS.ByteString
+escapeString = BS8.pack . escapeURIString isAllowedInURI
