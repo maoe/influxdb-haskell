@@ -32,9 +32,13 @@ library
       base >= 4 && < 4.8
     , aeson >= 0.7
     , bytestring
+    , containers
     , dlist
     , http-client
+    , lifted-base
     , mtl
+    , network
+    , retry
     , tagged
     , text
     , time
