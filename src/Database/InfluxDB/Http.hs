@@ -63,12 +63,13 @@ import Data.IORef (IORef)
 import Data.Proxy
 import Data.Text (Text)
 import Data.Vector (Vector)
+import Network.URI (escapeURIString, isAllowedInURI)
 import Text.Printf (printf)
-import qualified Data.DList as DL
-import qualified Data.Text as T
+import qualified Data.ByteString as BS
 import qualified Data.ByteString.Char8 as BS8
 import qualified Data.ByteString.Lazy as BL
-import Network.URI (escapeURIString, isAllowedInURI)
+import qualified Data.DList as DL
+import qualified Data.Text as T
 
 import Control.Exception.Lifted (Handler(..))
 import Control.Retry
@@ -555,12 +556,10 @@ httpLbsWithRetry pool request manager =
     HC.httpLbs (makeRequest server) manager
   where
     makeRequest Server {..} = request
-      { HC.host = BS8.pack $ escape $ T.unpack serverHost
+      { HC.host = escapeText serverHost
       , HC.port = serverPort
       , HC.secure = serverSsl
       }
-    escape = escapeURIString isAllowedInURI
-    handlers :: [Handler IO Bool]
     handlers =
       [ Handler $ \case
           HC.InternalIOException _ -> do
@@ -575,3 +574,6 @@ defaultRetrySettings = RetrySettings
   , backoff = True
   , baseDelay = 50
   }
+
+escapeText :: Text -> BS.ByteString
+escapeText = BS8.pack . escapeURIString isAllowedInURI . T.unpack
