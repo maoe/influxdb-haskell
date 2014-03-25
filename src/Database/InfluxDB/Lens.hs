@@ -1,7 +1,6 @@
 {-# LANGUAGE RankNTypes #-}
 module Database.InfluxDB.Lens
   ( credentials, user, password
-  , server, host, port
   ) where
 import Control.Applicative
 import Data.Text (Text)
@@ -25,18 +24,3 @@ password :: Lens' Credentials Text
 password f s = set <$> f (credsPassword s)
   where
     set p = s { credsPassword = p }
-
-host :: Lens' Server Text
-host f s = set <$> f (serverHost s)
-  where
-    set h = s { serverHost = h }
-
-port :: Lens' Server Int
-port f s = set <$> f (serverPort s)
-  where
-    set p = s { serverPort = p }
-
-server :: Lens' Config Server
-server f r = set <$> f (configServer r)
-  where
-    set srv = r { configServer = srv }

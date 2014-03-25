@@ -27,9 +27,11 @@ main :: IO ()
 main = do
   [read -> (numPoints :: Int), read -> (batches :: Int)] <- getArgs
   hSetBuffering stdout NoBuffering
+  config <- newConfig
   HC.withManager managerSettings $ \manager -> do
     dropDatabase config manager (Database "ctx" Nothing)
       `catch`
+        -- Ignore exceptions here
         \(_ :: HC.HttpException) -> return ()
     db <- createDatabase config manager "ctx"
     gen <- MWC.create
@@ -44,11 +46,13 @@ main = do
           innerLoop $ n - 1
       outerLoop $ m - 1
 
-config :: Config
-config = Config
-  { configCreds = rootCreds
-  , configServer = localServer
-  }
+newConfig :: IO Config
+newConfig = do
+  pool <- newServerPool localServer [] -- no backup servers
+  return Config
+    { configCreds = rootCreds
+    , configServerPool = pool
+    }
 
 managerSettings :: HC.ManagerSettings
 managerSettings = HC.defaultManagerSettings

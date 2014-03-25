@@ -1,4 +1,5 @@
 {-# LANGUAGE DeriveDataTypeable #-}
+{-# LANGUAGE NamedFieldPuns #-}
 {-# LANGUAGE OverloadedStrings #-}
 {-# LANGUAGE RecordWildCards #-}
 {-# LANGUAGE TemplateHaskell #-}
@@ -12,19 +13,27 @@ module Database.InfluxDB.Types
 
   , Credentials(..)
   , Server(..)
+  , ServerPool(..)
   , Database(..)
   , ScheduledDelete(..)
   , User(..)
   , Admin(..)
+
+  , newServerPool
+  , activeServer
+  , failover
   ) where
 
 import Data.DList (DList)
 import Data.Data (Data)
+import Data.IORef
 import Data.Int (Int64)
+import Data.Sequence (Seq, ViewL(..), (|>))
 import Data.Text (Text)
 import Data.Typeable (Typeable)
 import Data.Vector (Vector)
 import qualified Data.DList as DL
+import qualified Data.Sequence as Seq
 
 import Data.Aeson ((.=))
 import Data.Aeson.TH
@@ -87,6 +96,11 @@ data Server = Server
   , serverSsl :: !Bool
   } deriving Show
 
+data ServerPool = ServerPool
+  { serverActive :: !Server
+  , serverBackup :: !(Seq Server)
+  }
+
 data Database = Database
   { databaseName :: !Text
   , databaseReplicationFactor :: !(Maybe Int)
@@ -104,6 +118,31 @@ newtype Admin = Admin
   { adminUsername :: Text
   } deriving Show
 
+
+-----------------------------------------------------------
+-- Server pool manipulation
+
+newServerPool :: Server -> [Server] -> IO (IORef ServerPool)
+newServerPool active backups = newIORef ServerPool
+  { serverActive = active
+  , serverBackup = Seq.fromList backups
+  }
+
+activeServer :: IORef ServerPool -> IO Server
+activeServer ref = do
+  ServerPool { serverActive } <- readIORef ref
+  return serverActive
+
+failover :: IORef ServerPool -> IO ()
+failover ref = atomicModifyIORef' ref $ \pool@ServerPool {..} ->
+  case Seq.viewl serverBackup of
+    EmptyL -> (pool, ())
+    active :< rest -> (pool', ())
+      where
+        pool' = ServerPool
+          { serverActive = active
+          , serverBackup = rest |> serverActive
+          }
 
 -----------------------------------------------------------
 -- Aeson instances
