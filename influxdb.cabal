@@ -42,26 +42,6 @@ library
   hs-source-dirs: src
   default-language: Haskell2010
 
-executable influx-random
-  if flag(examples)
-    buildable: True
-  else
-    buildable: False
-  hs-source-dirs: examples
-  main-is: random.hs
-  ghc-options: -Wall
-  build-depends:
-      base
-    , bytestring
-    , dlist
-    , http-client
-    , influxdb
-    , lens
-    , random
-    , text
-    , vector
-  default-language: Haskell2010
-
 executable influx-random-points
   if flag(examples)
     buildable: True
