@@ -3,7 +3,7 @@
 {-# LANGUAGE ScopedTypeVariables #-}
 {-# LANGUAGE ViewPatterns #-}
 import Control.Applicative
-import Control.Exception
+import Control.Exception as E
 import Control.Monad
 import Control.Monad.Trans
 import Data.Function (fix)
@@ -30,7 +30,7 @@ main = do
   config <- newConfig
   HC.withManager managerSettings $ \manager -> do
     dropDatabase config manager (Database "ctx" Nothing)
-      `catch`
+      `E.catch`
         -- Ignore exceptions here
         \(_ :: HC.HttpException) -> return ()
     db <- createDatabase config manager "ctx"

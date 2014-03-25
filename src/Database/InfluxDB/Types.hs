@@ -42,6 +42,19 @@ import qualified Data.Aeson as A
 
 import Database.InfluxDB.Types.Internal (stripPrefixOptions)
 
+-----------------------------------------------------------
+-- Compatibility for older GHC
+
+#if __GLASGOW_HASKELL__ < 706
+atomicModifyIORef' :: IORef a -> (a -> (a, b)) -> IO b
+atomicModifyIORef' ref f = do
+    b <- atomicModifyIORef ref $ \x ->
+      let (a, b) = f x
+      in (a, a `seq` b)
+    evaluate b
+#endif
+-----------------------------------------------------------
+
 data Series = Series
   { seriesName :: {-# UNPACK #-} !Text
   , seriesData :: {-# UNPACK #-} !SeriesData
@@ -151,16 +164,3 @@ failover ref = atomicModifyIORef' ref $ \pool@ServerPool {..} ->
 deriveFromJSON (stripPrefixOptions "database") ''Database
 deriveFromJSON (stripPrefixOptions "admin") ''Admin
 deriveFromJSON (stripPrefixOptions "user") ''User
-
------------------------------------------------------------
--- Compatibility for older GHC
-
-#if __GLASGOW_HASKELL__ >= 706
-#else
-atomicModifyIORef' :: IORef a -> (a -> (a, b)) -> IO b
-atomicModifyIORef' ref f = do
-    b <- atomicModifyIORef ref $ \x ->
-      let (a, b) = f x
-      in (a, a `seq` b)
-    evaluate b
-#endif
