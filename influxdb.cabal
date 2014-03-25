@@ -61,7 +61,6 @@ executable influx-random-points
     , dlist
     , http-client
     , influxdb
-    , lens
     , mtl
     , mwc-random
     , text
