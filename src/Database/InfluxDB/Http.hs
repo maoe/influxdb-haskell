@@ -1,5 +1,4 @@
 {-# LANGUAGE GeneralizedNewtypeDeriving #-}
-{-# LANGUAGE LambdaCase #-}
 {-# LANGUAGE NamedFieldPuns #-}
 {-# LANGUAGE OverloadedStrings #-}
 {-# LANGUAGE RecordWildCards #-}
@@ -544,7 +543,7 @@ httpLbsWithRetry pool request manager =
       , HC.secure = serverSsl
       }
     handlers =
-      [ Handler $ \case
+      [ Handler $ \e -> case e of
           HC.InternalIOException _ -> do
             failover pool
             return True
