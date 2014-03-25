@@ -1,3 +1,4 @@
+{-# LANGUAGE CPP #-}
 {-# LANGUAGE DeriveDataTypeable #-}
 {-# LANGUAGE NamedFieldPuns #-}
 {-# LANGUAGE OverloadedStrings #-}
@@ -150,3 +151,16 @@ failover ref = atomicModifyIORef' ref $ \pool@ServerPool {..} ->
 deriveFromJSON (stripPrefixOptions "database") ''Database
 deriveFromJSON (stripPrefixOptions "admin") ''Admin
 deriveFromJSON (stripPrefixOptions "user") ''User
+
+-----------------------------------------------------------
+-- Compatibility for older GHC
+
+#if __GLASGOW_HASKELL__ >= 706
+#else
+atomicModifyIORef' :: IORef a -> (a -> (a, b)) -> IO b
+atomicModifyIORef' ref f = do
+    b <- atomicModifyIORef ref $ \x ->
+      let (a, b) = f x
+      in (a, a `seq` b)
+    evaluate b
+#endif
