@@ -25,6 +25,7 @@ module Database.InfluxDB.Types
   , failover
   ) where
 
+import Control.Applicative (empty)
 import Data.DList (DList)
 import Data.Data (Data)
 import Data.IORef
@@ -36,8 +37,9 @@ import Data.Vector (Vector)
 import qualified Data.DList as DL
 import qualified Data.Sequence as Seq
 
-import Data.Aeson ((.=))
+import Data.Aeson ((.=), (.:))
 import Data.Aeson.TH
+import Data.Scientific
 import qualified Data.Aeson as A
 
 import Database.InfluxDB.Types.Internal (stripPrefixOptions)
@@ -77,6 +79,20 @@ instance A.ToJSON Series where
     where
       SeriesData {..} = seriesData
 
+instance A.FromJSON Series where
+  parseJSON (A.Object v) = do
+    name <- v .: "name"
+    columns <- v .: "columns"
+    points <- v .: "points"
+    return Series
+      { seriesName = name
+      , seriesData = SeriesData
+          { seriesDataColumns = columns
+          , seriesDataPoints = DL.fromList points
+          }
+      }
+  parseJSON _ = empty
+
 data SeriesData = SeriesData
   { seriesDataColumns :: Vector Column
   , seriesDataPoints :: DList (Vector Value)
@@ -98,6 +114,16 @@ instance A.ToJSON Value where
   toJSON (String xs) = A.toJSON xs
   toJSON (Bool b) = A.toJSON b
   toJSON Null = A.Null
+
+instance A.FromJSON Value where
+  parseJSON (A.Object o) = fail $ "Unexpected object: " ++ show o
+  parseJSON (A.Array a) = fail $ "Unexpected array: " ++ show a
+  parseJSON (A.String xs) = return $ String xs
+  parseJSON (A.Bool b) = return $ Bool b
+  parseJSON A.Null = return Null
+  parseJSON (A.Number n) = return $! if base10Exponent n == 0
+    then Int $ fromIntegral $ coefficient n
+    else Float $ realToFrac n
 
 -----------------------------------------------------------
 

@@ -32,6 +32,7 @@ module Database.InfluxDB.Http
   -- , removeScheduledDelete
 
   -- * Querying Data
+  , query
 
   -- * Administration & Security
   -- ** Creating and Dropping Databases
@@ -241,6 +242,27 @@ writePoints = tell . DL.singleton . toSeriesPoints
 --   -> IO ()
 -- removeScheduledDelete =
 --   error "removeScheduledDelete: not implemented"
+
+-----------------------------------------------------------
+-- Querying Data
+
+query :: Config -> HC.Manager -> Database -> Text -> IO [Series]
+query Config {..} manager database q = do
+  response <- httpLbsWithRetry configServerPool request manager
+  case A.decode (HC.responseBody response) of
+    Nothing -> fail $ show response
+    Just xs -> return xs
+  where
+    request = def
+      { HC.path = escapeString $ printf "/db/%s/series"
+          (T.unpack databaseName)
+      , HC.queryString = escapeString $ printf "u=%s&p=%s&q=%s"
+          (T.unpack credsUser)
+          (T.unpack credsPassword)
+          (T.unpack q)
+      }
+    Database {databaseName} = database
+    Credentials {..} = configCreds
 
 -----------------------------------------------------------
 -- Administration & Security
