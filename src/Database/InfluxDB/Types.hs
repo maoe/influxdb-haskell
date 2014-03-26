@@ -46,6 +46,8 @@ import Database.InfluxDB.Types.Internal (stripPrefixOptions)
 -- Compatibility for older GHC
 
 #if __GLASGOW_HASKELL__ < 706
+import Control.Exception (evaluate)
+
 atomicModifyIORef' :: IORef a -> (a -> (a, b)) -> IO b
 atomicModifyIORef' ref f = do
     b <- atomicModifyIORef ref $ \x ->
