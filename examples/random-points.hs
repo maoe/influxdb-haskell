@@ -53,6 +53,15 @@ main = do
       series:_ -> do
         print $ seriesColumns series
         print $ DL.toList $ seriesPoints series
+    -- Streaming output
+    stream0 <- queryChunked config manager db "select * from ct1;"
+    flip fix stream0 $ \loop stream -> case stream of
+      Done -> return ()
+      Yield series next -> do
+        print $ seriesColumns series
+        print $ DL.toList $ seriesPoints series
+        stream' <- next
+        loop stream'
 
 newConfig :: IO Config
 newConfig = do
