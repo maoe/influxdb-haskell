@@ -298,10 +298,11 @@ queryChunked
   -> HC.Manager
   -> Database
   -> Text
-  -> IO (Stream IO Series)
-queryChunked Config {..} manager database q =
+  -> (Stream IO Series -> IO a)
+  -> IO a
+queryChunked Config {..} manager database q f =
   withPool configServerPool request $ \request' ->
-    HC.withResponse request' manager (responseStream . HC.responseBody)
+    HC.withResponse request' manager $ responseStream . HC.responseBody >=> f
   where
     request = def
       { HC.path = escapeString $ printf "/db/%s/series"
