@@ -32,6 +32,9 @@ module Database.InfluxDB.Http
   -- , removeScheduledDelete
 
   -- * Querying Data
+  , query
+  , Stream(..)
+  , queryChunked
 
   -- * Administration & Security
   -- ** Creating and Dropping Databases
@@ -54,7 +57,7 @@ module Database.InfluxDB.Http
   , revokeAdminPrivilegeFrom
   ) where
 
-import Control.Applicative (Applicative)
+import Control.Applicative
 import Control.Monad.Identity
 import Control.Monad.Writer
 import Data.DList (DList)
@@ -76,6 +79,7 @@ import Data.Aeson ((.=))
 import Data.Default.Class (Default(def))
 import qualified Data.Aeson as A
 import qualified Data.Aeson.Encode as AE
+import qualified Data.Attoparsec as P
 import qualified Network.HTTP.Client as HC
 
 import Database.InfluxDB.Encode
@@ -241,6 +245,75 @@ writePoints = tell . DL.singleton . toSeriesPoints
 --   -> IO ()
 -- removeScheduledDelete =
 --   error "removeScheduledDelete: not implemented"
+
+-----------------------------------------------------------
+-- Querying Data
+
+query :: Config -> HC.Manager -> Database -> Text -> IO [Series]
+query Config {..} manager database q = do
+  response <- httpLbsWithRetry configServerPool request manager
+  case A.decode (HC.responseBody response) of
+    Nothing -> fail $ show response
+    Just xs -> return xs
+  where
+    request = def
+      { HC.path = escapeString $ printf "/db/%s/series"
+          (T.unpack databaseName)
+      , HC.queryString = escapeString $ printf "u=%s&p=%s&q=%s"
+          (T.unpack credsUser)
+          (T.unpack credsPassword)
+          (T.unpack q)
+      }
+    Database {databaseName} = database
+    Credentials {..} = configCreds
+
+data Stream m a
+  = Yield a (m (Stream m a))
+  | Done
+
+yield :: Monad m => a -> m (Stream m a) -> m (Stream m a)
+yield a = return . Yield a
+
+done :: Monad m => m (Stream m a)
+done = return Done
+
+responseStream :: A.FromJSON a => HC.BodyReader -> IO (Stream IO a)
+responseStream body = readBody outer
+  where
+    readBody k = HC.brRead body >>= k
+    outer payload
+      | BS.null payload = done
+      | otherwise = inner $ parseJson payload
+    inner (P.Done leftover value) = case A.fromJSON value of
+      A.Success a -> yield a $ if BS.null leftover
+        then responseStream body
+        else inner $ parseJson leftover
+      A.Error message -> fail message
+    inner (P.Partial k) = readBody (inner . k)
+    inner (P.Fail _ _ message) = fail message
+    parseJson = P.parse A.json
+
+queryChunked
+  :: Config
+  -> HC.Manager
+  -> Database
+  -> Text
+  -> (Stream IO Series -> IO a)
+  -> IO a
+queryChunked Config {..} manager database q f =
+  withPool configServerPool request $ \request' ->
+    HC.withResponse request' manager $ responseStream . HC.responseBody >=> f
+  where
+    request = def
+      { HC.path = escapeString $ printf "/db/%s/series"
+          (T.unpack databaseName)
+      , HC.queryString = escapeString $ printf "u=%s&p=%s&q=%s&chunked=true"
+          (T.unpack credsUser)
+          (T.unpack credsPassword)
+          (T.unpack q)
+      }
+    Database {databaseName} = database
+    Credentials {..} = configCreds
 
 -----------------------------------------------------------
 -- Administration & Security
@@ -510,9 +583,18 @@ httpLbsWithRetry
   -> HC.Manager
   -> IO (HC.Response BL.ByteString)
 httpLbsWithRetry pool request manager =
+  withPool pool request $ \request' ->
+    HC.httpLbs request' manager
+
+withPool
+  :: IORef ServerPool
+  -> HC.Request
+  -> (HC.Request -> IO a)
+  -> IO a
+withPool pool request f =
   recovering defaultRetrySettings handlers $ do
     server <- activeServer pool
-    HC.httpLbs (makeRequest server) manager
+    f $ makeRequest server
   where
     makeRequest Server {..} = request
       { HC.host = escapeText serverHost

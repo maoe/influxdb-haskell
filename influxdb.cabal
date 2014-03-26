@@ -31,6 +31,7 @@ library
   build-depends:
       base >= 4 && < 4.8
     , aeson >= 0.7
+    , attoparsec
     , bytestring
     , containers
     , data-default-class
@@ -40,6 +41,7 @@ library
     , mtl
     , network
     , retry
+    , scientific
     , tagged
     , text
     , time

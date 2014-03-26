@@ -13,6 +13,7 @@ import System.IO
 import qualified Data.Vector as V
 
 import System.Random.MWC (Variate(..))
+import qualified Data.DList as DL
 import qualified Network.HTTP.Client as HC
 import qualified System.Random.MWC as MWC
 
@@ -45,6 +46,22 @@ main = do
           writePoints $ Point value timestamp
           innerLoop $ n - 1
       outerLoop $ m - 1
+
+    result <- query config manager db "select count(value) from ct1;"
+    case result of
+      [] -> putStrLn "Empty series"
+      series:_ -> do
+        print $ seriesColumns series
+        print $ DL.toList $ seriesPoints series
+    -- Streaming output
+    queryChunked config manager db "select * from ct1;" $ \stream0 ->
+      flip fix stream0 $ \loop stream -> case stream of
+        Done -> return ()
+        Yield series next -> do
+          print $ seriesColumns series
+          print $ DL.toList $ seriesPoints series
+          stream' <- next
+          loop stream'
 
 newConfig :: IO Config
 newConfig = do
