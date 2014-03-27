@@ -26,7 +26,7 @@ module Database.InfluxDB
 
   -- *** Updating Points
   , post, postWithPrecision
-  , SeriesT, ValueT
+  , SeriesT, PointT
   , writeSeries
   , withSeries
   , writePoints

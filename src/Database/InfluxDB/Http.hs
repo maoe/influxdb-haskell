@@ -8,17 +8,12 @@ module Database.InfluxDB.Http
   , Credentials(..), rootCreds
   , Server(..), localServer
   , TimePrecision(..)
-  , Database(..)
-  , Series(..)
-  -- , ScheduledDelete(..)
-  , User(..)
-  , Admin(..)
 
   -- * Writing Data
 
   -- ** Updating Points
   , post, postWithPrecision
-  , SeriesT, ValueT
+  , SeriesT, PointT
   , writeSeries
   , withSeries
   , writePoints
@@ -85,17 +80,20 @@ import qualified Network.HTTP.Client as HC
 import Database.InfluxDB.Encode
 import Database.InfluxDB.Types
 
+-- | Configurations for HTTP API client.
 data Config = Config
   { configCreds :: !Credentials
   , configServerPool :: IORef ServerPool
   }
 
+-- | Default credentials.
 rootCreds :: Credentials
 rootCreds = Credentials
   { credsUser = "root"
   , credsPassword = "root"
   }
 
+-- | Default server location.
 localServer :: Server
 localServer = Server
   { serverHost = "localhost"
@@ -116,6 +114,7 @@ timePrecChar MicrosecondsPrecision = 'u'
 -----------------------------------------------------------
 -- Writing Data
 
+-- | Post a bunch of writes for (possibly multiple) series into a database.
 post
   :: Config
   -> HC.Manager
@@ -125,6 +124,8 @@ post
 post config manager database =
   postGeneric config manager database Nothing
 
+-- | Post a bunch of writes for (possibly multiple) series into a database like
+-- @post@ but with time precision.
 postWithPrecision
   :: Config
   -> HC.Manager
@@ -155,18 +156,25 @@ postGeneric Config {..} manager database timePrec write = do
       , HC.queryString = escapeString $ printf "u=%s&p=%s%s"
           (T.unpack credsUser)
           (T.unpack credsPassword)
-          (maybe "" (printf "&time_precision=%c" . timePrecChar) timePrec :: String)
+          (maybe
+            ""
+            (printf "&time_precision=%c" . timePrecChar)
+            timePrec :: String)
       }
     Database {databaseName} = database
     Credentials {..} = configCreds
 
+-- | Monad transformer to batch up multiple writes of series to speed up
+-- insertions.
 newtype SeriesT m a = SeriesT (WriterT (DList Series) m a)
   deriving
     ( Functor, Applicative, Monad, MonadIO, MonadTrans
     , MonadWriter (DList Series)
     )
 
-newtype ValueT p m a = ValueT (WriterT (DList (Vector Value)) m a)
+-- | Monad transformer to batch up multiple writes of points to speed up
+-- insertions.
+newtype PointT p m a = PointT (WriterT (DList (Vector Value)) m a)
   deriving
     ( Functor, Applicative, Monad, MonadIO, MonadTrans
     , MonadWriter (DList (Vector Value))
@@ -177,9 +185,7 @@ runSeriesT (SeriesT w) = do
   (a, series) <- runWriterT w
   return (a, DL.toList series)
 
--- runWrite :: Write a -> (a, [Series])
--- runWrite = runIdentity . runWriteT
-
+-- | Write a single series data.
 writeSeries
   :: (Monad m, ToSeriesData a)
   => Text
@@ -192,26 +198,29 @@ writeSeries name a = tell . DL.singleton $ Series
   , seriesData = toSeriesData a
   }
 
+-- | Write a bunch of data for a single series. Columns for the points don't
+-- need to be specified because they can be inferred from the type of @a@.
 withSeries
-  :: forall m p. (Monad m, ToSeriesData p)
+  :: forall m a. (Monad m, ToSeriesData a)
   => Text
   -- ^ Series name
-  -> ValueT p m ()
+  -> PointT a m ()
   -> SeriesT m ()
-withSeries name (ValueT w) = do
+withSeries name (PointT w) = do
   (_, values) <- lift $ runWriterT w
   tell $ DL.singleton Series
     { seriesName = name
     , seriesData = SeriesData
-        { seriesDataColumns = toSeriesColumns (Proxy :: Proxy p)
+        { seriesDataColumns = toSeriesColumns (Proxy :: Proxy a)
         , seriesDataPoints = values
         }
     }
 
+-- | Write a data into a series.
 writePoints
-  :: (Monad m, ToSeriesData p)
-  => p
-  -> ValueT p m ()
+  :: (Monad m, ToSeriesData a)
+  => a
+  -> PointT a m ()
 writePoints = tell . DL.singleton . toSeriesPoints
 
 -- TODO: Delete API hasn't been implemented in InfluxDB yet
@@ -249,7 +258,16 @@ writePoints = tell . DL.singleton . toSeriesPoints
 -----------------------------------------------------------
 -- Querying Data
 
-query :: Config -> HC.Manager -> Database -> Text -> IO [Series]
+-- | Query a specified database.
+--
+-- The query format is specified in the
+-- <http://influxdb.org/docs/query_language/ InfluxDB Query Language>.
+query
+  :: Config
+  -> HC.Manager
+  -> Database
+  -> Text -- ^ Query text
+  -> IO [Series]
 query Config {..} manager database q = do
   response <- httpLbsWithRetry configServerPool request manager
   case A.decode (HC.responseBody response) of
@@ -267,32 +285,36 @@ query Config {..} manager database q = do
     Database {databaseName} = database
     Credentials {..} = configCreds
 
+-- | Effectful stream type
 data Stream m a
   = Yield a (m (Stream m a))
   | Done
 
+-- | Construct streaming output
 responseStream :: A.FromJSON a => HC.BodyReader -> IO (Stream IO a)
-responseStream body = readBody outer
+responseStream body = demandPayload $ \payload ->
+  if BS.null payload
+    then return Done
+    else decode $ parseAsJson payload
   where
-    readBody k = HC.brRead body >>= k
-    outer payload
-      | BS.null payload = return Done
-      | otherwise = inner $ parseJson payload
-    inner (P.Done leftover value) = case A.fromJSON value of
+    demandPayload k = HC.brRead body >>= k
+    decode (P.Done leftover value) = case A.fromJSON value of
       A.Success a -> return $ Yield a $ if BS.null leftover
         then responseStream body
-        else inner $ parseJson leftover
+        else decode $ parseAsJson leftover
       A.Error message -> fail message
-    inner (P.Partial k) = readBody (inner . k)
-    inner (P.Fail _ _ message) = fail message
-    parseJson = P.parse A.json
+    decode (P.Partial k) = demandPayload (decode . k)
+    decode (P.Fail _ _ message) = fail message
+    parseAsJson = P.parse A.json
 
+-- | Query a specified database like @query@ but in a streaming fashion.
 queryChunked
   :: Config
   -> HC.Manager
   -> Database
-  -> Text
+  -> Text -- ^ Query text
   -> (Stream IO Series -> IO a)
+  -- ^ Action to handle the resulting stream of series
   -> IO a
 queryChunked Config {..} manager database q f =
   withPool configServerPool request $ \request' ->
@@ -312,6 +334,7 @@ queryChunked Config {..} manager database q f =
 -----------------------------------------------------------
 -- Administration & Security
 
+-- | List existing databases.
 listDatabases :: Config -> HC.Manager -> IO [Database]
 listDatabases Config {..} manager = do
   response <- httpLbsWithRetry configServerPool makeRequest manager
@@ -327,6 +350,7 @@ listDatabases Config {..} manager = do
       }
     Credentials {..} = configCreds
 
+-- | Create a new database. Requires cluster admin privileges.
 createDatabase :: Config -> HC.Manager -> Text -> IO Database
 createDatabase Config {..} manager name = do
   void $ httpLbsWithRetry configServerPool makeRequest manager
@@ -347,6 +371,7 @@ createDatabase Config {..} manager name = do
       }
     Credentials {..} = configCreds
 
+-- | Drop a database. Requires cluster admin privileges.
 dropDatabase :: Config -> HC.Manager -> Database -> IO ()
 dropDatabase Config {..} manager database =
   void $ httpLbsWithRetry configServerPool makeRequest manager
@@ -362,6 +387,7 @@ dropDatabase Config {..} manager database =
     Database {databaseName} = database
     Credentials {..} = configCreds
 
+-- | List cluster administrators.
 listClusterAdmins
   :: Config
   -> HC.Manager
@@ -380,6 +406,7 @@ listClusterAdmins Config {..} manager = do
       }
     Credentials {..} = configCreds
 
+-- | Add a new cluster administrator. Requires cluster admin privilege.
 addClusterAdmin
   :: Config
   -> HC.Manager
@@ -402,6 +429,8 @@ addClusterAdmin Config {..} manager name = do
       }
     Credentials {..} = configCreds
 
+-- | Update a cluster administrator's password. Requires cluster admin
+-- privilege.
 updateClusterAdminPassword
   :: Config
   -> HC.Manager
@@ -425,6 +454,7 @@ updateClusterAdminPassword Config {..} manager admin password =
     Admin {adminUsername} = admin
     Credentials {..} = configCreds
 
+-- | Delete a cluster administrator. Requires cluster admin privilege.
 deleteClusterAdmin
   :: Config
   -> HC.Manager
@@ -444,6 +474,7 @@ deleteClusterAdmin Config {..} manager admin =
     Admin {adminUsername} = admin
     Credentials {..} = configCreds
 
+-- | List database users.
 listDatabaseUsers
   :: Config
   -> HC.Manager
@@ -464,6 +495,7 @@ listDatabaseUsers Config {..} manager database = do
       }
     Credentials {..} = configCreds
 
+-- | Add an user to the database users.
 addDatabaseUser
   :: Config
   -> HC.Manager
@@ -489,6 +521,7 @@ addDatabaseUser Config {..} manager database name = do
     Database {databaseName} = database
     Credentials {..} = configCreds
 
+-- | Delete an user from the database users.
 deleteDatabaseUser
   :: Config
   -> HC.Manager
@@ -502,6 +535,7 @@ deleteDatabaseUser config manager database user =
       { HC.method = "DELETE"
       }
 
+-- | Update password for the database user.
 updateDatabaseUserPassword
   :: Config
   -> HC.Manager
@@ -519,6 +553,7 @@ updateDatabaseUserPassword config manager database user password =
           ]
       }
 
+-- | Give admin privilege to the user.
 grantAdminPrivilegeTo
   :: Config
   -> HC.Manager
@@ -535,6 +570,7 @@ grantAdminPrivilegeTo config manager database user =
           ]
       }
 
+-- | Remove admin privilege from the user.
 revokeAdminPrivilegeFrom
   :: Config
   -> HC.Manager
