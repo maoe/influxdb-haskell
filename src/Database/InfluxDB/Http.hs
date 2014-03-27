@@ -271,21 +271,15 @@ data Stream m a
   = Yield a (m (Stream m a))
   | Done
 
-yield :: Monad m => a -> m (Stream m a) -> m (Stream m a)
-yield a = return . Yield a
-
-done :: Monad m => m (Stream m a)
-done = return Done
-
 responseStream :: A.FromJSON a => HC.BodyReader -> IO (Stream IO a)
 responseStream body = readBody outer
   where
     readBody k = HC.brRead body >>= k
     outer payload
-      | BS.null payload = done
+      | BS.null payload = return Done
       | otherwise = inner $ parseJson payload
     inner (P.Done leftover value) = case A.fromJSON value of
-      A.Success a -> yield a $ if BS.null leftover
+      A.Success a -> return $ Yield a $ if BS.null leftover
         then responseStream body
         else inner $ parseJson leftover
       A.Error message -> fail message
