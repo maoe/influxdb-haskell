@@ -59,14 +59,18 @@ atomicModifyIORef' ref f = do
 #endif
 -----------------------------------------------------------
 
+-- | A series consists of name, columns and points. The columns and points are
+-- expressed in a separate type @SeriesData@.
 data Series = Series
   { seriesName :: {-# UNPACK #-} !Text
   , seriesData :: {-# UNPACK #-} !SeriesData
   }
 
+-- | Convenient accessor for columns.
 seriesColumns :: Series -> Vector Column
 seriesColumns = seriesDataColumns . seriesData
 
+-- | Convenient accessor for points.
 seriesPoints :: Series -> DList (Vector Value)
 seriesPoints = seriesDataPoints . seriesData
 
@@ -93,6 +97,7 @@ instance A.FromJSON Series where
       }
   parseJSON _ = empty
 
+-- | @SeriesData@ consists of columns and points.
 data SeriesData = SeriesData
   { seriesDataColumns :: Vector Column
   , seriesDataPoints :: DList (Vector Value)
@@ -100,6 +105,7 @@ data SeriesData = SeriesData
 
 type Column = Text
 
+-- | An InfluxDB value represented as a Haskell value.
 data Value
   = Int !Int64
   | Float !Double
@@ -127,22 +133,27 @@ instance A.FromJSON Value where
 
 -----------------------------------------------------------
 
+-- | User credentials.
 data Credentials = Credentials
   { credsUser :: !Text
   , credsPassword :: !Text
   } deriving Show
 
+-- | Server location.
 data Server = Server
   { serverHost :: !Text
   , serverPort :: !Int
   , serverSsl :: !Bool
   } deriving Show
 
+-- | Non-empty set of server locations. The active server will always be used
+-- until any HTTP communications fail.
 data ServerPool = ServerPool
   { serverActive :: !Server
   , serverBackup :: !(Seq Server)
   }
 
+-- | Database consits of name and replication factor.
 data Database = Database
   { databaseName :: !Text
   , databaseReplicationFactor :: !(Maybe Int)
@@ -152,10 +163,12 @@ newtype ScheduledDelete = ScheduledDelete
   { scheduledDeleteId :: Int
   } deriving Show
 
+-- | User
 newtype User = User
   { userName :: Text
   } deriving Show
 
+-- | Administrator
 newtype Admin = Admin
   { adminUsername :: Text
   } deriving Show
@@ -164,17 +177,23 @@ newtype Admin = Admin
 -----------------------------------------------------------
 -- Server pool manipulation
 
+-- | Create a non-empty server pool. You must specify at least one server
+-- location to create a pool.
 newServerPool :: Server -> [Server] -> IO (IORef ServerPool)
 newServerPool active backups = newIORef ServerPool
   { serverActive = active
   , serverBackup = Seq.fromList backups
   }
 
+-- | Get a server from the pool.
 activeServer :: IORef ServerPool -> IO Server
 activeServer ref = do
   ServerPool { serverActive } <- readIORef ref
   return serverActive
 
+-- | Move the current server to the backup pool and pick one of the backup
+-- server as the new active server. Currently the scheduler works in
+-- round-robin fashion.
 failover :: IORef ServerPool -> IO ()
 failover ref = atomicModifyIORef' ref $ \pool@ServerPool {..} ->
   case Seq.viewl serverBackup of

@@ -6,9 +6,11 @@ import qualified Data.DList as DL
 
 import Database.InfluxDB.Types
 
+-- | A type that can be converted to a @Series@.
 class ToSeries a where
   toSeries :: a -> Series
 
+-- | A type that can be converted to a @SeriesData@.
 class ToSeriesData a where
   toSeriesColumns :: Proxy a -> Vector Column
   toSeriesPoints :: a -> Vector Value
@@ -19,6 +21,7 @@ toSeriesData a = SeriesData
   , seriesDataPoints = DL.singleton (toSeriesPoints a)
   }
 
+-- | A type that can be stored in InfluxDB.
 class ToValue a where
   toValue :: a -> Value
 

@@ -17,9 +17,7 @@ import qualified Data.DList as DL
 import qualified Network.HTTP.Client as HC
 import qualified System.Random.MWC as MWC
 
-import Database.InfluxDB.Encode
-import Database.InfluxDB.Http
-import Database.InfluxDB.Types
+import Database.InfluxDB
 
 oneWeekInSeconds :: Int
 oneWeekInSeconds = 7*24*60*60
