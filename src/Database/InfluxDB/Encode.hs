@@ -2,7 +2,7 @@
 module Database.InfluxDB.Encode where
 import Data.Proxy
 import Data.Vector (Vector)
-import qualified Data.Vector as V
+import qualified Data.DList as DL
 
 import Database.InfluxDB.Types
 
@@ -18,7 +18,7 @@ class ToSeriesData a where
 toSeriesData :: forall a. ToSeriesData a => a -> SeriesData
 toSeriesData a = SeriesData
   { seriesDataColumns = toSeriesColumns (Proxy :: Proxy a)
-  , seriesDataPoints = V.singleton (toSeriesPoints a)
+  , seriesDataPoints = DL.singleton (toSeriesPoints a)
   }
 
 -- | A type that can be stored in InfluxDB.

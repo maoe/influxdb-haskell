@@ -13,6 +13,7 @@ import System.IO
 import qualified Data.Vector as V
 
 import System.Random.MWC (Variate(..))
+import qualified Data.DList as DL
 import qualified Network.HTTP.Client as HC
 import qualified System.Random.MWC as MWC
 
@@ -49,14 +50,14 @@ main = do
       [] -> putStrLn "Empty series"
       series:_ -> do
         print $ seriesColumns series
-        print $ seriesPoints series
+        print $ DL.toList $ seriesPoints series
     -- Streaming output
     queryChunked config manager db "select * from ct1;" $ \stream0 ->
       flip fix stream0 $ \loop stream -> case stream of
         Done -> return ()
         Yield series next -> do
           print $ seriesColumns series
-          print $ seriesPoints series
+          print $ DL.toList $ seriesPoints series
           stream' <- next
           loop stream'
 

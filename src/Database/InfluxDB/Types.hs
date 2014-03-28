@@ -26,6 +26,7 @@ module Database.InfluxDB.Types
   ) where
 
 import Control.Applicative (empty)
+import Data.DList (DList)
 import Data.Data (Data)
 import Data.IORef
 import Data.Int (Int64)
@@ -33,8 +34,8 @@ import Data.Sequence (Seq, ViewL(..), (|>))
 import Data.Text (Text)
 import Data.Typeable (Typeable)
 import Data.Vector (Vector)
+import qualified Data.DList as DL
 import qualified Data.Sequence as Seq
-import qualified Data.Vector as V
 
 import Data.Aeson ((.=), (.:))
 import Data.Aeson.TH
@@ -70,14 +71,14 @@ seriesColumns :: Series -> Vector Column
 seriesColumns = seriesDataColumns . seriesData
 
 -- | Convenient accessor for points.
-seriesPoints :: Series -> Vector (Vector Value)
+seriesPoints :: Series -> DList (Vector Value)
 seriesPoints = seriesDataPoints . seriesData
 
 instance A.ToJSON Series where
   toJSON Series {..} = A.object
     [ "name" .= seriesName
     , "columns" .= seriesDataColumns
-    , "points" .= V.toList seriesDataPoints
+    , "points" .= DL.toList seriesDataPoints
     ]
     where
       SeriesData {..} = seriesData
@@ -91,7 +92,7 @@ instance A.FromJSON Series where
       { seriesName = name
       , seriesData = SeriesData
           { seriesDataColumns = columns
-          , seriesDataPoints = V.fromList points
+          , seriesDataPoints = DL.fromList points
           }
       }
   parseJSON _ = empty
@@ -99,7 +100,7 @@ instance A.FromJSON Series where
 -- | @SeriesData@ consists of columns and points.
 data SeriesData = SeriesData
   { seriesDataColumns :: Vector Column
-  , seriesDataPoints :: Vector (Vector Value)
+  , seriesDataPoints :: DList (Vector Value)
   }
 
 type Column = Text

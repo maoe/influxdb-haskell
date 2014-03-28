@@ -67,7 +67,6 @@ import qualified Data.ByteString.Char8 as BS8
 import qualified Data.ByteString.Lazy as BL
 import qualified Data.DList as DL
 import qualified Data.Text as T
-import qualified Data.Vector as V
 
 import Control.Exception.Lifted (Handler(..))
 import Control.Retry
@@ -213,7 +212,7 @@ withSeries name (PointT w) = do
     { seriesName = name
     , seriesData = SeriesData
         { seriesDataColumns = toSeriesColumns (Proxy :: Proxy a)
-        , seriesDataPoints = V.fromList (DL.toList values)
+        , seriesDataPoints = values
         }
     }
 
