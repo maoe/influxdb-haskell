@@ -18,12 +18,13 @@ flag examples
 library
   exposed-modules:
     Database.InfluxDB
-    -- Database.InfluxDB.Decode
+    Database.InfluxDB.Decode
     Database.InfluxDB.Encode
     Database.InfluxDB.Http
     Database.InfluxDB.Lens
     -- Database.InfluxDB.Protobuf
     -- Database.InfluxDB.Query
+    Database.InfluxDB.Stream
     Database.InfluxDB.Types
   other-modules:
     Database.InfluxDB.Types.Internal

@@ -77,8 +77,11 @@ import qualified Data.Aeson.Encode as AE
 import qualified Data.Attoparsec as P
 import qualified Network.HTTP.Client as HC
 
+import Database.InfluxDB.Decode
 import Database.InfluxDB.Encode
 import Database.InfluxDB.Types
+import Database.InfluxDB.Stream (Stream(..))
+import qualified Database.InfluxDB.Stream as S
 
 -- | Configurations for HTTP API client.
 data Config = Config
@@ -263,16 +266,19 @@ writePoints = tell . DL.singleton . toSeriesPoints
 -- The query format is specified in the
 -- <http://influxdb.org/docs/query_language/ InfluxDB Query Language>.
 query
-  :: Config
+  :: FromSeries a
+  => Config
   -> HC.Manager
   -> Database
   -> Text -- ^ Query text
-  -> IO [Series]
+  -> IO [a]
 query Config {..} manager database q = do
   response <- httpLbsWithRetry configServerPool request manager
   case A.decode (HC.responseBody response) of
     Nothing -> fail $ show response
-    Just xs -> return xs
+    Just xs -> case mapM fromSeries xs of
+      Left reason -> fail reason
+      Right ys -> return ys
   where
     request = def
       { HC.path = escapeString $ printf "/db/%s/series"
@@ -284,11 +290,6 @@ query Config {..} manager database q = do
       }
     Database {databaseName} = database
     Credentials {..} = configCreds
-
--- | Effectful stream type
-data Stream m a
-  = Yield a (m (Stream m a))
-  | Done
 
 -- | Construct streaming output
 responseStream :: A.FromJSON a => HC.BodyReader -> IO (Stream IO a)
@@ -309,17 +310,22 @@ responseStream body = demandPayload $ \payload ->
 
 -- | Query a specified database like @query@ but in a streaming fashion.
 queryChunked
-  :: Config
+  :: FromSeries a
+  => Config
   -> HC.Manager
   -> Database
   -> Text -- ^ Query text
-  -> (Stream IO Series -> IO a)
+  -> (Stream IO a -> IO b)
   -- ^ Action to handle the resulting stream of series
-  -> IO a
+  -> IO b
 queryChunked Config {..} manager database q f =
   withPool configServerPool request $ \request' ->
-    HC.withResponse request' manager $ responseStream . HC.responseBody >=> f
+    HC.withResponse request' manager $
+      responseStream . HC.responseBody >=> S.mapM parse >=> f
   where
+    parse series = case fromSeries series of
+      Left reason -> fail reason
+      Right a -> return a
     request = def
       { HC.path = escapeString $ printf "/db/%s/series"
           (T.unpack databaseName)
