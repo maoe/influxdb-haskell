@@ -5,21 +5,24 @@
 {-# LANGUAGE RecordWildCards #-}
 {-# LANGUAGE TemplateHaskell #-}
 module Database.InfluxDB.Types
-  ( Series(..)
+  ( -- * Series, columns and data points
+    Series(..)
   , seriesColumns
   , seriesPoints
   , SeriesData(..)
   , Column
   , Value(..)
 
+  -- * Data types for HTTP API
   , Credentials(..)
   , Server(..)
-  , ServerPool(..)
   , Database(..)
   , ScheduledDelete(..)
   , User(..)
   , Admin(..)
 
+  -- * Server pool
+  , ServerPool
   , newServerPool
   , activeServer
   , failover
@@ -63,7 +66,9 @@ atomicModifyIORef' ref f = do
 -- expressed in a separate type @SeriesData@.
 data Series = Series
   { seriesName :: {-# UNPACK #-} !Text
+  -- ^ Series name
   , seriesData :: {-# UNPACK #-} !SeriesData
+  -- ^ Columns and data points in the series
   }
 
 -- | Convenient accessor for columns.
@@ -142,15 +147,19 @@ data Credentials = Credentials
 -- | Server location.
 data Server = Server
   { serverHost :: !Text
+  -- ^ Hostname or IP address
   , serverPort :: !Int
   , serverSsl :: !Bool
+  -- ^ SSL is enabled or not in the server side
   } deriving Show
 
 -- | Non-empty set of server locations. The active server will always be used
 -- until any HTTP communications fail.
 data ServerPool = ServerPool
   { serverActive :: !Server
+  -- ^ Current active server
   , serverBackup :: !(Seq Server)
+  -- ^ The rest of the servers in the pool.
   }
 
 -- | Database consits of name and replication factor.

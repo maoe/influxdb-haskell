@@ -4,6 +4,7 @@ import Control.Applicative
 
 import Database.InfluxDB.Types
 
+-- | A type that can be converted from a @Series@.
 class FromSeries a where
   parseSeries :: Series -> Parser a
 
@@ -13,21 +14,26 @@ instance FromSeries Series where
 instance FromSeries SeriesData where
   parseSeries = return . seriesData
 
+-- | Converte a value from a @Series@, failing if the types do not match.
 fromSeries :: FromSeries a => Series -> Either String a
 fromSeries = runParser . parseSeries
 
+-- | A type that can be converted from a @SeriesData@.
 class FromSeriesData a where
   parseSeriesData :: SeriesData -> Parser a
 
 instance FromSeriesData SeriesData where
   parseSeriesData = return
 
+-- | Converte a value from a @SeriesData@, failing if the types do not match.
 fromSeriesData :: FromSeriesData a => SeriesData -> Either String a
 fromSeriesData = runParser . parseSeriesData
 
+-- | A type that can be converted from a @Value@.
 class FromValue a where
   parseValue :: Value -> Parser a
 
+-- | Converte a value from a @Value@, failing if the types do not match.
 fromValue :: FromValue a => Value -> Either String a
 fromValue = runParser . parseValue
 

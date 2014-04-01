@@ -10,6 +10,9 @@ module Database.InfluxDB
   , ToValue(..)
 
   -- ** Decoding
+  , FromSeries(..), fromSeries
+  , FromSeriesData(..), fromSeriesData
+  , FromValue(..), fromValue
 
   -- * HTTP API
   -- ** Data types
@@ -65,6 +68,7 @@ module Database.InfluxDB
   , revokeAdminPrivilegeFrom
   ) where
 
+import Database.InfluxDB.Decode
 import Database.InfluxDB.Encode
 import Database.InfluxDB.Http
 import Database.InfluxDB.Types
