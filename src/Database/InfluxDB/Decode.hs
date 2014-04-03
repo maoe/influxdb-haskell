@@ -90,10 +90,6 @@ fromValue = runParser . parseValue
 instance FromValue Value where
   parseValue = return
 
-instance FromValue () where
-  parseValue Null = return ()
-  parseValue v = typeMismatch "()" v
-
 instance FromValue Bool where
   parseValue (Bool b) = return b
   parseValue v = typeMismatch "Bool" v
