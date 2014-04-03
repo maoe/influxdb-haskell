@@ -1,7 +1,11 @@
 {-# LANGUAGE FlexibleInstances #-}
 {-# LANGUAGE ScopedTypeVariables #-}
 {-# LANGUAGE TypeSynonymInstances #-}
-module Database.InfluxDB.Encode where
+module Database.InfluxDB.Encode
+  ( ToSeries(..)
+  , ToSeriesData(..), toSeriesData
+  , ToValue(..)
+  ) where
 import Data.Int (Int8, Int16, Int32, Int64)
 import Data.Proxy
 import Data.Vector (Vector)

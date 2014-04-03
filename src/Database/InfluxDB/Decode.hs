@@ -1,6 +1,12 @@
 {-# LANGUAGE GeneralizedNewtypeDeriving #-}
 {-# LANGUAGE RecordWildCards #-}
-module Database.InfluxDB.Decode where
+module Database.InfluxDB.Decode
+  ( FromSeries(..), fromSeries
+  , FromSeriesData(..), fromSeriesData
+  , withValues, (.:)
+  , FromValue(..), fromValue
+  , Parser, ValueParser, typeMismatch
+  ) where
 import Control.Applicative
 import Control.Monad.Reader
 import Data.Map (Map)
