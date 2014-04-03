@@ -70,7 +70,7 @@ script:
 
  - cabal-1.18 test
  - cabal-1.18 check
- - cabal-1.18 run influx-random-points -- 100 100
+ - cabal-1.18 run influx-random-points -- 10 10
 
  # tests that a source-distribution can be generated
  - cabal-1.18 sdist
