@@ -27,7 +27,21 @@ instance FromSeries SeriesData where
 fromSeries :: FromSeries a => Series -> Either String a
 fromSeries = runParser . parseSeries
 
--- | A type that can be converted from a @SeriesData@.
+-- | A type that can be converted from a @SeriesData@. A typical implementation
+-- is as follows.
+--
+-- > import Control.Applicative ((<$>), (<*>))
+-- > import qualified Data.Vector as V
+-- >
+-- > data Event = Event Text EventType
+-- > data EventType = Login | Logout
+-- >
+-- > instance FromSeriesData where
+-- >   parseSeriesData = withValues $ values -> Event
+-- >     <$> values .: "user"
+-- >     <*> values .: "type"
+-- >
+-- > instance FromValue EventType
 class FromSeriesData a where
   parseSeriesData :: Vector Column -> Vector Value -> Parser a
 
