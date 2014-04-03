@@ -1,0 +1,81 @@
+name: influxdb
+version: 0.0.0
+synopsis: Haskell client library for InfluxDB
+description: Haskell client library for InfluxDB
+homepage: https://github.com/maoe/influxdb-haskell
+license: BSD3
+license-file: LICENSE
+author: Mitsutoshi Aoe
+maintainer: Mitsutoshi Aoe <maoe@foldr.in>
+copyright: Copyright (C) 2014 Mitsutoshi Aoe
+category: Database
+build-type: Simple
+cabal-version: >= 1.10
+
+flag examples
+  default: False
+
+library
+  exposed-modules:
+    Database.InfluxDB
+    Database.InfluxDB.Decode
+    Database.InfluxDB.Encode
+    Database.InfluxDB.Http
+    Database.InfluxDB.Lens
+    -- Database.InfluxDB.Protobuf
+    -- Database.InfluxDB.Query
+    Database.InfluxDB.Stream
+    Database.InfluxDB.Types
+  other-modules:
+    Database.InfluxDB.Types.Internal
+  ghc-options: -Wall
+  build-depends:
+      base >= 4 && < 4.8
+    , aeson >= 0.7
+    , attoparsec
+    , bytestring
+    , containers
+    , data-default-class
+    , dlist
+    , http-client
+    , lifted-base
+    , mtl
+    , network
+    , retry
+    , scientific
+    , tagged
+    , text
+    , time
+    , vector
+  hs-source-dirs: src
+  default-language: Haskell2010
+
+executable influx-random-points
+  if flag(examples)
+    buildable: True
+  else
+    buildable: False
+  hs-source-dirs: examples
+  main-is: random-points.hs
+  ghc-options: -Wall
+  build-depends:
+      base
+    , bytestring
+    , http-client
+    , influxdb
+    , mtl
+    , mwc-random
+    , text
+    , time
+    , vector
+  default-language: Haskell2010
+
+source-repository head
+  type: git
+  branch: develop
+  location: https://github.com/maoe/influxdb-haskell.git
+
+source-repository this
+  type: git
+  tag: v0.0.0
+  location: https://github.com/maoe/influxdb-haskell.git
