@@ -58,26 +58,21 @@ fromSeriesData SeriesData {..} = mapM
   (DL.toList seriesDataPoints)
 
 withValues
-  :: (Vector Value -> IndexedT Parser a)
+  :: (Vector Value -> ValueParser a)
   -> Vector Column -> Vector Value -> Parser a
 withValues f columns values =
   runReaderT m $ Map.fromList $ map swap $ V.toList $ V.indexed columns
   where
-    IndexedT m = f values
+    ValueParser m = f values
 
-type ColumnIndex = Map Column Int
-
-newtype IndexedT m a = IndexedT (ReaderT ColumnIndex m a)
-  deriving (Functor, Applicative, Monad, MonadTrans, MonadReader ColumnIndex)
-
-(.:) :: FromValue a => Vector Value -> Column -> IndexedT Parser a
+(.:) :: FromValue a => Vector Value -> Column -> ValueParser a
 values .: column = do
   found <- asks $ Map.lookup column
   case found of
     Nothing -> fail $ "No such column: " ++ T.unpack column
     Just idx -> do
       value <- V.indexM values idx
-      lift $ parseValue value
+      liftParser $ parseValue value
 
 -- | A type that can be converted from a @Value@.
 class FromValue a where
@@ -124,3 +119,11 @@ typeMismatch expected actual = fail $
 newtype Parser a = Parser
   { runParser :: Either String a
   } deriving (Functor, Applicative, Monad)
+
+type ColumnIndex = Map Column Int
+
+newtype ValueParser a = ValueParser (ReaderT ColumnIndex Parser a)
+  deriving (Functor, Applicative, Monad, MonadReader ColumnIndex)
+
+liftParser :: Parser a -> ValueParser a
+liftParser = ValueParser . ReaderT . const
