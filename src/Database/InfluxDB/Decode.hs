@@ -1,6 +1,15 @@
 {-# LANGUAGE GeneralizedNewtypeDeriving #-}
+{-# LANGUAGE RecordWildCards #-}
 module Database.InfluxDB.Decode where
 import Control.Applicative
+import Control.Monad.Reader
+import Data.Map (Map)
+import Data.Vector (Vector)
+import Data.Tuple (swap)
+import qualified Data.DList as DL
+import qualified Data.Map as Map
+import qualified Data.Text as T
+import qualified Data.Vector as V
 
 import Database.InfluxDB.Types
 
@@ -20,14 +29,37 @@ fromSeries = runParser . parseSeries
 
 -- | A type that can be converted from a @SeriesData@.
 class FromSeriesData a where
-  parseSeriesData :: SeriesData -> Parser a
+  parseSeriesData :: Vector Column -> Vector Value -> Parser a
 
 instance FromSeriesData SeriesData where
-  parseSeriesData = return
+  parseSeriesData columns values = return SeriesData
+    { seriesDataColumns = columns
+    , seriesDataPoints = DL.singleton values
+    }
 
 -- | Converte a value from a @SeriesData@, failing if the types do not match.
-fromSeriesData :: FromSeriesData a => SeriesData -> Either String a
-fromSeriesData = runParser . parseSeriesData
+fromSeriesData :: FromSeriesData a => SeriesData -> Either String [a]
+fromSeriesData SeriesData {..} = mapM
+  (runParser . parseSeriesData seriesDataColumns)
+  (DL.toList seriesDataPoints)
+
+parseValues :: Vector Column -> IndexedT Parser a -> Parser a
+parseValues columns (IndexedT m) =
+  runReaderT m $ Map.fromList $ map swap $ V.toList $ V.indexed columns
+
+type ColumnIndex = Map Column Int
+
+newtype IndexedT m a = IndexedT (ReaderT ColumnIndex m a)
+  deriving (Functor, Applicative, Monad, MonadTrans, MonadReader ColumnIndex)
+
+(.:) :: FromValue a => Vector Value -> Column -> IndexedT Parser a
+values .: column = do
+  found <- asks $ Map.lookup column
+  case found of
+    Nothing -> fail $ "No such column: " ++ T.unpack column
+    Just idx -> do
+      value <- V.indexM values idx
+      lift $ parseValue value
 
 -- | A type that can be converted from a @Value@.
 class FromValue a where

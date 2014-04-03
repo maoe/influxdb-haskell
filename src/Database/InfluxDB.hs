@@ -14,6 +14,9 @@ module Database.InfluxDB
   , FromSeriesData(..), fromSeriesData
   , FromValue(..), fromValue
 
+  , parseValues, (.:)
+  , typeMismatch
+
   -- * HTTP API
   -- ** Data types
   , Config(..)

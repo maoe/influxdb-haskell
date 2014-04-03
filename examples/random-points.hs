@@ -1,7 +1,9 @@
 {-# LANGUAGE BangPatterns #-}
 {-# LANGUAGE OverloadedStrings #-}
 {-# LANGUAGE ScopedTypeVariables #-}
+{-# LANGUAGE TypeSynonymInstances #-}
 {-# LANGUAGE ViewPatterns #-}
+{-# OPTIONS_GHC -fno-warn-orphans #-}
 import Control.Applicative
 import Control.Exception as E
 import Control.Monad
@@ -10,6 +12,7 @@ import Data.Function (fix)
 import Data.Time.Clock.POSIX
 import System.Environment
 import System.IO
+import qualified Data.Text as T
 import qualified Data.Vector as V
 
 import System.Random.MWC (Variate(..))
@@ -55,8 +58,10 @@ main = do
       flip fix stream0 $ \loop stream -> case stream of
         Done -> return ()
         Yield series next -> do
-          print $ seriesColumns series
-          print $ seriesPoints series
+          case fromSeriesData series of
+            Left reason -> hPutStrLn stderr reason
+            Right points -> mapM_ print (points :: [Point])
+          putStrLn "--"
           stream' <- next
           loop stream'
 
@@ -82,6 +87,12 @@ instance ToSeriesData Point where
     , epochInSeconds time
     ]
 
+instance FromSeriesData Point where
+  parseSeriesData columns values =
+    parseValues columns $ Point
+      <$> values .: "value"
+      <*> values .: "time"
+
 epochInSeconds :: POSIXTime -> Value
 epochInSeconds = Int . floor
 
@@ -100,8 +111,23 @@ instance ToValue Name where
   toValue Quu = String "quu"
   toValue Qux = String "qux"
 
+instance FromValue Name where
+  parseValue (String name) = case name of
+    "foo" -> return Foo
+    "bar" -> return Bar
+    "baz" -> return Baz
+    "quu" -> return Quu
+    "qux" -> return Qux
+    _ -> fail $ "Incorrect string: " ++ T.unpack name
+  parseValue v = typeMismatch "String" v
+
 instance Variate Name where
   uniform = uniformR (minBound, maxBound)
   uniformR (lower, upper) g = do
     name <- uniformR (fromEnum lower, fromEnum upper) g
     return $! toEnum name
+
+instance FromValue POSIXTime where
+  parseValue (Int n) = return $ fromIntegral n
+  parseValue (Float d) = return $ realToFrac d
+  parseValue v = typeMismatch "Int or Float" v
