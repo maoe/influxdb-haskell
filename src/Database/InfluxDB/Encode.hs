@@ -16,9 +16,23 @@ import Database.InfluxDB.Types
 class ToSeries a where
   toSeries :: a -> Series
 
--- | A type that can be converted to a @SeriesData@.
+-- | A type that can be converted to a @SeriesData@. A typical implementation is
+-- as follows.
+--
+-- > import qualified Data.Vector as V
+-- >
+-- > data Event = Event Text EventType
+-- > data EventType = Login | Logout
+-- >
+-- > instance ToSeriesData where
+-- >   toSeriesColumn _ = V.fromList ["user", "type"]
+-- >   toSeriesPoints (Event user ty) = V.fromList [toValue user, toValue ty]
+-- >
+-- > instance ToValue EventType
 class ToSeriesData a where
+  -- | Column names. You can safely ignore the proxy agument.
   toSeriesColumns :: Proxy a -> Vector Column
+  -- | Data points.
   toSeriesPoints :: a -> Vector Value
 
 toSeriesData :: forall a. ToSeriesData a => a -> SeriesData
