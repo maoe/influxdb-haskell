@@ -72,4 +72,10 @@ executable influx-random-points
 
 source-repository head
   type: git
+  branch: develop
+  location: https://github.com/maoe/influxdb-haskell.git
+
+source-repository this
+  type: git
+  tag: v0.0.0
   location: https://github.com/maoe/influxdb-haskell.git
