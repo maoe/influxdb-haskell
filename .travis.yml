@@ -50,6 +50,8 @@ before_install:
  - sudo apt-get update
  - sudo apt-get install cabal-install-1.18 ghc-$GHCVER
  - export PATH=/opt/ghc/$GHCVER/bin:$PATH
+ - wget http://s3.amazonaws.com/influxdb/influxdb_latest_amd64.deb
+ - sudo dpkg -i influxdb_latest_amd64.deb
 
 install:
  - cabal-1.18 update
@@ -68,6 +70,7 @@ script:
 
  - cabal-1.18 test
  - cabal-1.18 check
+ - cabal-1.18 run influx-random-points -- 10 10
 
  # tests that a source-distribution can be generated
  - cabal-1.18 sdist
