@@ -43,9 +43,13 @@ fromSeriesData SeriesData {..} = mapM
   (runParser . parseSeriesData seriesDataColumns)
   (DL.toList seriesDataPoints)
 
-parseValues :: Vector Column -> IndexedT Parser a -> Parser a
-parseValues columns (IndexedT m) =
+withValues
+  :: (Vector Value -> IndexedT Parser a)
+  -> Vector Column -> Vector Value -> Parser a
+withValues f columns values =
   runReaderT m $ Map.fromList $ map swap $ V.toList $ V.indexed columns
+  where
+    IndexedT m = f values
 
 type ColumnIndex = Map Column Int
 

@@ -88,10 +88,9 @@ instance ToSeriesData Point where
     ]
 
 instance FromSeriesData Point where
-  parseSeriesData columns values =
-    parseValues columns $ Point
-      <$> values .: "value"
-      <*> values .: "time"
+  parseSeriesData = withValues $ \values -> Point
+    <$> values .: "value"
+    <*> values .: "time"
 
 epochInSeconds :: POSIXTime -> Value
 epochInSeconds = Int . floor
