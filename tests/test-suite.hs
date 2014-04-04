@@ -1,7 +1,7 @@
 {-# LANGUAGE OverloadedStrings #-}
 {-# LANGUAGE TemplateHaskell #-}
 import Control.Applicative
-import Control.Exception
+import Control.Exception as E
 import Control.Monad
 import Control.Monad.Trans
 import Data.Function
@@ -109,4 +109,4 @@ withTestDatabase config manager = bracket acquire release
     release = dropDatabase config manager
 
 catchAll :: IO a -> (SomeException -> IO a) -> IO a
-catchAll = catch
+catchAll = E.catch
