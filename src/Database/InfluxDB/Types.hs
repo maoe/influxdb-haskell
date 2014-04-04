@@ -42,10 +42,15 @@ import qualified Data.Sequence as Seq
 
 import Data.Aeson ((.=), (.:))
 import Data.Aeson.TH
-import Data.Scientific
 import qualified Data.Aeson as A
 
 import Database.InfluxDB.Types.Internal (stripPrefixOptions)
+
+#if MIN_VERSION_aeson(0, 7, 0)
+import Data.Scientific
+#else
+import Data.Attoparsec.Number
+#endif
 
 -----------------------------------------------------------
 -- Compatibility for older GHC
@@ -132,9 +137,18 @@ instance A.FromJSON Value where
   parseJSON (A.String xs) = return $ String xs
   parseJSON (A.Bool b) = return $ Bool b
   parseJSON A.Null = return Null
-  parseJSON (A.Number n) = return $! if base10Exponent n == 0
-    then Int $ fromIntegral $ coefficient n
-    else Float $ realToFrac n
+  parseJSON (A.Number n) = return $! numberToValue n
+    where
+#if MIN_VERSION_aeson(0, 7, 0)
+      numberToValue :: Scientific -> Value
+      numberToValue n
+        | base10Exponent n == 0 = Int $ fromIntegral $ coefficient n
+        | otherwise = Float $ realToFrac n
+#else
+      numberToValue :: Number -> Value
+      numberToValue (I i) = Int $ fromIntegral i
+      numberToValue (D d) = Float d
+#endif
 
 -----------------------------------------------------------
 
