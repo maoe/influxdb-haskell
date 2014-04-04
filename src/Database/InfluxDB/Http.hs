@@ -215,7 +215,7 @@ withSeries name (PointT w) = do
     { seriesName = name
     , seriesData = SeriesData
         { seriesDataColumns = toSeriesColumns (Proxy :: Proxy a)
-        , seriesDataPoints = values
+        , seriesDataPoints = DL.toList values
         }
     }
 

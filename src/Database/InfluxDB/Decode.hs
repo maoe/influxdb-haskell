@@ -12,7 +12,6 @@ import Control.Monad.Reader
 import Data.Map (Map)
 import Data.Vector (Vector)
 import Data.Tuple (swap)
-import qualified Data.DList as DL
 import qualified Data.Map as Map
 import qualified Data.Text as T
 import qualified Data.Vector as V
@@ -54,14 +53,14 @@ class FromSeriesData a where
 instance FromSeriesData SeriesData where
   parseSeriesData columns values = return SeriesData
     { seriesDataColumns = columns
-    , seriesDataPoints = DL.singleton values
+    , seriesDataPoints = [values]
     }
 
 -- | Converte a value from a @SeriesData@, failing if the types do not match.
 fromSeriesData :: FromSeriesData a => SeriesData -> Either String [a]
 fromSeriesData SeriesData {..} = mapM
   (runParser . parseSeriesData seriesDataColumns)
-  (DL.toList seriesDataPoints)
+  seriesDataPoints
 
 withValues
   :: (Vector Value -> ValueParser a)
