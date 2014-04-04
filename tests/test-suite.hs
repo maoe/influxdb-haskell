@@ -1,5 +1,6 @@
 {-# LANGUAGE OverloadedStrings #-}
 {-# LANGUAGE TemplateHaskell #-}
+import Control.Applicative
 import Control.Exception
 import Control.Monad
 import Control.Monad.Trans
@@ -28,7 +29,7 @@ case_post = runTest $ \config manager ->
       writeSeries name $ Val 42
     [series] <- query config manager database $
       "select value from " <> name
-    map V.last (seriesDataPoints series) @=? [Int 42]
+    fromSeriesData series @=? Right [Val 42]
 
 case_post_multi_series :: Assertion
 case_post_multi_series = runTest $ \config manager ->
@@ -40,7 +41,7 @@ case_post_multi_series = runTest $ \config manager ->
       writeSeries name $ Val 42
     [series] <- query config manager database $
       "select value from " <> name
-    map V.last (seriesDataPoints series) @=? [Int 42, Int 42, Int 42]
+    fromSeriesData series @=? Right [Val 42, Val 42, Val 42]
 
 case_post_multi_points :: Assertion
 case_post_multi_points = runTest $ \config manager ->
@@ -52,7 +53,7 @@ case_post_multi_points = runTest $ \config manager ->
       writePoints $ Val 42
     [series] <- query config manager database $
       "select value from " <> name
-    map V.last (seriesDataPoints series) @=? [Int 42, Int 42, Int 42]
+    fromSeriesData series @=? Right [Val 42, Val 42, Val 42]
 
 case_postWithPrecision :: Assertion
 case_postWithPrecision = runTest $ \config manager ->
@@ -62,7 +63,7 @@ case_postWithPrecision = runTest $ \config manager ->
       writeSeries name $ Val 42
     [series] <- query config manager database $
       "select value from " <> name
-    map V.last (seriesDataPoints series) @=? [Int 42]
+    fromSeriesData series @=? Right [Val 42]
 
 case_listDatabases :: Assertion
 case_listDatabases = runTest $ \config manager ->
@@ -73,11 +74,14 @@ case_listDatabases = runTest $ \config manager ->
 
 -------------------------------------------------
 
-data Val = Val Int
+data Val = Val Int deriving (Eq, Show)
 
 instance ToSeriesData Val where
   toSeriesColumns _ = V.fromList ["value"]
   toSeriesPoints (Val n) = V.fromList [toValue n]
+
+instance FromSeriesData Val where
+  parseSeriesData = withValues $ \values -> Val <$> values .: "value"
 
 -------------------------------------------------
 
