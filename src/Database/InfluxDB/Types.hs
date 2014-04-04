@@ -135,17 +135,16 @@ instance A.FromJSON Value where
   parseJSON (A.String xs) = return $ String xs
   parseJSON (A.Bool b) = return $ Bool b
   parseJSON A.Null = return Null
-  parseJSON (A.Number n) = return $! numberToValue n
+  parseJSON (A.Number n) = return $! numberToValue
     where
 #if MIN_VERSION_aeson(0, 7, 0)
-      numberToValue :: Scientific -> Value
-      numberToValue n
+      numberToValue
         | base10Exponent n == 0 = Int $ fromIntegral $ coefficient n
         | otherwise = Float $ realToFrac n
 #else
-      numberToValue :: Number -> Value
-      numberToValue (I i) = Int $ fromIntegral i
-      numberToValue (D d) = Float d
+      numberToValue = case n of
+        I i -> Int $ fromIntegral i
+        D d -> Float d
 #endif
 
 -----------------------------------------------------------
