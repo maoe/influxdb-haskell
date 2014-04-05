@@ -59,7 +59,7 @@ install:
  # - cabal-1.18 install hpc-coveralls -j
  - ( git clone https://github.com/guillaume-nargeot/hpc-coveralls.git;
      cd hpc-coveralls;
-     cabal-1.18 install -j )
+     cabal-1.18 install -j --avoid-reinstalls )
 
 # Here starts the actual work to be performed for the package under
 # test; any command which exits with a non-zero exit code causes the
