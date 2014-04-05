@@ -55,7 +55,10 @@ before_install:
 
 install:
  - cabal-1.18 update
- - cabal-1.18 install hpc-coveralls -j
+ # - cabal-1.18 install hpc-coveralls -j
+ - ( git clone https://github.com/guillaume-nargeot/hpc-coveralls.git;
+     cd hpc-coveralls;
+     cabal-1.18 install -j )
  - cabal-1.18 install --only-dependencies --enable-tests --enable-benchmarks -j
 
 # Here starts the actual work to be performed for the package under
