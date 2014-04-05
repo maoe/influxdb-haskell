@@ -42,7 +42,7 @@ fromSeries = runParser . parseSeries
 -- > data EventType = Login | Logout
 -- >
 -- > instance FromSeriesData where
--- >   parseSeriesData = withValues $ values -> Event
+-- >   parseSeriesData = withValues $ \values -> Event
 -- >     <$> values .: "user"
 -- >     <*> values .: "type"
 -- >

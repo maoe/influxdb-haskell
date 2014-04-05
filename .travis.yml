@@ -17,6 +17,10 @@ env:
  - HPVER=2012.4.0.0
  - HPVER=2012.2.0.0
 
+matrix:
+  allow_failures:
+   - env: HPVER=2012.2.0.0
+
 # Note: the distinction between `before_install` and `install` is not
 #       important.
 before_install:
@@ -49,41 +53,49 @@ before_install:
  - sudo add-apt-repository -y ppa:hvr/ghc
  - sudo apt-get update
  - sudo apt-get install cabal-install-1.18 ghc-$GHCVER
- - export PATH=/opt/ghc/$GHCVER/bin:$PATH
+ - export PATH=/opt/ghc/$GHCVER/bin:~/.cabal/bin:$PATH
  - wget http://s3.amazonaws.com/influxdb/influxdb_latest_amd64.deb
  - sudo dpkg -i influxdb_latest_amd64.deb
 
 install:
  - cabal-1.18 update
- - cabal-1.18 install --only-dependencies --enable-tests --enable-benchmarks
+ - cabal-1.18 install --only-dependencies --enable-tests --enable-benchmarks -j
+ # - cabal-1.18 install hpc-coveralls -j
+ - ( git clone https://github.com/guillaume-nargeot/hpc-coveralls.git;
+     cd hpc-coveralls;
+     cabal-1.18 install -j --avoid-reinstalls )
 
 # Here starts the actual work to be performed for the package under
 # test; any command which exits with a non-zero exit code causes the
 # build to fail.
 script:
  # -v2 provides useful information for debugging
- - cabal-1.18 configure -fexamples --enable-tests --enable-benchmarks -v2
+ - cabal-1.18 configure -fexamples --enable-tests --enable-benchmarks --enable-library-coverage -v2
 
  # this builds all libraries and executables
  # (including tests/benchmarks)
- - cabal-1.18 build
+ - cabal-1.18 build -j
 
- - cabal-1.18 test
- - cabal-1.18 check
+ - ln -s /usr/bin/cabal-1.18 ~/.cabal/bin/cabal
+ - run-cabal-test --show-details=always
  - cabal-1.18 run influx-random-points -- 10 10
+ - cabal-1.18 check
 
  # tests that a source-distribution can be generated
  - cabal-1.18 sdist
 
  # check that the generated source-distribution can be built & installed
  - export SRC_TGZ=$(cabal-1.18 info . | awk '{print $2 ".tar.gz";exit}') ;
-   cd dist/;
+   (cd dist/;
    if [ -f "$SRC_TGZ" ]; then
       cabal-1.18 install "$SRC_TGZ";
    else
       echo "expected '$SRC_TGZ' not found";
       exit 1;
-   fi
+   fi)
+
+after_script:
+ - hpc-coveralls test-suite
 
 notifications:
   webhooks:
