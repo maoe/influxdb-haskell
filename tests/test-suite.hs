@@ -72,6 +72,24 @@ case_listDatabases = runTest $ \config ->
     assertBool ("No such database: " ++ T.unpack name) $
       any ((name ==) . databaseName) databases
 
+case_listClusterAdmins :: Assertion
+case_listClusterAdmins = runTest $ \config -> do
+  admins <- listClusterAdmins config
+  assertBool "No root admin" $
+    any (("root" ==) . adminUsername) admins
+
+case_add_then_delete_cluster_admins :: Assertion
+case_add_then_delete_cluster_admins = runTest $ \config -> do
+  name <- newName
+  admin <- addClusterAdmin config name
+  admins <- listClusterAdmins config
+  assertBool ("No such admin: " ++ T.unpack name) $
+    any ((name ==) . adminUsername) admins
+  deleteClusterAdmin config admin
+  admins' <- listClusterAdmins config
+  assertBool ("Found a deleted admin: " ++ T.unpack name) $
+    all ((name /=) . adminUsername) admins'
+
 -------------------------------------------------
 
 data Val = Val Int deriving (Eq, Show)
