@@ -22,53 +22,53 @@ main :: IO ()
 main = $defaultMainGenerator
 
 case_post :: Assertion
-case_post = runTest $ \config manager ->
-  withTestDatabase config manager $ \database -> do
+case_post = runTest $ \config ->
+  withTestDatabase config $ \database -> do
     name <- liftIO newName
-    post config manager database $
+    post config database $
       writeSeries name $ Val 42
-    [series] <- query config manager database $
+    [series] <- query config database $
       "select value from " <> name
     fromSeriesData series @=? Right [Val 42]
 
 case_post_multi_series :: Assertion
-case_post_multi_series = runTest $ \config manager ->
-  withTestDatabase config manager $ \database -> do
+case_post_multi_series = runTest $ \config ->
+  withTestDatabase config $ \database -> do
     name <- liftIO newName
-    post config manager database $ do
+    post config database $ do
       writeSeries name $ Val 42
       writeSeries name $ Val 42
       writeSeries name $ Val 42
-    [series] <- query config manager database $
+    [series] <- query config database $
       "select value from " <> name
     fromSeriesData series @=? Right [Val 42, Val 42, Val 42]
 
 case_post_multi_points :: Assertion
-case_post_multi_points = runTest $ \config manager ->
-  withTestDatabase config manager $ \database -> do
+case_post_multi_points = runTest $ \config ->
+  withTestDatabase config $ \database -> do
     name <- liftIO newName
-    post config manager database $ withSeries name $ do
+    post config database $ withSeries name $ do
       writePoints $ Val 42
       writePoints $ Val 42
       writePoints $ Val 42
-    [series] <- query config manager database $
+    [series] <- query config database $
       "select value from " <> name
     fromSeriesData series @=? Right [Val 42, Val 42, Val 42]
 
 case_postWithPrecision :: Assertion
-case_postWithPrecision = runTest $ \config manager ->
-  withTestDatabase config manager $ \database -> do
+case_postWithPrecision = runTest $ \config ->
+  withTestDatabase config $ \database -> do
     name <- liftIO newName
-    postWithPrecision config manager database SecondsPrecision $
+    postWithPrecision config database SecondsPrecision $
       writeSeries name $ Val 42
-    [series] <- query config manager database $
+    [series] <- query config database $
       "select value from " <> name
     fromSeriesData series @=? Right [Val 42]
 
 case_listDatabases :: Assertion
-case_listDatabases = runTest $ \config manager ->
-  withTestDatabase config manager $ \(Database name _) -> do
-    databases <- listDatabases config manager
+case_listDatabases = runTest $ \config ->
+  withTestDatabase config $ \(Database name _) -> do
+    databases <- listDatabases config
     assertBool ("No such database: " ++ T.unpack name) $
       any ((name ==) . databaseName) databases
 
@@ -85,11 +85,10 @@ instance FromSeriesData Val where
 
 -------------------------------------------------
 
-runTest :: (Config -> HC.Manager -> IO a) -> IO a
+runTest :: (Config -> IO a) -> IO a
 runTest f = do
   pool <- newServerPool localServer []
-  let config = Config rootCreds pool
-  HC.withManager settings (f config)
+  HC.withManager settings (f . Config rootCreds pool)
   where
     settings = HC.defaultManagerSettings
 
@@ -98,15 +97,15 @@ newName = do
   uniq <- newUnique
   return $ T.pack $ "test_" ++ show (hashUnique uniq)
 
-withTestDatabase :: Config -> HC.Manager -> (Database -> IO a) -> IO a
-withTestDatabase config manager = bracket acquire release
+withTestDatabase :: Config -> (Database -> IO a) -> IO a
+withTestDatabase config = bracket acquire release
   where
     acquire = do
       name <- newName
-      void (dropDatabase config manager (Database name Nothing))
+      void (dropDatabase config (Database name Nothing))
         `catchAll` \_ -> return ()
-      createDatabase config manager name
-    release = dropDatabase config manager
+      createDatabase config name
+    release = dropDatabase config
 
 catchAll :: IO a -> (SomeException -> IO a) -> IO a
 catchAll = E.catch

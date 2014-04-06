@@ -86,7 +86,8 @@ import qualified Database.InfluxDB.Stream as S
 -- | Configurations for HTTP API client.
 data Config = Config
   { configCreds :: !Credentials
-  , configServerPool :: IORef ServerPool
+  , configServerPool :: !(IORef ServerPool)
+  , configHttpManager :: !HC.Manager
   }
 
 -- | Default credentials.
@@ -120,35 +121,34 @@ timePrecChar MicrosecondsPrecision = 'u'
 -- | Post a bunch of writes for (possibly multiple) series into a database.
 post
   :: Config
-  -> HC.Manager
   -> Database
   -> SeriesT IO a
   -> IO a
-post config manager database =
-  postGeneric config manager database Nothing
+post config database =
+  postGeneric config database Nothing
 
 -- | Post a bunch of writes for (possibly multiple) series into a database like
 -- @post@ but with time precision.
 postWithPrecision
   :: Config
-  -> HC.Manager
   -> Database
   -> TimePrecision
   -> SeriesT IO a
   -> IO a
-postWithPrecision config manager database timePrec =
-  postGeneric config manager database (Just timePrec)
+postWithPrecision config database timePrec =
+  postGeneric config database (Just timePrec)
 
 postGeneric
   :: Config
-  -> HC.Manager
   -> Database
   -> Maybe TimePrecision
   -> SeriesT IO a
   -> IO a
-postGeneric Config {..} manager database timePrec write = do
+postGeneric Config {..} database timePrec write = do
   (a, series) <- runSeriesT write
-  void $ httpLbsWithRetry configServerPool (makeRequest series) manager
+  void $ httpLbsWithRetry configServerPool
+    (makeRequest series)
+    configHttpManager
   return a
   where
     makeRequest series = def
@@ -268,12 +268,11 @@ writePoints = tell . DL.singleton . toSeriesPoints
 query
   :: FromSeries a
   => Config
-  -> HC.Manager
   -> Database
   -> Text -- ^ Query text
   -> IO [a]
-query Config {..} manager database q = do
-  response <- httpLbsWithRetry configServerPool request manager
+query Config {..} database q = do
+  response <- httpLbsWithRetry configServerPool request configHttpManager
   case A.decode (HC.responseBody response) of
     Nothing -> fail $ show response
     Just xs -> case mapM fromSeries xs of
@@ -312,15 +311,14 @@ responseStream body = demandPayload $ \payload ->
 queryChunked
   :: FromSeries a
   => Config
-  -> HC.Manager
   -> Database
   -> Text -- ^ Query text
   -> (Stream IO a -> IO b)
   -- ^ Action to handle the resulting stream of series
   -> IO b
-queryChunked Config {..} manager database q f =
+queryChunked Config {..} database q f =
   withPool configServerPool request $ \request' ->
-    HC.withResponse request' manager $
+    HC.withResponse request' configHttpManager $
       responseStream . HC.responseBody >=> S.mapM parse >=> f
   where
     parse series = case fromSeries series of
@@ -341,9 +339,9 @@ queryChunked Config {..} manager database q f =
 -- Administration & Security
 
 -- | List existing databases.
-listDatabases :: Config -> HC.Manager -> IO [Database]
-listDatabases Config {..} manager = do
-  response <- httpLbsWithRetry configServerPool makeRequest manager
+listDatabases :: Config -> IO [Database]
+listDatabases Config {..} = do
+  response <- httpLbsWithRetry configServerPool makeRequest configHttpManager
   case A.decode (HC.responseBody response) of
     Nothing -> fail $ show response
     Just xs -> return xs
@@ -357,9 +355,9 @@ listDatabases Config {..} manager = do
     Credentials {..} = configCreds
 
 -- | Create a new database. Requires cluster admin privileges.
-createDatabase :: Config -> HC.Manager -> Text -> IO Database
-createDatabase Config {..} manager name = do
-  void $ httpLbsWithRetry configServerPool makeRequest manager
+createDatabase :: Config -> Text -> IO Database
+createDatabase Config {..} name = do
+  void $ httpLbsWithRetry configServerPool makeRequest configHttpManager
   return Database
     { databaseName = name
     , databaseReplicationFactor = Nothing
@@ -378,9 +376,9 @@ createDatabase Config {..} manager name = do
     Credentials {..} = configCreds
 
 -- | Drop a database. Requires cluster admin privileges.
-dropDatabase :: Config -> HC.Manager -> Database -> IO ()
-dropDatabase Config {..} manager database =
-  void $ httpLbsWithRetry configServerPool makeRequest manager
+dropDatabase :: Config -> Database -> IO ()
+dropDatabase Config {..} database =
+  void $ httpLbsWithRetry configServerPool makeRequest configHttpManager
   where
     makeRequest = def
       { HC.method = "DELETE"
@@ -394,12 +392,9 @@ dropDatabase Config {..} manager database =
     Credentials {..} = configCreds
 
 -- | List cluster administrators.
-listClusterAdmins
-  :: Config
-  -> HC.Manager
-  -> IO [Admin]
-listClusterAdmins Config {..} manager = do
-  response <- httpLbsWithRetry configServerPool makeRequest manager
+listClusterAdmins :: Config -> IO [Admin]
+listClusterAdmins Config {..} = do
+  response <- httpLbsWithRetry configServerPool makeRequest configHttpManager
   case A.decode (HC.responseBody response) of
     Nothing -> fail $ show response
     Just xs -> return xs
@@ -415,11 +410,10 @@ listClusterAdmins Config {..} manager = do
 -- | Add a new cluster administrator. Requires cluster admin privilege.
 addClusterAdmin
   :: Config
-  -> HC.Manager
   -> Text
   -> IO Admin
-addClusterAdmin Config {..} manager name = do
-  void $ httpLbsWithRetry configServerPool makeRequest manager
+addClusterAdmin Config {..} name = do
+  void $ httpLbsWithRetry configServerPool makeRequest configHttpManager
   return Admin
     { adminUsername = name
     }
@@ -463,11 +457,10 @@ updateClusterAdminPassword Config {..} manager admin password =
 -- | Delete a cluster administrator. Requires cluster admin privilege.
 deleteClusterAdmin
   :: Config
-  -> HC.Manager
   -> Admin
   -> IO ()
-deleteClusterAdmin Config {..} manager admin =
-  void $ httpLbsWithRetry configServerPool makeRequest manager
+deleteClusterAdmin Config {..} admin =
+  void $ httpLbsWithRetry configServerPool makeRequest configHttpManager
   where
     makeRequest = def
       { HC.method = "DELETE"
@@ -483,11 +476,10 @@ deleteClusterAdmin Config {..} manager admin =
 -- | List database users.
 listDatabaseUsers
   :: Config
-  -> HC.Manager
   -> Text
   -> IO [User]
-listDatabaseUsers Config {..} manager database = do
-  response <- httpLbsWithRetry configServerPool makeRequest manager
+listDatabaseUsers Config {..} database = do
+  response <- httpLbsWithRetry configServerPool makeRequest configHttpManager
   case A.decode (HC.responseBody response) of
     Nothing -> fail $ show response
     Just xs -> return xs
@@ -504,12 +496,11 @@ listDatabaseUsers Config {..} manager database = do
 -- | Add an user to the database users.
 addDatabaseUser
   :: Config
-  -> HC.Manager
   -> Database
   -> Text
   -> IO User
-addDatabaseUser Config {..} manager database name = do
-  void $ httpLbsWithRetry configServerPool makeRequest manager
+addDatabaseUser Config {..} database name = do
+  void $ httpLbsWithRetry configServerPool makeRequest configHttpManager
   return User
     { userName = name
     }
@@ -530,12 +521,11 @@ addDatabaseUser Config {..} manager database name = do
 -- | Delete an user from the database users.
 deleteDatabaseUser
   :: Config
-  -> HC.Manager
   -> Database
   -> User
   -> IO ()
-deleteDatabaseUser config manager database user =
-  void $ httpLbsWithRetry (configServerPool config) request manager
+deleteDatabaseUser config@Config {..} database user =
+  void $ httpLbsWithRetry configServerPool request configHttpManager
   where
     request = (makeRequestFromDatabaseUser config database user)
       { HC.method = "DELETE"
@@ -544,13 +534,12 @@ deleteDatabaseUser config manager database user =
 -- | Update password for the database user.
 updateDatabaseUserPassword
   :: Config
-  -> HC.Manager
   -> Database
   -> User
   -> Text
   -> IO ()
-updateDatabaseUserPassword config manager database user password =
-  void $ httpLbsWithRetry (configServerPool config) request manager
+updateDatabaseUserPassword config@Config {..} database user password =
+  void $ httpLbsWithRetry configServerPool request configHttpManager
   where
     request = (makeRequestFromDatabaseUser config database user)
       { HC.method = "POST"
@@ -562,12 +551,11 @@ updateDatabaseUserPassword config manager database user password =
 -- | Give admin privilege to the user.
 grantAdminPrivilegeTo
   :: Config
-  -> HC.Manager
   -> Database
   -> User
   -> IO ()
-grantAdminPrivilegeTo config manager database user =
-  void $ httpLbsWithRetry (configServerPool config) request manager
+grantAdminPrivilegeTo config@Config {..} database user =
+  void $ httpLbsWithRetry configServerPool request configHttpManager
   where
     request = (makeRequestFromDatabaseUser config database user)
       { HC.method = "POST"
@@ -579,12 +567,11 @@ grantAdminPrivilegeTo config manager database user =
 -- | Remove admin privilege from the user.
 revokeAdminPrivilegeFrom
   :: Config
-  -> HC.Manager
   -> Database
   -> User
   -> IO ()
-revokeAdminPrivilegeFrom config manager database user =
-  void $ httpLbsWithRetry (configServerPool config) request manager
+revokeAdminPrivilegeFrom config@Config {..} database user =
+  void $ httpLbsWithRetry configServerPool request configHttpManager
   where
     request = (makeRequestFromDatabaseUser config database user)
       { HC.method = "POST"
