@@ -67,7 +67,7 @@ install:
 # build to fail.
 script:
  # -v2 provides useful information for debugging
- - cabal-1.18 configure -fexamples --enable-tests --enable-benchmarks --enable-library-coverage -v2
+ - cabal-1.18 configure -fexamples --enable-tests --enable-benchmarks --enable-library-coverage
 
  # this builds all libraries and executables
  # (including tests/benchmarks)
