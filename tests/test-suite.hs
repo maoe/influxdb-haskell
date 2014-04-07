@@ -78,13 +78,13 @@ case_create_then_drop_database = runTest $ \config -> do
   name <- newName
   dropDatabaseIfExists config name
   createDatabase config name
-  databases <- listDatabases config
-  assertBool ("No such database: " ++ T.unpack name) $
-    any ((name ==) . databaseName) databases
+  listDatabases config >>= \databases ->
+    assertBool ("No such database: " ++ T.unpack name) $
+      any ((name ==) . databaseName) databases
   dropDatabase config name
-  databases' <- listDatabases config
-  assertBool ("Found a dropped database: " ++ T.unpack name) $
-    all ((name /=) . databaseName) databases'
+  listDatabases config >>= \databases ->
+    assertBool ("Found a dropped database: " ++ T.unpack name) $
+      all ((name /=) . databaseName) databases
 
 case_list_cluster_admins :: Assertion
 case_list_cluster_admins = runTest $ \config -> do
@@ -96,13 +96,13 @@ case_add_then_delete_cluster_admin :: Assertion
 case_add_then_delete_cluster_admin = runTest $ \config -> do
   name <- newName
   admin <- addClusterAdmin config name "somePassword"
-  admins <- listClusterAdmins config
-  assertBool ("No such admin: " ++ T.unpack name) $
-    any ((name ==) . adminUsername) admins
+  listClusterAdmins config >>= \admins ->
+    assertBool ("No such admin: " ++ T.unpack name) $
+      any ((name ==) . adminUsername) admins
   deleteClusterAdmin config admin
-  admins' <- listClusterAdmins config
-  assertBool ("Found a deleted admin: " ++ T.unpack name) $
-    all ((name /=) . adminUsername) admins'
+  listClusterAdmins config >>= \admins ->
+    assertBool ("Found a deleted admin: " ++ T.unpack name) $
+      all ((name /=) . adminUsername) admins
 
 case_update_cluster_admin_password :: Assertion
 case_update_cluster_admin_password = runTest $ \config -> do
@@ -117,13 +117,13 @@ case_update_cluster_admin_password = runTest $ \config -> do
   name <- newName
   dropDatabaseIfExists config name
   createDatabase newConfig name
-  databases <- listDatabases newConfig
-  assertBool ("No such database: " ++ T.unpack name) $
-    any ((name ==) . databaseName) databases
+  listDatabases newConfig >>= \databases ->
+    assertBool ("No such database: " ++ T.unpack name) $
+      any ((name ==) . databaseName) databases
   dropDatabase newConfig name
-  databases' <- listDatabases newConfig
-  assertBool ("Found a dropped database: " ++ T.unpack name) $
-    all ((name /=) . databaseName) databases'
+  listDatabases newConfig >>= \databases ->
+    assertBool ("Found a dropped database: " ++ T.unpack name) $
+      all ((name /=) . databaseName) databases
 
 case_add_then_delete_database_users :: Assertion
 case_add_then_delete_database_users = runTest $ \config ->
