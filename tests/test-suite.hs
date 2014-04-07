@@ -65,6 +65,9 @@ prop_fromValue_toValue_identity_LazyText = fromValueToValueIdentity
 prop_fromValue_toValue_identity_String :: String -> Bool
 prop_fromValue_toValue_identity_String = fromValueToValueIdentity
 
+prop_fromValue_toValue_identity_Maybe_Int :: Maybe Int -> Bool
+prop_fromValue_toValue_identity_Maybe_Int = fromValueToValueIdentity
+
 -------------------------------------------------
 
 instance Arbitrary Value where
