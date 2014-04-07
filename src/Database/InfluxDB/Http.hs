@@ -436,12 +436,11 @@ addClusterAdmin Config {..} name password = do
 -- privilege.
 updateClusterAdminPassword
   :: Config
-  -> HC.Manager
   -> Admin
-  -> Text
+  -> Text -- ^ New password
   -> IO ()
-updateClusterAdminPassword Config {..} manager admin password =
-  void $ httpLbsWithRetry configServerPool makeRequest manager
+updateClusterAdminPassword Config {..} admin password =
+  void $ httpLbsWithRetry configServerPool makeRequest configHttpManager
   where
     makeRequest = def
       { HC.method = "POST"

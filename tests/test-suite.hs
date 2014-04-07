@@ -55,8 +55,8 @@ case_post_multi_points = runTest $ \config ->
       "select value from " <> name
     fromSeriesData series @=? Right [Val 42, Val 42, Val 42]
 
-case_postWithPrecision :: Assertion
-case_postWithPrecision = runTest $ \config ->
+case_post_with_precision :: Assertion
+case_post_with_precision = runTest $ \config ->
   withTestDatabase config $ \database -> do
     name <- liftIO newName
     postWithPrecision config database SecondsPrecision $
@@ -72,16 +72,29 @@ case_listDatabases = runTest $ \config ->
     assertBool ("No such database: " ++ T.unpack name) $
       any ((name ==) . databaseName) databases
 
-case_listClusterAdmins :: Assertion
-case_listClusterAdmins = runTest $ \config -> do
+case_create_then_drop_database :: Assertion
+case_create_then_drop_database = runTest $ \config -> do
+  name <- newName
+  dropDatabaseIfExists config name
+  database <- createDatabase config name
+  databases <- listDatabases config
+  assertBool ("No such database: " ++ T.unpack name) $
+    any ((name ==) . databaseName) databases
+  dropDatabase config database
+  databases' <- listDatabases config
+  assertBool ("Found a dropped database: " ++ T.unpack name) $
+    all ((name /=) . databaseName) databases'
+
+case_list_cluster_admins :: Assertion
+case_list_cluster_admins = runTest $ \config -> do
   admins <- listClusterAdmins config
   assertBool "No root admin" $
     any (("root" ==) . adminUsername) admins
 
-case_add_then_delete_cluster_admins :: Assertion
-case_add_then_delete_cluster_admins = runTest $ \config -> do
+case_add_then_delete_cluster_admin :: Assertion
+case_add_then_delete_cluster_admin = runTest $ \config -> do
   name <- newName
-  admin <- addClusterAdmin config name "somelongpassword"
+  admin <- addClusterAdmin config name "somePassword"
   admins <- listClusterAdmins config
   assertBool ("No such admin: " ++ T.unpack name) $
     any ((name ==) . adminUsername) admins
@@ -89,6 +102,27 @@ case_add_then_delete_cluster_admins = runTest $ \config -> do
   admins' <- listClusterAdmins config
   assertBool ("Found a deleted admin: " ++ T.unpack name) $
     all ((name /=) . adminUsername) admins'
+
+case_update_cluster_admin_password :: Assertion
+case_update_cluster_admin_password = runTest $ \config -> do
+  let curPassword = "somePassword"
+      newPassword = "otherPassword"
+  name <- newName
+  deleteClusterAdminIfExists config name
+  admin <- addClusterAdmin config name curPassword
+  updateClusterAdminPassword config admin newPassword
+  let newCreds = Credentials name newPassword
+      newConfig = config { configCreds = newCreds }
+  name <- newName
+  dropDatabaseIfExists config name
+  database <- createDatabase newConfig name
+  databases <- listDatabases newConfig
+  assertBool ("No such database: " ++ T.unpack name) $
+    any ((name ==) . databaseName) databases
+  dropDatabase newConfig database
+  databases' <- listDatabases newConfig
+  assertBool ("Found a dropped database: " ++ T.unpack name) $
+    all ((name /=) . databaseName) databases'
 
 -------------------------------------------------
 
@@ -100,6 +134,18 @@ instance ToSeriesData Val where
 
 instance FromSeriesData Val where
   parseSeriesData = withValues $ \values -> Val <$> values .: "value"
+
+-------------------------------------------------
+
+dropDatabaseIfExists :: Config -> Text -> IO ()
+dropDatabaseIfExists config name =
+  dropDatabase config (Database name Nothing)
+    `catchAll` \_ -> return ()
+
+deleteClusterAdminIfExists :: Config -> Text -> IO ()
+deleteClusterAdminIfExists config name =
+  deleteClusterAdmin config (Admin name)
+    `catchAll` \_ -> return ()
 
 -------------------------------------------------
 
@@ -120,8 +166,7 @@ withTestDatabase config = bracket acquire release
   where
     acquire = do
       name <- newName
-      void (dropDatabase config (Database name Nothing))
-        `catchAll` \_ -> return ()
+      dropDatabaseIfExists config name
       createDatabase config name
     release = dropDatabase config
 
