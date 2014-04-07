@@ -10,7 +10,6 @@ import Data.Int (Int8, Int16, Int32, Int64)
 import Data.Proxy
 import Data.Vector (Vector)
 import Data.Word (Word8, Word16, Word32)
-import qualified Data.DList as DL
 import qualified Data.Text as T
 import qualified Data.Text.Lazy as TL
 
@@ -42,7 +41,7 @@ class ToSeriesData a where
 toSeriesData :: forall a. ToSeriesData a => a -> SeriesData
 toSeriesData a = SeriesData
   { seriesDataColumns = toSeriesColumns (Proxy :: Proxy a)
-  , seriesDataPoints = DL.singleton (toSeriesPoints a)
+  , seriesDataPoints = [toSeriesPoints a]
   }
 
 -- | A type that can be stored in InfluxDB.

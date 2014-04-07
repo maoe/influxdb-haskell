@@ -28,16 +28,18 @@ main :: IO ()
 main = do
   [read -> (numPoints :: Int), read -> (batches :: Int)] <- getArgs
   hSetBuffering stdout NoBuffering
-  config <- newConfig
   HC.withManager managerSettings $ \manager -> do
-    dropDatabase config manager (Database "ctx" Nothing)
+    config <- newConfig manager
+
+    let db = "ctx"
+    dropDatabase config db
       `E.catch`
         -- Ignore exceptions here
         \(_ :: HC.HttpException) -> return ()
-    db <- createDatabase config manager "ctx"
+    createDatabase config "ctx"
     gen <- MWC.create
     flip fix batches $ \outerLoop !m -> when (m > 0) $ do
-      postWithPrecision config manager db SecondsPrecision $ withSeries "ct1" $
+      postWithPrecision config db SecondsPrecision $ withSeries "ct1" $
         flip fix numPoints $ \innerLoop !n -> when (n > 0) $ do
           !timestamp <- liftIO $ (-)
             <$> getPOSIXTime
@@ -47,14 +49,14 @@ main = do
           innerLoop $ n - 1
       outerLoop $ m - 1
 
-    result <- query config manager db "select count(value) from ct1;"
+    result <- query config db "select count(value) from ct1;"
     case result of
       [] -> putStrLn "Empty series"
       series:_ -> do
         print $ seriesColumns series
         print $ seriesPoints series
     -- Streaming output
-    queryChunked config manager db "select * from ct1;" $ \stream0 ->
+    queryChunked config db "select * from ct1;" $ \stream0 ->
       flip fix stream0 $ \loop stream -> case stream of
         Done -> return ()
         Yield series next -> do
@@ -65,12 +67,13 @@ main = do
           stream' <- next
           loop stream'
 
-newConfig :: IO Config
-newConfig = do
+newConfig :: HC.Manager -> IO Config
+newConfig manager = do
   pool <- newServerPool localServer [] -- no backup servers
   return Config
     { configCreds = rootCreds
     , configServerPool = pool
+    , configHttpManager = manager
     }
 
 managerSettings :: HC.ManagerSettings
