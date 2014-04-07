@@ -5,6 +5,7 @@ import Control.Exception as E
 import Control.Monad
 import Control.Monad.Trans
 import Data.Function
+import Data.List (find)
 import Data.Monoid
 import Data.Text (Text)
 import Data.Unique
@@ -123,6 +124,56 @@ case_update_cluster_admin_password = runTest $ \config -> do
   databases' <- listDatabases newConfig
   assertBool ("Found a dropped database: " ++ T.unpack name) $
     all ((name /=) . databaseName) databases'
+
+case_add_then_delete_database_users :: Assertion
+case_add_then_delete_database_users = runTest $ \config ->
+  withTestDatabase config $ \name -> do
+    listDatabaseUsers config name >>= \users ->
+      assertBool "There shouldn't be any users" $ null users
+    newUserName <- newName
+    addDatabaseUser config name newUserName "somePassword"
+    listDatabaseUsers config name >>= \users ->
+      assertBool ("No such user: " <> T.unpack newUserName) $
+        any ((newUserName ==) . userName) users
+    deleteDatabaseUser config name newUserName
+    listDatabaseUsers config name >>= \users ->
+      assertBool ("Found a deleted user: " <> T.unpack newUserName) $
+        all ((newUserName /=) . userName) users
+
+case_update_database_user_password :: Assertion
+case_update_database_user_password = runTest $ \config ->
+  withTestDatabase config $ \name -> do
+    newUserName <- newName
+    addDatabaseUser config name newUserName "somePassword"
+    listDatabaseUsers config name >>= \users ->
+      assertBool ("No such user: " <> T.unpack newUserName) $
+        any ((newUserName ==) . userName) users
+    updateDatabaseUserPassword config name newUserName "otherPassword"
+    deleteDatabaseUser config name newUserName
+
+case_grant_revoke_database_user :: Assertion
+case_grant_revoke_database_user = runTest $ \config ->
+  withTestDatabase config $ \name -> do
+    newUserName <- newName
+    addDatabaseUser config name newUserName "somePassword"
+    listDatabaseUsers config name >>= \users ->
+      assertBool ("No such user: " <> T.unpack newUserName) $
+        any ((newUserName ==) . userName) users
+    grantAdminPrivilegeTo config name newUserName
+    listDatabaseUsers config name >>= \users -> do
+      case find ((newUserName ==) . userName) users of
+        Nothing -> assertFailure $ "No such user: " <> T.unpack newUserName
+        Just user -> assertBool
+          ("User is not privileged: " <> T.unpack newUserName)
+          (userIsAdmin user)
+    revokeAdminPrivilegeFrom config name newUserName
+    listDatabaseUsers config name >>= \users -> do
+      case find ((newUserName ==) . userName) users of
+        Nothing -> assertFailure $ "No such user: " <> T.unpack newUserName
+        Just user -> assertBool
+          ("User is still privileged: " <> T.unpack newUserName)
+          (not $ userIsAdmin user)
+    deleteDatabaseUser config name newUserName
 
 -------------------------------------------------
 

@@ -184,8 +184,9 @@ newtype ScheduledDelete = ScheduledDelete
   } deriving Show
 
 -- | User
-newtype User = User
+data User = User
   { userName :: Text
+  , userIsAdmin :: Bool
   } deriving Show
 
 -- | Administrator

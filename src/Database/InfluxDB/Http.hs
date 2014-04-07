@@ -493,18 +493,18 @@ listDatabaseUsers Config {..} database = do
 -- | Add an user to the database users.
 addDatabaseUser
   :: Config
-  -> Database
-  -> Text
-  -> IO User
-addDatabaseUser Config {..} database name = do
+  -> Text -- ^ Database name
+  -> Text -- ^ User name
+  -> Text -- ^ Password
+  -> IO ()
+addDatabaseUser Config {..} databaseName name password =
   void $ httpLbsWithRetry configServerPool makeRequest configHttpManager
-  return User
-    { userName = name
-    }
   where
     makeRequest = def
-      { HC.requestBody = HC.RequestBodyLBS $ AE.encode $ A.object
+      { HC.method = "POST"
+      , HC.requestBody = HC.RequestBodyLBS $ AE.encode $ A.object
           [ "name" .= name
+          , "password" .= password
           ]
       , HC.path = escapeString $ printf "/db/%s/users"
           (T.unpack databaseName)
@@ -512,33 +512,32 @@ addDatabaseUser Config {..} database name = do
           (T.unpack credsUser)
           (T.unpack credsPassword)
       }
-    Database {databaseName} = database
     Credentials {..} = configCreds
 
 -- | Delete an user from the database users.
 deleteDatabaseUser
   :: Config
-  -> Database
-  -> User
+  -> Text -- ^ Database name
+  -> Text -- ^ User name
   -> IO ()
-deleteDatabaseUser config@Config {..} database user =
+deleteDatabaseUser config@Config {..} databaseName userName =
   void $ httpLbsWithRetry configServerPool request configHttpManager
   where
-    request = (makeRequestFromDatabaseUser config database user)
+    request = (makeRequestFromDatabaseUser config databaseName userName)
       { HC.method = "DELETE"
       }
 
 -- | Update password for the database user.
 updateDatabaseUserPassword
   :: Config
-  -> Database
-  -> User
-  -> Text
+  -> Text -- ^ Database name
+  -> Text -- ^ User name
+  -> Text -- ^ New password
   -> IO ()
-updateDatabaseUserPassword config@Config {..} database user password =
+updateDatabaseUserPassword config@Config {..} databaseName userName password =
   void $ httpLbsWithRetry configServerPool request configHttpManager
   where
-    request = (makeRequestFromDatabaseUser config database user)
+    request = (makeRequestFromDatabaseUser config databaseName userName)
       { HC.method = "POST"
       , HC.requestBody = HC.RequestBodyLBS $ AE.encode $ A.object
           [ "password" .= password
@@ -548,13 +547,13 @@ updateDatabaseUserPassword config@Config {..} database user password =
 -- | Give admin privilege to the user.
 grantAdminPrivilegeTo
   :: Config
-  -> Database
-  -> User
+  -> Text -- ^ Database name
+  -> Text -- ^ User name
   -> IO ()
-grantAdminPrivilegeTo config@Config {..} database user =
+grantAdminPrivilegeTo config@Config {..} databaseName userName =
   void $ httpLbsWithRetry configServerPool request configHttpManager
   where
-    request = (makeRequestFromDatabaseUser config database user)
+    request = (makeRequestFromDatabaseUser config databaseName userName)
       { HC.method = "POST"
       , HC.requestBody = HC.RequestBodyLBS $ AE.encode $ A.object
           [ "admin" .= True
@@ -564,13 +563,13 @@ grantAdminPrivilegeTo config@Config {..} database user =
 -- | Remove admin privilege from the user.
 revokeAdminPrivilegeFrom
   :: Config
-  -> Database
-  -> User
+  -> Text -- ^ Database name
+  -> Text -- ^ User name
   -> IO ()
-revokeAdminPrivilegeFrom config@Config {..} database user =
+revokeAdminPrivilegeFrom config@Config {..} databaseName userName =
   void $ httpLbsWithRetry configServerPool request configHttpManager
   where
-    request = (makeRequestFromDatabaseUser config database user)
+    request = (makeRequestFromDatabaseUser config databaseName userName)
       { HC.method = "POST"
       , HC.requestBody = HC.RequestBodyLBS $ AE.encode $ A.object
           [ "admin" .= False
@@ -579,10 +578,10 @@ revokeAdminPrivilegeFrom config@Config {..} database user =
 
 makeRequestFromDatabaseUser
   :: Config
-  -> Database
-  -> User
+  -> Text -- ^ Database name
+  -> Text -- ^ User name
   -> HC.Request
-makeRequestFromDatabaseUser Config {..} database user = def
+makeRequestFromDatabaseUser Config {..} databaseName userName = def
   { HC.path = escapeString $ printf "/db/%s/users/%s"
       (T.unpack databaseName)
       (T.unpack userName)
@@ -591,8 +590,6 @@ makeRequestFromDatabaseUser Config {..} database user = def
       (T.unpack credsPassword)
   }
   where
-    Database {databaseName} = database
-    User {userName} = user
     Credentials {..} = configCreds
 
 -----------------------------------------------------------
