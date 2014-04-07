@@ -5,22 +5,87 @@ import Control.Exception as E
 import Control.Monad
 import Control.Monad.Trans
 import Data.Function
+import Data.Int
 import Data.List (find)
 import Data.Monoid
 import Data.Text (Text)
 import Data.Unique
+import Data.Word
 import qualified Data.Text as T
+import qualified Data.Text.Lazy as TL
 import qualified Data.Vector as V
 
 import Test.Tasty
 import Test.Tasty.HUnit
 import Test.Tasty.TH
+import Test.Tasty.QuickCheck
 import qualified Network.HTTP.Client as HC
 
 import Database.InfluxDB
 
-main :: IO ()
-main = $defaultMainGenerator
+prop_fromValue_toValue_identity_Value :: Value -> Bool
+prop_fromValue_toValue_identity_Value = fromValueToValueIdentity
+
+prop_fromValue_toValue_identity_Bool :: Bool -> Bool
+prop_fromValue_toValue_identity_Bool = fromValueToValueIdentity
+
+prop_fromValue_toValue_identity_Int :: Int -> Bool
+prop_fromValue_toValue_identity_Int = fromValueToValueIdentity
+
+prop_fromValue_toValue_identity_Int8 :: Int8 -> Bool
+prop_fromValue_toValue_identity_Int8 = fromValueToValueIdentity
+
+prop_fromValue_toValue_identity_Int16 :: Int16 -> Bool
+prop_fromValue_toValue_identity_Int16 = fromValueToValueIdentity
+
+prop_fromValue_toValue_identity_Int32 :: Int32 -> Bool
+prop_fromValue_toValue_identity_Int32 = fromValueToValueIdentity
+
+prop_fromValue_toValue_identity_Int64 :: Int64 -> Bool
+prop_fromValue_toValue_identity_Int64 = fromValueToValueIdentity
+
+prop_fromValue_toValue_identity_Word8 :: Word8 -> Bool
+prop_fromValue_toValue_identity_Word8 = fromValueToValueIdentity
+
+prop_fromValue_toValue_identity_Word16 :: Word16 -> Bool
+prop_fromValue_toValue_identity_Word16 = fromValueToValueIdentity
+
+prop_fromValue_toValue_identity_Word32 :: Word32 -> Bool
+prop_fromValue_toValue_identity_Word32 = fromValueToValueIdentity
+
+prop_fromValue_toValue_identity_Double :: Double -> Bool
+prop_fromValue_toValue_identity_Double = fromValueToValueIdentity
+
+prop_fromValue_toValue_identity_Text :: T.Text -> Bool
+prop_fromValue_toValue_identity_Text = fromValueToValueIdentity
+
+prop_fromValue_toValue_identity_LazyText :: TL.Text -> Bool
+prop_fromValue_toValue_identity_LazyText = fromValueToValueIdentity
+
+prop_fromValue_toValue_identity_String :: String -> Bool
+prop_fromValue_toValue_identity_String = fromValueToValueIdentity
+
+-------------------------------------------------
+
+instance Arbitrary Value where
+  arbitrary = oneof
+    [ Int <$> arbitrary
+    , Float <$> arbitrary
+    , String <$> arbitrary
+    , Bool <$> arbitrary
+    , pure Null
+    ]
+
+instance Arbitrary T.Text where
+  arbitrary = T.pack <$> arbitrary
+
+instance Arbitrary TL.Text where
+  arbitrary = TL.pack <$> arbitrary
+
+fromValueToValueIdentity :: (Eq a, FromValue a, ToValue a) => a -> Bool
+fromValueToValueIdentity a = fromValue (toValue a) == Right a
+
+-------------------------------------------------
 
 case_post :: Assertion
 case_post = runTest $ \config ->
@@ -224,3 +289,8 @@ withTestDatabase config = bracket acquire release
 
 catchAll :: IO a -> (SomeException -> IO a) -> IO a
 catchAll = E.catch
+
+-------------------------------------------------
+
+main :: IO ()
+main = $defaultMainGenerator

@@ -63,6 +63,7 @@ test-suite test-suite
     , tasty
     , tasty-hunit
     , tasty-th
+    , tasty-quickcheck
     , text
     , vector
   hs-source-dirs: tests
