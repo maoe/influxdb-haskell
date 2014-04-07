@@ -1,4 +1,4 @@
-## v0.1.0 - 2014-04-07
+## v0.1.0.1 - 2014-04-07
 
 * Support for older aeson
 * Textual paramters in some functions for convenience
