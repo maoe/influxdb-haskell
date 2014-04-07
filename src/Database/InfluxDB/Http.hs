@@ -121,30 +121,30 @@ timePrecChar MicrosecondsPrecision = 'u'
 -- | Post a bunch of writes for (possibly multiple) series into a database.
 post
   :: Config
-  -> Database
+  -> Text
   -> SeriesT IO a
   -> IO a
-post config database =
-  postGeneric config database Nothing
+post config databaseName =
+  postGeneric config databaseName Nothing
 
 -- | Post a bunch of writes for (possibly multiple) series into a database like
 -- @post@ but with time precision.
 postWithPrecision
   :: Config
-  -> Database
+  -> Text -- ^ Database name
   -> TimePrecision
   -> SeriesT IO a
   -> IO a
-postWithPrecision config database timePrec =
-  postGeneric config database (Just timePrec)
+postWithPrecision config databaseName timePrec =
+  postGeneric config databaseName (Just timePrec)
 
 postGeneric
   :: Config
-  -> Database
+  -> Text -- ^ Database name
   -> Maybe TimePrecision
   -> SeriesT IO a
   -> IO a
-postGeneric Config {..} database timePrec write = do
+postGeneric Config {..} databaseName timePrec write = do
   (a, series) <- runSeriesT write
   void $ httpLbsWithRetry configServerPool
     (makeRequest series)
@@ -164,7 +164,6 @@ postGeneric Config {..} database timePrec write = do
             (printf "&time_precision=%c" . timePrecChar)
             timePrec :: String)
       }
-    Database {databaseName} = database
     Credentials {..} = configCreds
 
 -- | Monad transformer to batch up multiple writes of series to speed up
@@ -268,10 +267,10 @@ writePoints = tell . DL.singleton . toSeriesPoints
 query
   :: FromSeries a
   => Config
-  -> Database
+  -> Text -- ^ Database name
   -> Text -- ^ Query text
   -> IO [a]
-query Config {..} database q = do
+query Config {..} databaseName q = do
   response <- httpLbsWithRetry configServerPool request configHttpManager
   case A.decode (HC.responseBody response) of
     Nothing -> fail $ show response
@@ -287,7 +286,6 @@ query Config {..} database q = do
           (T.unpack credsPassword)
           (T.unpack q)
       }
-    Database {databaseName} = database
     Credentials {..} = configCreds
 
 -- | Construct streaming output
@@ -311,12 +309,12 @@ responseStream body = demandPayload $ \payload ->
 queryChunked
   :: FromSeries a
   => Config
-  -> Database
+  -> Text -- ^ Database name
   -> Text -- ^ Query text
   -> (Stream IO a -> IO b)
   -- ^ Action to handle the resulting stream of series
   -> IO b
-queryChunked Config {..} database q f =
+queryChunked Config {..} databaseName q f =
   withPool configServerPool request $ \request' ->
     HC.withResponse request' configHttpManager $
       responseStream . HC.responseBody >=> S.mapM parse >=> f
@@ -332,7 +330,6 @@ queryChunked Config {..} database q f =
           (T.unpack credsPassword)
           (T.unpack q)
       }
-    Database {databaseName} = database
     Credentials {..} = configCreds
 
 -----------------------------------------------------------
@@ -355,13 +352,9 @@ listDatabases Config {..} = do
     Credentials {..} = configCreds
 
 -- | Create a new database. Requires cluster admin privileges.
-createDatabase :: Config -> Text -> IO Database
-createDatabase Config {..} name = do
+createDatabase :: Config -> Text -> IO ()
+createDatabase Config {..} name =
   void $ httpLbsWithRetry configServerPool makeRequest configHttpManager
-  return Database
-    { databaseName = name
-    , databaseReplicationFactor = Nothing
-    }
   where
     makeRequest = def
       { HC.method = "POST"
@@ -376,8 +369,11 @@ createDatabase Config {..} name = do
     Credentials {..} = configCreds
 
 -- | Drop a database. Requires cluster admin privileges.
-dropDatabase :: Config -> Database -> IO ()
-dropDatabase Config {..} database =
+dropDatabase
+  :: Config
+  -> Text -- ^ Database name
+  -> IO ()
+dropDatabase Config {..} databaseName =
   void $ httpLbsWithRetry configServerPool makeRequest configHttpManager
   where
     makeRequest = def
@@ -388,7 +384,6 @@ dropDatabase Config {..} database =
           (T.unpack credsUser)
           (T.unpack credsPassword)
       }
-    Database {databaseName} = database
     Credentials {..} = configCreds
 
 -- | List cluster administrators.

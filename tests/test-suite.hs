@@ -67,7 +67,7 @@ case_post_with_precision = runTest $ \config ->
 
 case_listDatabases :: Assertion
 case_listDatabases = runTest $ \config ->
-  withTestDatabase config $ \(Database name _) -> do
+  withTestDatabase config $ \name -> do
     databases <- listDatabases config
     assertBool ("No such database: " ++ T.unpack name) $
       any ((name ==) . databaseName) databases
@@ -76,11 +76,11 @@ case_create_then_drop_database :: Assertion
 case_create_then_drop_database = runTest $ \config -> do
   name <- newName
   dropDatabaseIfExists config name
-  database <- createDatabase config name
+  createDatabase config name
   databases <- listDatabases config
   assertBool ("No such database: " ++ T.unpack name) $
     any ((name ==) . databaseName) databases
-  dropDatabase config database
+  dropDatabase config name
   databases' <- listDatabases config
   assertBool ("Found a dropped database: " ++ T.unpack name) $
     all ((name /=) . databaseName) databases'
@@ -115,11 +115,11 @@ case_update_cluster_admin_password = runTest $ \config -> do
       newConfig = config { configCreds = newCreds }
   name <- newName
   dropDatabaseIfExists config name
-  database <- createDatabase newConfig name
+  createDatabase newConfig name
   databases <- listDatabases newConfig
   assertBool ("No such database: " ++ T.unpack name) $
     any ((name ==) . databaseName) databases
-  dropDatabase newConfig database
+  dropDatabase newConfig name
   databases' <- listDatabases newConfig
   assertBool ("Found a dropped database: " ++ T.unpack name) $
     all ((name /=) . databaseName) databases'
@@ -139,7 +139,7 @@ instance FromSeriesData Val where
 
 dropDatabaseIfExists :: Config -> Text -> IO ()
 dropDatabaseIfExists config name =
-  dropDatabase config (Database name Nothing)
+  dropDatabase config name
     `catchAll` \_ -> return ()
 
 deleteClusterAdminIfExists :: Config -> Text -> IO ()
@@ -161,13 +161,14 @@ newName = do
   uniq <- newUnique
   return $ T.pack $ "test_" ++ show (hashUnique uniq)
 
-withTestDatabase :: Config -> (Database -> IO a) -> IO a
+withTestDatabase :: Config -> (Text -> IO a) -> IO a
 withTestDatabase config = bracket acquire release
   where
     acquire = do
       name <- newName
       dropDatabaseIfExists config name
       createDatabase config name
+      return name
     release = dropDatabase config
 
 catchAll :: IO a -> (SomeException -> IO a) -> IO a

@@ -31,11 +31,12 @@ main = do
   HC.withManager managerSettings $ \manager -> do
     config <- newConfig manager
 
-    dropDatabase config (Database "ctx" Nothing)
+    let db = "ctx"
+    dropDatabase config db
       `E.catch`
         -- Ignore exceptions here
         \(_ :: HC.HttpException) -> return ()
-    db <- createDatabase config "ctx"
+    createDatabase config "ctx"
     gen <- MWC.create
     flip fix batches $ \outerLoop !m -> when (m > 0) $ do
       postWithPrecision config db SecondsPrecision $ withSeries "ct1" $
