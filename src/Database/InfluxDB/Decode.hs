@@ -1,5 +1,7 @@
+{-# LANGUAGE FlexibleInstances #-}
 {-# LANGUAGE GeneralizedNewtypeDeriving #-}
 {-# LANGUAGE RecordWildCards #-}
+{-# LANGUAGE TypeSynonymInstances #-}
 module Database.InfluxDB.Decode
   ( FromSeries(..), fromSeries
   , FromSeriesData(..), fromSeriesData
@@ -9,11 +11,14 @@ module Database.InfluxDB.Decode
   ) where
 import Control.Applicative
 import Control.Monad.Reader
+import Data.Int
+import Data.Word
 import Data.Map (Map)
 import Data.Vector (Vector)
 import Data.Tuple (swap)
 import qualified Data.Map as Map
 import qualified Data.Text as T
+import qualified Data.Text.Lazy as TL
 import qualified Data.Vector as V
 
 import Database.InfluxDB.Types
@@ -102,9 +107,63 @@ instance FromValue Int where
   parseValue (Int n) = return $ fromIntegral n
   parseValue v = typeMismatch "Int" v
 
+instance FromValue Int8 where
+  parseValue (Int n)
+    | n <= fromIntegral (maxBound :: Int8) = return $ fromIntegral n
+    | otherwise = fail $ "Larger than the maximum Int8: " ++ show n
+  parseValue v = typeMismatch "Int8" v
+
+instance FromValue Int16 where
+  parseValue (Int n)
+    | n <= fromIntegral (maxBound :: Int16) = return $ fromIntegral n
+    | otherwise = fail $ "Larger than the maximum Int16: " ++ show n
+  parseValue v = typeMismatch "Int16" v
+
+instance FromValue Int32 where
+  parseValue (Int n)
+    | n <= fromIntegral (maxBound :: Int32) = return $ fromIntegral n
+    | otherwise = fail $ "Larger than the maximum Int32: " ++ show n
+  parseValue v = typeMismatch "Int32" v
+
+instance FromValue Int64 where
+  parseValue (Int n)
+    | n <= fromIntegral (maxBound :: Int64) = return $ fromIntegral n
+    | otherwise = fail $ "Larger than the maximum Int64: " ++ show n
+  parseValue v = typeMismatch "Int64" v
+
+instance FromValue Word8 where
+  parseValue (Int n)
+    | n <= fromIntegral (maxBound :: Word8) = return $ fromIntegral n
+    | otherwise = fail $ "Larger than the maximum Word8: " ++ show n
+  parseValue v = typeMismatch "Word8" v
+
+instance FromValue Word16 where
+  parseValue (Int n)
+    | n <= fromIntegral (maxBound :: Word16) = return $ fromIntegral n
+    | otherwise = fail $ "Larger than the maximum Word16: " ++ show n
+  parseValue v = typeMismatch "Word16" v
+
+instance FromValue Word32 where
+  parseValue (Int n)
+    | n <= fromIntegral (maxBound :: Word32) = return $ fromIntegral n
+    | otherwise = fail $ "Larger than the maximum Word32: " ++ show n
+  parseValue v = typeMismatch "Word32" v
+
 instance FromValue Double where
   parseValue (Float d) = return d
   parseValue v = typeMismatch "Float" v
+
+instance FromValue T.Text where
+  parseValue (String xs) = return xs
+  parseValue v = typeMismatch "Text" v
+
+instance FromValue TL.Text where
+  parseValue (String xs) = return $ TL.fromStrict xs
+  parseValue v = typeMismatch "lazy Text" v
+
+instance FromValue String where
+  parseValue (String xs) = return $ T.unpack xs
+  parseValue v = typeMismatch "String" v
 
 typeMismatch
   :: String

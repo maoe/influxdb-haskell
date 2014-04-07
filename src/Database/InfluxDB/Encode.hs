@@ -48,6 +48,9 @@ toSeriesData a = SeriesData
 class ToValue a where
   toValue :: a -> Value
 
+instance ToValue Value where
+  toValue = id
+
 instance ToValue Bool where
   toValue = Bool
 
@@ -78,9 +81,6 @@ instance ToValue Word16 where
 
 instance ToValue Word32 where
   toValue = Int . fromIntegral
-
-instance ToValue Float where
-  toValue = Float . realToFrac
 
 instance ToValue Double where
   toValue = Float
