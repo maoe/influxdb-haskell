@@ -160,14 +160,14 @@ case_grant_revoke_database_user = runTest $ \config ->
       assertBool ("No such user: " <> T.unpack newUserName) $
         any ((newUserName ==) . userName) users
     grantAdminPrivilegeTo config name newUserName
-    listDatabaseUsers config name >>= \users -> do
+    listDatabaseUsers config name >>= \users ->
       case find ((newUserName ==) . userName) users of
         Nothing -> assertFailure $ "No such user: " <> T.unpack newUserName
         Just user -> assertBool
           ("User is not privileged: " <> T.unpack newUserName)
           (userIsAdmin user)
     revokeAdminPrivilegeFrom config name newUserName
-    listDatabaseUsers config name >>= \users -> do
+    listDatabaseUsers config name >>= \users ->
       case find ((newUserName ==) . userName) users of
         Nothing -> assertFailure $ "No such user: " <> T.unpack newUserName
         Just user -> assertBool
