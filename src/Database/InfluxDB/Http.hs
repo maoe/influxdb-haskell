@@ -410,17 +410,20 @@ listClusterAdmins Config {..} = do
 -- | Add a new cluster administrator. Requires cluster admin privilege.
 addClusterAdmin
   :: Config
-  -> Text
+  -> Text -- ^ Admin name
+  -> Text -- ^ Password
   -> IO Admin
-addClusterAdmin Config {..} name = do
+addClusterAdmin Config {..} name password = do
   void $ httpLbsWithRetry configServerPool makeRequest configHttpManager
   return Admin
     { adminUsername = name
     }
   where
     makeRequest = def
-      { HC.requestBody = HC.RequestBodyLBS $ AE.encode $ A.object
+      { HC.method = "POST"
+      , HC.requestBody = HC.RequestBodyLBS $ AE.encode $ A.object
           [ "name" .= name
+          , "password" .= password
           ]
       , HC.path = "/cluster_admins"
       , HC.queryString = escapeString $ printf "u=%s&p=%s"

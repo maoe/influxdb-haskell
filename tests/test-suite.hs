@@ -81,7 +81,7 @@ case_listClusterAdmins = runTest $ \config -> do
 case_add_then_delete_cluster_admins :: Assertion
 case_add_then_delete_cluster_admins = runTest $ \config -> do
   name <- newName
-  admin <- addClusterAdmin config name
+  admin <- addClusterAdmin config name "somelongpassword"
   admins <- listClusterAdmins config
   assertBool ("No such admin: " ++ T.unpack name) $
     any ((name ==) . adminUsername) admins
