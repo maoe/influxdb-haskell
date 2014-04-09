@@ -5,7 +5,7 @@
 module Database.InfluxDB.Decode
   ( FromSeries(..), fromSeries
   , FromSeriesData(..), fromSeriesData
-  , withValues, (.:)
+  , withValues, (.:), (.:?), (.!=)
   , FromValue(..), fromValue
   , Parser, ValueParser, typeMismatch
   ) where
@@ -14,6 +14,7 @@ import Control.Monad.Reader
 import Data.Int
 import Data.Word
 import Data.Map (Map)
+import Data.Maybe (fromMaybe)
 import Data.Vector (Vector)
 import Data.Tuple (swap)
 import qualified Data.Map as Map
@@ -83,6 +84,19 @@ values .: column = do
     Just idx -> do
       value <- V.indexM values idx
       liftParser $ parseValue value
+
+(.:?) :: FromValue a => Vector Value -> Column -> ValueParser (Maybe a)
+values .:? column = do
+  found <- asks $ Map.lookup column
+  case found of
+    Nothing -> return Nothing
+    Just idx ->
+      case values V.!? idx of
+        Nothing -> return Nothing
+        Just value -> liftParser $ parseValue value
+
+(.!=) :: Parser (Maybe a) -> a -> Parser a
+p .!= def = fromMaybe def <$> p
 
 -- | A type that can be converted from a @Value@.
 class FromValue a where
