@@ -3,7 +3,9 @@
 {-# LANGUAGE ScopedTypeVariables #-}
 {-# LANGUAGE TypeSynonymInstances #-}
 {-# LANGUAGE ViewPatterns #-}
+{-# LANGUAGE TemplateHaskell #-}
 {-# OPTIONS_GHC -fno-warn-orphans #-}
+{-# OPTIONS_GHC -fno-warn-unused-binds #-}
 import Control.Applicative
 import Control.Exception as E
 import Control.Monad
@@ -20,6 +22,7 @@ import qualified Network.HTTP.Client as HC
 import qualified System.Random.MWC as MWC
 
 import Database.InfluxDB
+import Database.InfluxDB.TH
 
 oneWeekInSeconds :: Int
 oneWeekInSeconds = 7*24*60*60
@@ -81,7 +84,10 @@ managerSettings = HC.defaultManagerSettings
   { HC.managerResponseTimeout = Just $ 60*(10 :: Int)^(6 :: Int)
   }
 
-data Point = Point !Name !POSIXTime deriving Show
+data Point = Point
+  { pointValue :: !Name
+  , pointTime :: !POSIXTime
+  } deriving Show
 
 instance ToSeriesData Point where
   toSeriesColumns _ = V.fromList ["value", "time"]
@@ -89,11 +95,6 @@ instance ToSeriesData Point where
     [ toValue value
     , epochInSeconds time
     ]
-
-instance FromSeriesData Point where
-  parseSeriesData = withValues $ \values -> Point
-    <$> values .: "value"
-    <*> values .: "time"
 
 epochInSeconds :: POSIXTime -> Value
 epochInSeconds = Int . floor
@@ -133,3 +134,9 @@ instance FromValue POSIXTime where
   parseValue (Int n) = return $ fromIntegral n
   parseValue (Float d) = return $ realToFrac d
   parseValue v = typeMismatch "Int or Float" v
+
+-- Instance deriving
+
+deriveFromSeriesData defaultOptions
+  { fieldLabelModifier = stripPrefixLower "point" }
+  ''Point
