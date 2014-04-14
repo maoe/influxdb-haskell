@@ -28,6 +28,7 @@ library
     -- Database.InfluxDB.Query
     Database.InfluxDB.Stream
     Database.InfluxDB.Types
+    Database.InfluxDB.TH
   other-modules:
     Database.InfluxDB.Types.Internal
   ghc-options: -Wall
@@ -46,6 +47,7 @@ library
     , retry
     , scientific
     , tagged
+    , template-haskell
     , text
     , time
     , vector
