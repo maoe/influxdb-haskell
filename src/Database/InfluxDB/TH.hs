@@ -1,4 +1,10 @@
+{-# LANGUAGE CPP #-}
 {-# LANGUAGE TemplateHaskell #-}
+
+#if __GLASGOW_HASKELL__ == 704
+{-# LANGUAGE ConstraintKinds #-}
+#endif
+
 module Database.InfluxDB.TH
   ( Options(..), defaultOptions
   -- , deriveSeriesData
