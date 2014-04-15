@@ -62,7 +62,7 @@ fromSeriesDataBody opts tyName tyVars con = do
   where
     tyVarToPred tv = case tv of
       PlainTV name -> classP ''FromValue [varT name]
-      _ -> fail $ "Expected PlainTV, but got " ++ show tv
+      KindedTV name _ -> classP ''FromValue [varT name]
     deriveParseSeriesData conName vars = funD 'parseSeriesData
       [ clause [] (normalB deriveBody) []
       ]
