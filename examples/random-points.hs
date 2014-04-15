@@ -3,7 +3,7 @@
 {-# LANGUAGE ScopedTypeVariables #-}
 {-# LANGUAGE TypeSynonymInstances #-}
 {-# LANGUAGE ViewPatterns #-}
-{-# OPTIONS_GHC -fno-warn-orphans #-}
+{-# LANGUAGE TemplateHaskell #-}
 import Control.Applicative
 import Control.Exception as E
 import Control.Monad
@@ -13,13 +13,13 @@ import Data.Time.Clock.POSIX
 import System.Environment
 import System.IO
 import qualified Data.Text as T
-import qualified Data.Vector as V
 
 import System.Random.MWC (Variate(..))
 import qualified Network.HTTP.Client as HC
 import qualified System.Random.MWC as MWC
 
 import Database.InfluxDB
+import Database.InfluxDB.TH
 
 oneWeekInSeconds :: Int
 oneWeekInSeconds = 7*24*60*60
@@ -45,7 +45,7 @@ main = do
             <$> getPOSIXTime
             <*> (fromIntegral <$> uniformR (0, oneWeekInSeconds) gen)
           !value <- liftIO $ uniform gen
-          writePoints $ Point value timestamp
+          writePoints $ Point value (Time timestamp)
           innerLoop $ n - 1
       outerLoop $ m - 1
 
@@ -81,22 +81,24 @@ managerSettings = HC.defaultManagerSettings
   { HC.managerResponseTimeout = Just $ 60*(10 :: Int)^(6 :: Int)
   }
 
-data Point = Point !Name !POSIXTime deriving Show
+data Point = Point
+  { pointValue :: !Name
+  , pointTime :: !Time
+  } deriving Show
 
-instance ToSeriesData Point where
-  toSeriesColumns _ = V.fromList ["value", "time"]
-  toSeriesPoints (Point value time) = V.fromList
-    [ toValue value
-    , epochInSeconds time
-    ]
+newtype Time = Time POSIXTime
+  deriving Show
 
-instance FromSeriesData Point where
-  parseSeriesData = withValues $ \values -> Point
-    <$> values .: "value"
-    <*> values .: "time"
+instance ToValue Time where
+  toValue (Time epoch) = toValue $ epochInSeconds epoch
+    where
+      epochInSeconds :: POSIXTime -> Value
+      epochInSeconds = Int . floor
 
-epochInSeconds :: POSIXTime -> Value
-epochInSeconds = Int . floor
+instance FromValue Time where
+  parseValue (Int n) = return $ Time $ fromIntegral n
+  parseValue (Float d) = return $ Time $ realToFrac d
+  parseValue v = typeMismatch "Int or Float" v
 
 data Name
   = Foo
@@ -129,7 +131,8 @@ instance Variate Name where
     name <- uniformR (fromEnum lower, fromEnum upper) g
     return $! toEnum name
 
-instance FromValue POSIXTime where
-  parseValue (Int n) = return $ fromIntegral n
-  parseValue (Float d) = return $ realToFrac d
-  parseValue v = typeMismatch "Int or Float" v
+-- Instance deriving
+
+deriveSeriesData defaultOptions
+  { fieldLabelModifier = stripPrefixLower "point" }
+  ''Point
