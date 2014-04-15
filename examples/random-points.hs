@@ -4,8 +4,6 @@
 {-# LANGUAGE TypeSynonymInstances #-}
 {-# LANGUAGE ViewPatterns #-}
 {-# LANGUAGE TemplateHaskell #-}
-{-# OPTIONS_GHC -fno-warn-orphans #-}
-{-# OPTIONS_GHC -fno-warn-unused-binds #-}
 import Control.Applicative
 import Control.Exception as E
 import Control.Monad
@@ -15,7 +13,6 @@ import Data.Time.Clock.POSIX
 import System.Environment
 import System.IO
 import qualified Data.Text as T
-import qualified Data.Vector as V
 
 import System.Random.MWC (Variate(..))
 import qualified Network.HTTP.Client as HC
@@ -48,7 +45,7 @@ main = do
             <$> getPOSIXTime
             <*> (fromIntegral <$> uniformR (0, oneWeekInSeconds) gen)
           !value <- liftIO $ uniform gen
-          writePoints $ Point value timestamp
+          writePoints $ Point value (Time timestamp)
           innerLoop $ n - 1
       outerLoop $ m - 1
 
@@ -86,18 +83,22 @@ managerSettings = HC.defaultManagerSettings
 
 data Point = Point
   { pointValue :: !Name
-  , pointTime :: !POSIXTime
+  , pointTime :: !Time
   } deriving Show
 
-instance ToSeriesData Point where
-  toSeriesColumns _ = V.fromList ["value", "time"]
-  toSeriesPoints (Point value time) = V.fromList
-    [ toValue value
-    , epochInSeconds time
-    ]
+newtype Time = Time POSIXTime
+  deriving Show
 
-epochInSeconds :: POSIXTime -> Value
-epochInSeconds = Int . floor
+instance ToValue Time where
+  toValue (Time epoch) = toValue $ epochInSeconds epoch
+    where
+      epochInSeconds :: POSIXTime -> Value
+      epochInSeconds = Int . floor
+
+instance FromValue Time where
+  parseValue (Int n) = return $ Time $ fromIntegral n
+  parseValue (Float d) = return $ Time $ realToFrac d
+  parseValue v = typeMismatch "Int or Float" v
 
 data Name
   = Foo
@@ -130,13 +131,8 @@ instance Variate Name where
     name <- uniformR (fromEnum lower, fromEnum upper) g
     return $! toEnum name
 
-instance FromValue POSIXTime where
-  parseValue (Int n) = return $ fromIntegral n
-  parseValue (Float d) = return $ realToFrac d
-  parseValue v = typeMismatch "Int or Float" v
-
 -- Instance deriving
 
-deriveFromSeriesData defaultOptions
+deriveSeriesData defaultOptions
   { fieldLabelModifier = stripPrefixLower "point" }
   ''Point
