@@ -74,8 +74,7 @@ script:
  # (including tests/benchmarks)
  - cabal-1.18 build -j
 
- - ln -s /usr/bin/cabal-1.18 ~/.cabal/bin/cabal
- - run-cabal-test --show-details=always
+ - run-cabal-test --cabal-name=cabal-1.18 --show-details=always
  - cabal-1.18 run influx-random-points -- 10 10
  - cabal-1.18 check
 
