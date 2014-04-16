@@ -20,6 +20,7 @@ import qualified System.Random.MWC as MWC
 
 import Database.InfluxDB
 import Database.InfluxDB.TH
+import qualified Database.InfluxDB.Stream as S
 
 oneWeekInSeconds :: Int
 oneWeekInSeconds = 7*24*60*60
@@ -56,16 +57,13 @@ main = do
         print $ seriesColumns series
         print $ seriesPoints series
     -- Streaming output
-    queryChunked config db "select * from ct1;" $ \stream0 ->
-      flip fix stream0 $ \loop stream -> case stream of
-        Done -> return ()
-        Yield series next -> do
-          case fromSeriesData series of
-            Left reason -> hPutStrLn stderr reason
-            Right points -> mapM_ print (points :: [Point])
-          putStrLn "--"
-          stream' <- next
-          loop stream'
+    queryChunked config db "select * from ct1;" $ S.fold step ()
+  where
+    step _ series = do
+      case fromSeriesData series of
+        Left reason -> hPutStrLn stderr reason
+        Right points -> mapM_ print (points :: [Point])
+      putStrLn "--"
 
 newConfig :: HC.Manager -> IO Config
 newConfig manager = do
