@@ -128,7 +128,7 @@ post config databaseName =
   postGeneric config databaseName Nothing
 
 -- | Post a bunch of writes for (possibly multiple) series into a database like
--- @post@ but with time precision.
+-- 'post' but with time precision.
 postWithPrecision
   :: Config
   -> Text -- ^ Database name
@@ -305,7 +305,7 @@ responseStream body = demandPayload $ \payload ->
     decode (P.Fail _ _ message) = fail message
     parseAsJson = P.parse A.json
 
--- | Query a specified database like @query@ but in a streaming fashion.
+-- | Query a specified database like 'query' but in a streaming fashion.
 queryChunked
   :: FromSeries a
   => Config

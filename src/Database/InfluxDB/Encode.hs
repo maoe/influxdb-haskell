@@ -15,11 +15,11 @@ import qualified Data.Text.Lazy as TL
 
 import Database.InfluxDB.Types
 
--- | A type that can be converted to a @Series@.
+-- | A type that can be converted to a 'Series'.
 class ToSeries a where
   toSeries :: a -> Series
 
--- | A type that can be converted to a @SeriesData@. A typical implementation is
+-- | A type that can be converted to a 'SeriesData'. A typical implementation is
 -- as follows.
 --
 -- > import qualified Data.Vector as V
@@ -47,6 +47,9 @@ toSeriesData a = SeriesData
 -- | A type that can be stored in InfluxDB.
 class ToValue a where
   toValue :: a -> Value
+
+instance ToValue Value where
+  toValue = id
 
 instance ToValue Bool where
   toValue = Bool
@@ -78,9 +81,6 @@ instance ToValue Word16 where
 
 instance ToValue Word32 where
   toValue = Int . fromIntegral
-
-instance ToValue Float where
-  toValue = Float . realToFrac
 
 instance ToValue Double where
   toValue = Float

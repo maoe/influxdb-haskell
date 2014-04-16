@@ -1,3 +1,4 @@
+{-# LANGUAGE BangPatterns #-}
 module Database.InfluxDB.Stream where
 import Prelude hiding (mapM)
 
@@ -16,3 +17,25 @@ mapM f (Yield a mb) = do
   a' <- f a
   b <- mb
   return $ Yield a' (mapM f b)
+
+-- | Monadic left fold for 'Stream'.
+fold :: Monad m => (b -> a -> m b) -> b -> Stream m a -> m b
+fold f = loop
+  where
+    loop z stream = case stream of
+      Done -> return z
+      Yield a nextStream -> do
+        b <- f z a
+        stream' <- nextStream
+        loop b stream'
+
+-- | Strict version of 'fold'.
+fold' :: Monad m => (b -> a -> m b) -> b -> Stream m a -> m b
+fold' f = loop
+  where
+    loop z stream = case stream of
+      Done -> return z
+      Yield a nextStream -> do
+        !b <- f z a
+        stream' <- nextStream
+        loop b stream'

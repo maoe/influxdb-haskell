@@ -1,6 +1,7 @@
 {-# LANGUAGE CPP #-}
 module Database.InfluxDB.Types.Internal
   ( stripPrefixOptions
+  , stripPrefixLower
   ) where
 import Data.Char (toLower)
 
@@ -16,14 +17,14 @@ import Data.Aeson.TH (Options(..), defaultOptions)
 #if MIN_VERSION_aeson(0, 6, 2)
 stripPrefixOptions :: String -> Options
 stripPrefixOptions name = defaultOptions
-  { fieldLabelModifier = stripPrefix name
+  { fieldLabelModifier = stripPrefixLower name
   }
 #else
 stripPrefixOptions :: String -> String -> String
-stripPrefixOptions = stripPrefix
+stripPrefixOptions = stripPrefixLower
 #endif
 
-stripPrefix :: String -> String -> String
-stripPrefix prefix xs = case drop (length prefix) xs of
+stripPrefixLower :: String -> String -> String
+stripPrefixLower prefix xs = case drop (length prefix) xs of
   [] -> error "Insufficient length of field name"
   c:cs -> toLower c : cs

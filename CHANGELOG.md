@@ -1,3 +1,10 @@
+## v0.2.0 - 2014-04-16
+
+* Add more `FromValue` instances
+* Add `(.:?)` and `(.!=)`
+* Add `deriveSeriesData` and some variants
+* Add left folds for `Stream` type
+
 ## v0.1.0.1 - 2014-04-07
 
 * Support for older aeson
