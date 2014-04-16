@@ -60,12 +60,13 @@ test-suite test-suite
   build-depends:
       base
     , http-client
+    , HUnit
     , influxdb
     , mtl
     , tasty
     , tasty-hunit
-    , tasty-th
     , tasty-quickcheck
+    , tasty-th
     , text
     , vector
   hs-source-dirs: tests

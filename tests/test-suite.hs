@@ -15,6 +15,7 @@ import qualified Data.Text as T
 import qualified Data.Text.Lazy as TL
 import qualified Data.Vector as V
 
+import Test.HUnit.Lang (HUnitFailure(..))
 import Test.Tasty
 import Test.Tasty.HUnit
 import Test.Tasty.TH
@@ -22,6 +23,7 @@ import Test.Tasty.QuickCheck
 import qualified Network.HTTP.Client as HC
 
 import Database.InfluxDB
+import qualified Database.InfluxDB.Stream as S
 
 prop_fromValue_toValue_identity_Value :: Value -> Bool
 prop_fromValue_toValue_identity_Value = fromValueToValueIdentity
@@ -126,6 +128,22 @@ case_post_multi_points = runTest $ \config ->
     case ss of
       [series] -> fromSeriesData series @=? Right [Val 42, Val 42, Val 42]
       _ -> assertFailure $ "Expect one series, but got: " ++ show ss
+
+case_queryChunked :: Assertion
+case_queryChunked = runTest $ \config ->
+  withTestDatabase config $ \database -> do
+    name <- liftIO newName
+    post config database $ withSeries name $ do
+      writePoints $ Val 42
+      writePoints $ Val 42
+      writePoints $ Val 42
+    ss <- queryChunked config database ("select value from " <> name) $
+      S.fold step []
+    mapM fromSeriesData ss @=? Right [[Val 42], [Val 42], [Val 42]]
+  where
+    step xs series = case fromSeriesData series of
+      Left reason -> throwIO $ HUnitFailure reason
+      Right values -> return $ xs ++ values
 
 case_post_with_precision :: Assertion
 case_post_with_precision = runTest $ \config ->
