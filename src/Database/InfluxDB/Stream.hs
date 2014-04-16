@@ -16,3 +16,14 @@ mapM f (Yield a mb) = do
   a' <- f a
   b <- mb
   return $ Yield a' (mapM f b)
+
+-- | Monadic left fold for stream.
+fold :: Monad m => (b -> a -> m b) -> b -> Stream m a -> m b
+fold f = loop
+  where
+    loop z stream = case stream of
+      Done -> return z
+      Yield a nextStream -> do
+        b <- f z a
+        stream' <- nextStream
+        loop b stream'
