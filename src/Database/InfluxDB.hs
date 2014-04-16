@@ -14,7 +14,7 @@ module Database.InfluxDB
   , FromSeriesData(..), fromSeriesData
   , FromValue(..), fromValue
 
-  , withValues, (.:)
+  , withValues, (.:), (.:?), (.!=)
   , typeMismatch
 
   -- * HTTP API
