@@ -96,9 +96,10 @@ case_post = runTest $ \config ->
     name <- liftIO newName
     post config database $
       writeSeries name $ Val 42
-    [series] <- query config database $
-      "select value from " <> name
-    fromSeriesData series @=? Right [Val 42]
+    ss <- query config database $ "select value from " <> name
+    case ss of
+      [series] -> fromSeriesData series @=? Right [Val 42]
+      _ -> assertFailure $ "Expect one series, but got: " ++ show ss
 
 case_post_multi_series :: Assertion
 case_post_multi_series = runTest $ \config ->
@@ -108,9 +109,10 @@ case_post_multi_series = runTest $ \config ->
       writeSeries name $ Val 42
       writeSeries name $ Val 42
       writeSeries name $ Val 42
-    [series] <- query config database $
-      "select value from " <> name
-    fromSeriesData series @=? Right [Val 42, Val 42, Val 42]
+    ss <- query config database $ "select value from " <> name
+    case ss of
+      [series] -> fromSeriesData series @=? Right [Val 42, Val 42, Val 42]
+      _ -> assertFailure $ "Expect one series, but got: " ++ show ss
 
 case_post_multi_points :: Assertion
 case_post_multi_points = runTest $ \config ->
@@ -120,9 +122,10 @@ case_post_multi_points = runTest $ \config ->
       writePoints $ Val 42
       writePoints $ Val 42
       writePoints $ Val 42
-    [series] <- query config database $
-      "select value from " <> name
-    fromSeriesData series @=? Right [Val 42, Val 42, Val 42]
+    ss <- query config database $ "select value from " <> name
+    case ss of
+      [series] -> fromSeriesData series @=? Right [Val 42, Val 42, Val 42]
+      _ -> assertFailure $ "Expect one series, but got: " ++ show ss
 
 case_post_with_precision :: Assertion
 case_post_with_precision = runTest $ \config ->
@@ -130,9 +133,10 @@ case_post_with_precision = runTest $ \config ->
     name <- liftIO newName
     postWithPrecision config database SecondsPrecision $
       writeSeries name $ Val 42
-    [series] <- query config database $
-      "select value from " <> name
-    fromSeriesData series @=? Right [Val 42]
+    ss <- query config database $ "select value from " <> name
+    case ss of
+      [series] -> fromSeriesData series @=? Right [Val 42]
+      _ -> assertFailure $ "Expect one series, but got: " ++ show ss
 
 case_listDatabases :: Assertion
 case_listDatabases = runTest $ \config ->
