@@ -18,7 +18,7 @@ mapM f (Yield a mb) = do
   b <- mb
   return $ Yield a' (mapM f b)
 
--- | Monadic left fold for stream.
+-- | Monadic left fold for 'Stream'.
 fold :: Monad m => (b -> a -> m b) -> b -> Stream m a -> m b
 fold f = loop
   where
@@ -29,7 +29,7 @@ fold f = loop
         stream' <- nextStream
         loop b stream'
 
--- | Strict version of @fold@.
+-- | Strict version of 'fold'.
 fold' :: Monad m => (b -> a -> m b) -> b -> Stream m a -> m b
 fold' f = loop
   where

@@ -24,7 +24,7 @@ import qualified Data.Vector as V
 
 import Database.InfluxDB.Types
 
--- | A type that can be converted from a @Series@.
+-- | A type that can be converted from a 'Series'.
 class FromSeries a where
   parseSeries :: Series -> Parser a
 
@@ -34,11 +34,11 @@ instance FromSeries Series where
 instance FromSeries SeriesData where
   parseSeries = return . seriesData
 
--- | Converte a value from a @Series@, failing if the types do not match.
+-- | Converte a value from a 'Series', failing if the types do not match.
 fromSeries :: FromSeries a => Series -> Either String a
 fromSeries = runParser . parseSeries
 
--- | A type that can be converted from a @SeriesData@. A typical implementation
+-- | A type that can be converted from a 'SeriesData'. A typical implementation
 -- is as follows.
 --
 -- > import Control.Applicative ((<$>), (<*>))
@@ -62,12 +62,13 @@ instance FromSeriesData SeriesData where
     , seriesDataPoints = [values]
     }
 
--- | Converte a value from a @SeriesData@, failing if the types do not match.
+-- | Converte a value from a 'SeriesData', failing if the types do not match.
 fromSeriesData :: FromSeriesData a => SeriesData -> Either String [a]
 fromSeriesData SeriesData {..} = mapM
   (runParser . parseSeriesData seriesDataColumns)
   seriesDataPoints
 
+-- | Helper function to define 'parseSeriesData' from 'ValueParser's.
 withValues
   :: (Vector Value -> ValueParser a)
   -> Vector Column -> Vector Value -> Parser a
@@ -76,6 +77,9 @@ withValues f columns values =
   where
     ValueParser m = f values
 
+-- | Retrieve the value associated with the given column. The result is 'empty'
+-- if the column is not present or the value cannot be converted to the desired
+-- type.
 (.:) :: FromValue a => Vector Value -> Column -> ValueParser a
 values .: column = do
   found <- asks $ Map.lookup column
@@ -85,6 +89,9 @@ values .: column = do
       value <- V.indexM values idx
       liftParser $ parseValue value
 
+-- | Retrieve the value associated with the given column. The result is
+-- 'Nothing' if the column is not present or the value cannot be converted to
+-- the desired type.
 (.:?) :: FromValue a => Vector Value -> Column -> ValueParser (Maybe a)
 values .:? column = do
   found <- asks $ Map.lookup column
@@ -95,14 +102,16 @@ values .:? column = do
         Nothing -> return Nothing
         Just value -> liftParser $ parseValue value
 
+-- | Helper for use in combination with '.:?' to provide default values for
+-- optional columns.
 (.!=) :: Parser (Maybe a) -> a -> Parser a
 p .!= def = fromMaybe def <$> p
 
--- | A type that can be converted from a @Value@.
+-- | A type that can be converted from a 'Value'.
 class FromValue a where
   parseValue :: Value -> Parser a
 
--- | Converte a value from a @Value@, failing if the types do not match.
+-- | Converte a value from a 'Value', failing if the types do not match.
 fromValue :: FromValue a => Value -> Either String a
 fromValue = runParser . parseValue
 

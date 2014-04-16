@@ -15,11 +15,11 @@ import qualified Data.Text.Lazy as TL
 
 import Database.InfluxDB.Types
 
--- | A type that can be converted to a @Series@.
+-- | A type that can be converted to a 'Series'.
 class ToSeries a where
   toSeries :: a -> Series
 
--- | A type that can be converted to a @SeriesData@. A typical implementation is
+-- | A type that can be converted to a 'SeriesData'. A typical implementation is
 -- as follows.
 --
 -- > import qualified Data.Vector as V

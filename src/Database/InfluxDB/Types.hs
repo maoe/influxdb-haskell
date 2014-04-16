@@ -66,7 +66,7 @@ atomicModifyIORef' ref f = do
 -----------------------------------------------------------
 
 -- | A series consists of name, columns and points. The columns and points are
--- expressed in a separate type @SeriesData@.
+-- expressed in a separate type 'SeriesData'.
 data Series = Series
   { seriesName :: {-# UNPACK #-} !Text
   -- ^ Series name
@@ -105,7 +105,7 @@ instance A.FromJSON Series where
       }
   parseJSON _ = empty
 
--- | @SeriesData@ consists of columns and points.
+-- | 'SeriesData' consists of columns and points.
 data SeriesData = SeriesData
   { seriesDataColumns :: Vector Column
   , seriesDataPoints :: [Vector Value]
