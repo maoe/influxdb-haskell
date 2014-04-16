@@ -1,3 +1,4 @@
+{-# LANGUAGE BangPatterns #-}
 module Database.InfluxDB.Stream where
 import Prelude hiding (mapM)
 
@@ -25,5 +26,16 @@ fold f = loop
       Done -> return z
       Yield a nextStream -> do
         b <- f z a
+        stream' <- nextStream
+        loop b stream'
+
+-- | Strict version of @fold@.
+fold' :: Monad m => (b -> a -> m b) -> b -> Stream m a -> m b
+fold' f = loop
+  where
+    loop z stream = case stream of
+      Done -> return z
+      Yield a nextStream -> do
+        !b <- f z a
         stream' <- nextStream
         loop b stream'
