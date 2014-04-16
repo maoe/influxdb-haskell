@@ -10,17 +10,16 @@ import Data.Int (Int8, Int16, Int32, Int64)
 import Data.Proxy
 import Data.Vector (Vector)
 import Data.Word (Word8, Word16, Word32)
-import qualified Data.DList as DL
 import qualified Data.Text as T
 import qualified Data.Text.Lazy as TL
 
 import Database.InfluxDB.Types
 
--- | A type that can be converted to a @Series@.
+-- | A type that can be converted to a 'Series'.
 class ToSeries a where
   toSeries :: a -> Series
 
--- | A type that can be converted to a @SeriesData@. A typical implementation is
+-- | A type that can be converted to a 'SeriesData'. A typical implementation is
 -- as follows.
 --
 -- > import qualified Data.Vector as V
@@ -42,12 +41,15 @@ class ToSeriesData a where
 toSeriesData :: forall a. ToSeriesData a => a -> SeriesData
 toSeriesData a = SeriesData
   { seriesDataColumns = toSeriesColumns (Proxy :: Proxy a)
-  , seriesDataPoints = DL.singleton (toSeriesPoints a)
+  , seriesDataPoints = [toSeriesPoints a]
   }
 
 -- | A type that can be stored in InfluxDB.
 class ToValue a where
   toValue :: a -> Value
+
+instance ToValue Value where
+  toValue = id
 
 instance ToValue Bool where
   toValue = Bool
@@ -79,9 +81,6 @@ instance ToValue Word16 where
 
 instance ToValue Word32 where
   toValue = Int . fromIntegral
-
-instance ToValue Float where
-  toValue = Float . realToFrac
 
 instance ToValue Double where
   toValue = Float

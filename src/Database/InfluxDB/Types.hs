@@ -29,7 +29,6 @@ module Database.InfluxDB.Types
   ) where
 
 import Control.Applicative (empty)
-import Data.DList (DList)
 import Data.Data (Data)
 import Data.IORef
 import Data.Int (Int64)
@@ -37,15 +36,19 @@ import Data.Sequence (Seq, ViewL(..), (|>))
 import Data.Text (Text)
 import Data.Typeable (Typeable)
 import Data.Vector (Vector)
-import qualified Data.DList as DL
 import qualified Data.Sequence as Seq
 
 import Data.Aeson ((.=), (.:))
 import Data.Aeson.TH
-import Data.Scientific
 import qualified Data.Aeson as A
 
 import Database.InfluxDB.Types.Internal (stripPrefixOptions)
+
+#if MIN_VERSION_aeson(0, 7, 0)
+import Data.Scientific
+#else
+import Data.Attoparsec.Number
+#endif
 
 -----------------------------------------------------------
 -- Compatibility for older GHC
@@ -63,7 +66,7 @@ atomicModifyIORef' ref f = do
 -----------------------------------------------------------
 
 -- | A series consists of name, columns and points. The columns and points are
--- expressed in a separate type @SeriesData@.
+-- expressed in a separate type 'SeriesData'.
 data Series = Series
   { seriesName :: {-# UNPACK #-} !Text
   -- ^ Series name
@@ -76,14 +79,14 @@ seriesColumns :: Series -> Vector Column
 seriesColumns = seriesDataColumns . seriesData
 
 -- | Convenient accessor for points.
-seriesPoints :: Series -> DList (Vector Value)
+seriesPoints :: Series -> [Vector Value]
 seriesPoints = seriesDataPoints . seriesData
 
 instance A.ToJSON Series where
   toJSON Series {..} = A.object
     [ "name" .= seriesName
     , "columns" .= seriesDataColumns
-    , "points" .= DL.toList seriesDataPoints
+    , "points" .= seriesDataPoints
     ]
     where
       SeriesData {..} = seriesData
@@ -97,16 +100,16 @@ instance A.FromJSON Series where
       { seriesName = name
       , seriesData = SeriesData
           { seriesDataColumns = columns
-          , seriesDataPoints = DL.fromList points
+          , seriesDataPoints = points
           }
       }
   parseJSON _ = empty
 
--- | @SeriesData@ consists of columns and points.
+-- | 'SeriesData' consists of columns and points.
 data SeriesData = SeriesData
   { seriesDataColumns :: Vector Column
-  , seriesDataPoints :: DList (Vector Value)
-  }
+  , seriesDataPoints :: [Vector Value]
+  } deriving Show
 
 type Column = Text
 
@@ -132,9 +135,17 @@ instance A.FromJSON Value where
   parseJSON (A.String xs) = return $ String xs
   parseJSON (A.Bool b) = return $ Bool b
   parseJSON A.Null = return Null
-  parseJSON (A.Number n) = return $! if base10Exponent n == 0
-    then Int $ fromIntegral $ coefficient n
-    else Float $ realToFrac n
+  parseJSON (A.Number n) = return $! numberToValue
+    where
+#if MIN_VERSION_aeson(0, 7, 0)
+      numberToValue
+        | base10Exponent n == 0 = Int $ fromIntegral $ coefficient n
+        | otherwise = Float $ realToFrac n
+#else
+      numberToValue = case n of
+        I i -> Int $ fromIntegral i
+        D d -> Float d
+#endif
 
 -----------------------------------------------------------
 
@@ -173,8 +184,9 @@ newtype ScheduledDelete = ScheduledDelete
   } deriving Show
 
 -- | User
-newtype User = User
+data User = User
   { userName :: Text
+  , userIsAdmin :: Bool
   } deriving Show
 
 -- | Administrator

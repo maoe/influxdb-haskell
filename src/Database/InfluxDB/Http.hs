@@ -86,7 +86,8 @@ import qualified Database.InfluxDB.Stream as S
 -- | Configurations for HTTP API client.
 data Config = Config
   { configCreds :: !Credentials
-  , configServerPool :: IORef ServerPool
+  , configServerPool :: !(IORef ServerPool)
+  , configHttpManager :: !HC.Manager
   }
 
 -- | Default credentials.
@@ -120,35 +121,34 @@ timePrecChar MicrosecondsPrecision = 'u'
 -- | Post a bunch of writes for (possibly multiple) series into a database.
 post
   :: Config
-  -> HC.Manager
-  -> Database
+  -> Text
   -> SeriesT IO a
   -> IO a
-post config manager database =
-  postGeneric config manager database Nothing
+post config databaseName =
+  postGeneric config databaseName Nothing
 
 -- | Post a bunch of writes for (possibly multiple) series into a database like
--- @post@ but with time precision.
+-- 'post' but with time precision.
 postWithPrecision
   :: Config
-  -> HC.Manager
-  -> Database
+  -> Text -- ^ Database name
   -> TimePrecision
   -> SeriesT IO a
   -> IO a
-postWithPrecision config manager database timePrec =
-  postGeneric config manager database (Just timePrec)
+postWithPrecision config databaseName timePrec =
+  postGeneric config databaseName (Just timePrec)
 
 postGeneric
   :: Config
-  -> HC.Manager
-  -> Database
+  -> Text -- ^ Database name
   -> Maybe TimePrecision
   -> SeriesT IO a
   -> IO a
-postGeneric Config {..} manager database timePrec write = do
+postGeneric Config {..} databaseName timePrec write = do
   (a, series) <- runSeriesT write
-  void $ httpLbsWithRetry configServerPool (makeRequest series) manager
+  void $ httpLbsWithRetry configServerPool
+    (makeRequest series)
+    configHttpManager
   return a
   where
     makeRequest series = def
@@ -164,7 +164,6 @@ postGeneric Config {..} manager database timePrec write = do
             (printf "&time_precision=%c" . timePrecChar)
             timePrec :: String)
       }
-    Database {databaseName} = database
     Credentials {..} = configCreds
 
 -- | Monad transformer to batch up multiple writes of series to speed up
@@ -215,7 +214,7 @@ withSeries name (PointT w) = do
     { seriesName = name
     , seriesData = SeriesData
         { seriesDataColumns = toSeriesColumns (Proxy :: Proxy a)
-        , seriesDataPoints = values
+        , seriesDataPoints = DL.toList values
         }
     }
 
@@ -268,12 +267,11 @@ writePoints = tell . DL.singleton . toSeriesPoints
 query
   :: FromSeries a
   => Config
-  -> HC.Manager
-  -> Database
+  -> Text -- ^ Database name
   -> Text -- ^ Query text
   -> IO [a]
-query Config {..} manager database q = do
-  response <- httpLbsWithRetry configServerPool request manager
+query Config {..} databaseName q = do
+  response <- httpLbsWithRetry configServerPool request configHttpManager
   case A.decode (HC.responseBody response) of
     Nothing -> fail $ show response
     Just xs -> case mapM fromSeries xs of
@@ -288,7 +286,6 @@ query Config {..} manager database q = do
           (T.unpack credsPassword)
           (T.unpack q)
       }
-    Database {databaseName} = database
     Credentials {..} = configCreds
 
 -- | Construct streaming output
@@ -308,19 +305,18 @@ responseStream body = demandPayload $ \payload ->
     decode (P.Fail _ _ message) = fail message
     parseAsJson = P.parse A.json
 
--- | Query a specified database like @query@ but in a streaming fashion.
+-- | Query a specified database like 'query' but in a streaming fashion.
 queryChunked
   :: FromSeries a
   => Config
-  -> HC.Manager
-  -> Database
+  -> Text -- ^ Database name
   -> Text -- ^ Query text
   -> (Stream IO a -> IO b)
   -- ^ Action to handle the resulting stream of series
   -> IO b
-queryChunked Config {..} manager database q f =
+queryChunked Config {..} databaseName q f =
   withPool configServerPool request $ \request' ->
-    HC.withResponse request' manager $
+    HC.withResponse request' configHttpManager $
       responseStream . HC.responseBody >=> S.mapM parse >=> f
   where
     parse series = case fromSeries series of
@@ -334,16 +330,15 @@ queryChunked Config {..} manager database q f =
           (T.unpack credsPassword)
           (T.unpack q)
       }
-    Database {databaseName} = database
     Credentials {..} = configCreds
 
 -----------------------------------------------------------
 -- Administration & Security
 
 -- | List existing databases.
-listDatabases :: Config -> HC.Manager -> IO [Database]
-listDatabases Config {..} manager = do
-  response <- httpLbsWithRetry configServerPool makeRequest manager
+listDatabases :: Config -> IO [Database]
+listDatabases Config {..} = do
+  response <- httpLbsWithRetry configServerPool makeRequest configHttpManager
   case A.decode (HC.responseBody response) of
     Nothing -> fail $ show response
     Just xs -> return xs
@@ -357,13 +352,9 @@ listDatabases Config {..} manager = do
     Credentials {..} = configCreds
 
 -- | Create a new database. Requires cluster admin privileges.
-createDatabase :: Config -> HC.Manager -> Text -> IO Database
-createDatabase Config {..} manager name = do
-  void $ httpLbsWithRetry configServerPool makeRequest manager
-  return Database
-    { databaseName = name
-    , databaseReplicationFactor = Nothing
-    }
+createDatabase :: Config -> Text -> IO ()
+createDatabase Config {..} name =
+  void $ httpLbsWithRetry configServerPool makeRequest configHttpManager
   where
     makeRequest = def
       { HC.method = "POST"
@@ -378,9 +369,12 @@ createDatabase Config {..} manager name = do
     Credentials {..} = configCreds
 
 -- | Drop a database. Requires cluster admin privileges.
-dropDatabase :: Config -> HC.Manager -> Database -> IO ()
-dropDatabase Config {..} manager database =
-  void $ httpLbsWithRetry configServerPool makeRequest manager
+dropDatabase
+  :: Config
+  -> Text -- ^ Database name
+  -> IO ()
+dropDatabase Config {..} databaseName =
+  void $ httpLbsWithRetry configServerPool makeRequest configHttpManager
   where
     makeRequest = def
       { HC.method = "DELETE"
@@ -390,16 +384,12 @@ dropDatabase Config {..} manager database =
           (T.unpack credsUser)
           (T.unpack credsPassword)
       }
-    Database {databaseName} = database
     Credentials {..} = configCreds
 
 -- | List cluster administrators.
-listClusterAdmins
-  :: Config
-  -> HC.Manager
-  -> IO [Admin]
-listClusterAdmins Config {..} manager = do
-  response <- httpLbsWithRetry configServerPool makeRequest manager
+listClusterAdmins :: Config -> IO [Admin]
+listClusterAdmins Config {..} = do
+  response <- httpLbsWithRetry configServerPool makeRequest configHttpManager
   case A.decode (HC.responseBody response) of
     Nothing -> fail $ show response
     Just xs -> return xs
@@ -415,18 +405,20 @@ listClusterAdmins Config {..} manager = do
 -- | Add a new cluster administrator. Requires cluster admin privilege.
 addClusterAdmin
   :: Config
-  -> HC.Manager
-  -> Text
+  -> Text -- ^ Admin name
+  -> Text -- ^ Password
   -> IO Admin
-addClusterAdmin Config {..} manager name = do
-  void $ httpLbsWithRetry configServerPool makeRequest manager
+addClusterAdmin Config {..} name password = do
+  void $ httpLbsWithRetry configServerPool makeRequest configHttpManager
   return Admin
     { adminUsername = name
     }
   where
     makeRequest = def
-      { HC.requestBody = HC.RequestBodyLBS $ AE.encode $ A.object
+      { HC.method = "POST"
+      , HC.requestBody = HC.RequestBodyLBS $ AE.encode $ A.object
           [ "name" .= name
+          , "password" .= password
           ]
       , HC.path = "/cluster_admins"
       , HC.queryString = escapeString $ printf "u=%s&p=%s"
@@ -439,12 +431,11 @@ addClusterAdmin Config {..} manager name = do
 -- privilege.
 updateClusterAdminPassword
   :: Config
-  -> HC.Manager
   -> Admin
-  -> Text
+  -> Text -- ^ New password
   -> IO ()
-updateClusterAdminPassword Config {..} manager admin password =
-  void $ httpLbsWithRetry configServerPool makeRequest manager
+updateClusterAdminPassword Config {..} admin password =
+  void $ httpLbsWithRetry configServerPool makeRequest configHttpManager
   where
     makeRequest = def
       { HC.method = "POST"
@@ -463,11 +454,10 @@ updateClusterAdminPassword Config {..} manager admin password =
 -- | Delete a cluster administrator. Requires cluster admin privilege.
 deleteClusterAdmin
   :: Config
-  -> HC.Manager
   -> Admin
   -> IO ()
-deleteClusterAdmin Config {..} manager admin =
-  void $ httpLbsWithRetry configServerPool makeRequest manager
+deleteClusterAdmin Config {..} admin =
+  void $ httpLbsWithRetry configServerPool makeRequest configHttpManager
   where
     makeRequest = def
       { HC.method = "DELETE"
@@ -483,11 +473,10 @@ deleteClusterAdmin Config {..} manager admin =
 -- | List database users.
 listDatabaseUsers
   :: Config
-  -> HC.Manager
   -> Text
   -> IO [User]
-listDatabaseUsers Config {..} manager database = do
-  response <- httpLbsWithRetry configServerPool makeRequest manager
+listDatabaseUsers Config {..} database = do
+  response <- httpLbsWithRetry configServerPool makeRequest configHttpManager
   case A.decode (HC.responseBody response) of
     Nothing -> fail $ show response
     Just xs -> return xs
@@ -504,19 +493,18 @@ listDatabaseUsers Config {..} manager database = do
 -- | Add an user to the database users.
 addDatabaseUser
   :: Config
-  -> HC.Manager
-  -> Database
-  -> Text
-  -> IO User
-addDatabaseUser Config {..} manager database name = do
-  void $ httpLbsWithRetry configServerPool makeRequest manager
-  return User
-    { userName = name
-    }
+  -> Text -- ^ Database name
+  -> Text -- ^ User name
+  -> Text -- ^ Password
+  -> IO ()
+addDatabaseUser Config {..} databaseName name password =
+  void $ httpLbsWithRetry configServerPool makeRequest configHttpManager
   where
     makeRequest = def
-      { HC.requestBody = HC.RequestBodyLBS $ AE.encode $ A.object
+      { HC.method = "POST"
+      , HC.requestBody = HC.RequestBodyLBS $ AE.encode $ A.object
           [ "name" .= name
+          , "password" .= password
           ]
       , HC.path = escapeString $ printf "/db/%s/users"
           (T.unpack databaseName)
@@ -524,35 +512,32 @@ addDatabaseUser Config {..} manager database name = do
           (T.unpack credsUser)
           (T.unpack credsPassword)
       }
-    Database {databaseName} = database
     Credentials {..} = configCreds
 
 -- | Delete an user from the database users.
 deleteDatabaseUser
   :: Config
-  -> HC.Manager
-  -> Database
-  -> User
+  -> Text -- ^ Database name
+  -> Text -- ^ User name
   -> IO ()
-deleteDatabaseUser config manager database user =
-  void $ httpLbsWithRetry (configServerPool config) request manager
+deleteDatabaseUser config@Config {..} databaseName userName =
+  void $ httpLbsWithRetry configServerPool request configHttpManager
   where
-    request = (makeRequestFromDatabaseUser config database user)
+    request = (makeRequestFromDatabaseUser config databaseName userName)
       { HC.method = "DELETE"
       }
 
 -- | Update password for the database user.
 updateDatabaseUserPassword
   :: Config
-  -> HC.Manager
-  -> Database
-  -> User
-  -> Text
+  -> Text -- ^ Database name
+  -> Text -- ^ User name
+  -> Text -- ^ New password
   -> IO ()
-updateDatabaseUserPassword config manager database user password =
-  void $ httpLbsWithRetry (configServerPool config) request manager
+updateDatabaseUserPassword config@Config {..} databaseName userName password =
+  void $ httpLbsWithRetry configServerPool request configHttpManager
   where
-    request = (makeRequestFromDatabaseUser config database user)
+    request = (makeRequestFromDatabaseUser config databaseName userName)
       { HC.method = "POST"
       , HC.requestBody = HC.RequestBodyLBS $ AE.encode $ A.object
           [ "password" .= password
@@ -562,14 +547,13 @@ updateDatabaseUserPassword config manager database user password =
 -- | Give admin privilege to the user.
 grantAdminPrivilegeTo
   :: Config
-  -> HC.Manager
-  -> Database
-  -> User
+  -> Text -- ^ Database name
+  -> Text -- ^ User name
   -> IO ()
-grantAdminPrivilegeTo config manager database user =
-  void $ httpLbsWithRetry (configServerPool config) request manager
+grantAdminPrivilegeTo config@Config {..} databaseName userName =
+  void $ httpLbsWithRetry configServerPool request configHttpManager
   where
-    request = (makeRequestFromDatabaseUser config database user)
+    request = (makeRequestFromDatabaseUser config databaseName userName)
       { HC.method = "POST"
       , HC.requestBody = HC.RequestBodyLBS $ AE.encode $ A.object
           [ "admin" .= True
@@ -579,14 +563,13 @@ grantAdminPrivilegeTo config manager database user =
 -- | Remove admin privilege from the user.
 revokeAdminPrivilegeFrom
   :: Config
-  -> HC.Manager
-  -> Database
-  -> User
+  -> Text -- ^ Database name
+  -> Text -- ^ User name
   -> IO ()
-revokeAdminPrivilegeFrom config manager database user =
-  void $ httpLbsWithRetry (configServerPool config) request manager
+revokeAdminPrivilegeFrom config@Config {..} databaseName userName =
+  void $ httpLbsWithRetry configServerPool request configHttpManager
   where
-    request = (makeRequestFromDatabaseUser config database user)
+    request = (makeRequestFromDatabaseUser config databaseName userName)
       { HC.method = "POST"
       , HC.requestBody = HC.RequestBodyLBS $ AE.encode $ A.object
           [ "admin" .= False
@@ -595,10 +578,10 @@ revokeAdminPrivilegeFrom config manager database user =
 
 makeRequestFromDatabaseUser
   :: Config
-  -> Database
-  -> User
+  -> Text -- ^ Database name
+  -> Text -- ^ User name
   -> HC.Request
-makeRequestFromDatabaseUser Config {..} database user = def
+makeRequestFromDatabaseUser Config {..} databaseName userName = def
   { HC.path = escapeString $ printf "/db/%s/users/%s"
       (T.unpack databaseName)
       (T.unpack userName)
@@ -607,8 +590,6 @@ makeRequestFromDatabaseUser Config {..} database user = def
       (T.unpack credsPassword)
   }
   where
-    Database {databaseName} = database
-    User {userName} = user
     Credentials {..} = configCreds
 
 -----------------------------------------------------------

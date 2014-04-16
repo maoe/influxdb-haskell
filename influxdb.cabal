@@ -1,5 +1,5 @@
 name: influxdb
-version: 0.0.0
+version: 0.2.0
 synopsis: Haskell client library for InfluxDB
 description: Haskell client library for InfluxDB
 homepage: https://github.com/maoe/influxdb-haskell
@@ -13,7 +13,9 @@ build-type: Simple
 cabal-version: >= 1.10
 
 flag examples
+  description: Build examples
   default: False
+  manual: True
 
 library
   exposed-modules:
@@ -26,12 +28,13 @@ library
     -- Database.InfluxDB.Query
     Database.InfluxDB.Stream
     Database.InfluxDB.Types
+    Database.InfluxDB.TH
   other-modules:
     Database.InfluxDB.Types.Internal
   ghc-options: -Wall
   build-depends:
       base >= 4 && < 4.8
-    , aeson >= 0.7
+    , aeson >= 0.6.1.0
     , attoparsec
     , bytestring
     , containers
@@ -44,10 +47,29 @@ library
     , retry
     , scientific
     , tagged
+    , template-haskell
     , text
     , time
     , vector
   hs-source-dirs: src
+  default-language: Haskell2010
+
+test-suite test-suite
+  type: exitcode-stdio-1.0
+  main-is: test-suite.hs
+  build-depends:
+      base
+    , http-client
+    , HUnit
+    , influxdb
+    , mtl
+    , tasty
+    , tasty-hunit
+    , tasty-quickcheck
+    , tasty-th
+    , text
+    , vector
+  hs-source-dirs: tests
   default-language: Haskell2010
 
 executable influx-random-points
@@ -67,7 +89,6 @@ executable influx-random-points
     , mwc-random
     , text
     , time
-    , vector
   default-language: Haskell2010
 
 source-repository head
@@ -77,5 +98,5 @@ source-repository head
 
 source-repository this
   type: git
-  tag: v0.0.0
+  tag: v0.2.0
   location: https://github.com/maoe/influxdb-haskell.git

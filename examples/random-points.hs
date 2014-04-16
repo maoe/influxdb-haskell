@@ -3,7 +3,7 @@
 {-# LANGUAGE ScopedTypeVariables #-}
 {-# LANGUAGE TypeSynonymInstances #-}
 {-# LANGUAGE ViewPatterns #-}
-{-# OPTIONS_GHC -fno-warn-orphans #-}
+{-# LANGUAGE TemplateHaskell #-}
 import Control.Applicative
 import Control.Exception as E
 import Control.Monad
@@ -13,13 +13,14 @@ import Data.Time.Clock.POSIX
 import System.Environment
 import System.IO
 import qualified Data.Text as T
-import qualified Data.Vector as V
 
 import System.Random.MWC (Variate(..))
 import qualified Network.HTTP.Client as HC
 import qualified System.Random.MWC as MWC
 
 import Database.InfluxDB
+import Database.InfluxDB.TH
+import qualified Database.InfluxDB.Stream as S
 
 oneWeekInSeconds :: Int
 oneWeekInSeconds = 7*24*60*60
@@ -28,49 +29,49 @@ main :: IO ()
 main = do
   [read -> (numPoints :: Int), read -> (batches :: Int)] <- getArgs
   hSetBuffering stdout NoBuffering
-  config <- newConfig
   HC.withManager managerSettings $ \manager -> do
-    dropDatabase config manager (Database "ctx" Nothing)
+    config <- newConfig manager
+
+    let db = "ctx"
+    dropDatabase config db
       `E.catch`
         -- Ignore exceptions here
         \(_ :: HC.HttpException) -> return ()
-    db <- createDatabase config manager "ctx"
+    createDatabase config "ctx"
     gen <- MWC.create
     flip fix batches $ \outerLoop !m -> when (m > 0) $ do
-      postWithPrecision config manager db SecondsPrecision $ withSeries "ct1" $
+      postWithPrecision config db SecondsPrecision $ withSeries "ct1" $
         flip fix numPoints $ \innerLoop !n -> when (n > 0) $ do
           !timestamp <- liftIO $ (-)
             <$> getPOSIXTime
             <*> (fromIntegral <$> uniformR (0, oneWeekInSeconds) gen)
           !value <- liftIO $ uniform gen
-          writePoints $ Point value timestamp
+          writePoints $ Point value (Time timestamp)
           innerLoop $ n - 1
       outerLoop $ m - 1
 
-    result <- query config manager db "select count(value) from ct1;"
+    result <- query config db "select count(value) from ct1;"
     case result of
       [] -> putStrLn "Empty series"
       series:_ -> do
         print $ seriesColumns series
         print $ seriesPoints series
     -- Streaming output
-    queryChunked config manager db "select * from ct1;" $ \stream0 ->
-      flip fix stream0 $ \loop stream -> case stream of
-        Done -> return ()
-        Yield series next -> do
-          case fromSeriesData series of
-            Left reason -> hPutStrLn stderr reason
-            Right points -> mapM_ print (points :: [Point])
-          putStrLn "--"
-          stream' <- next
-          loop stream'
+    queryChunked config db "select * from ct1;" $ S.fold step ()
+  where
+    step _ series = do
+      case fromSeriesData series of
+        Left reason -> hPutStrLn stderr reason
+        Right points -> mapM_ print (points :: [Point])
+      putStrLn "--"
 
-newConfig :: IO Config
-newConfig = do
+newConfig :: HC.Manager -> IO Config
+newConfig manager = do
   pool <- newServerPool localServer [] -- no backup servers
   return Config
     { configCreds = rootCreds
     , configServerPool = pool
+    , configHttpManager = manager
     }
 
 managerSettings :: HC.ManagerSettings
@@ -78,22 +79,24 @@ managerSettings = HC.defaultManagerSettings
   { HC.managerResponseTimeout = Just $ 60*(10 :: Int)^(6 :: Int)
   }
 
-data Point = Point !Name !POSIXTime deriving Show
+data Point = Point
+  { pointValue :: !Name
+  , pointTime :: !Time
+  } deriving Show
 
-instance ToSeriesData Point where
-  toSeriesColumns _ = V.fromList ["value", "time"]
-  toSeriesPoints (Point value time) = V.fromList
-    [ toValue value
-    , epochInSeconds time
-    ]
+newtype Time = Time POSIXTime
+  deriving Show
 
-instance FromSeriesData Point where
-  parseSeriesData = withValues $ \values -> Point
-    <$> values .: "value"
-    <*> values .: "time"
+instance ToValue Time where
+  toValue (Time epoch) = toValue $ epochInSeconds epoch
+    where
+      epochInSeconds :: POSIXTime -> Value
+      epochInSeconds = Int . floor
 
-epochInSeconds :: POSIXTime -> Value
-epochInSeconds = Int . floor
+instance FromValue Time where
+  parseValue (Int n) = return $ Time $ fromIntegral n
+  parseValue (Float d) = return $ Time $ realToFrac d
+  parseValue v = typeMismatch "Int or Float" v
 
 data Name
   = Foo
@@ -126,7 +129,8 @@ instance Variate Name where
     name <- uniformR (fromEnum lower, fromEnum upper) g
     return $! toEnum name
 
-instance FromValue POSIXTime where
-  parseValue (Int n) = return $ fromIntegral n
-  parseValue (Float d) = return $ realToFrac d
-  parseValue v = typeMismatch "Int or Float" v
+-- Instance deriving
+
+deriveSeriesData defaultOptions
+  { fieldLabelModifier = stripPrefixLower "point" }
+  ''Point
