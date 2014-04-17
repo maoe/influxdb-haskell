@@ -1,3 +1,7 @@
+## v0.2.0.1 - 2014-04-17
+
+* Drop unnecessary dependency on `scientific` when using old `aeson`.
+
 ## v0.2.0 - 2014-04-16
 
 * Add more `FromValue` instances
