@@ -12,6 +12,7 @@ module Database.InfluxDB.TH
   , deriveFromSeriesData
 
   , stripPrefixLower
+  , stripPrefixSnake
   ) where
 import Control.Applicative
 import Language.Haskell.TH
