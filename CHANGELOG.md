@@ -1,3 +1,7 @@
+## v0.2.1.1 - 2014-04-22
+
+* Bug fix: Treat as integer if base10Exponent is positive
+
 ## v0.2.1 - 2014-04-22
 
 * Add `stripPrefixSnake`
