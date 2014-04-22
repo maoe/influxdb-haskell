@@ -72,7 +72,7 @@ toSeriesDataBody opts tyName tyVars con = do
     tyVarToPred tv = case tv of
       PlainTV name -> classP ''FromValue [varT name]
       KindedTV name _ -> classP ''FromValue [varT name]
-    deriveDecs conName vars = do
+    deriveDecs _conName vars = do
       a <- newName "a"
       sequence
         [ funD 'toSeriesColumns

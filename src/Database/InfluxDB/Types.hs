@@ -139,8 +139,10 @@ instance A.FromJSON Value where
     where
 #if MIN_VERSION_aeson(0, 7, 0)
       numberToValue
-        | base10Exponent n == 0 = Int $ fromIntegral $ coefficient n
-        | otherwise = Float $ realToFrac n
+        | e < 0 = Float $ realToFrac n
+        | otherwise = Int $ fromIntegral $ coefficient n * 10 ^ e
+        where
+          e = base10Exponent n
 #else
       numberToValue = case n of
         I i -> Int $ fromIntegral i
