@@ -1,3 +1,7 @@
+## v0.2.1 - 2014-04-22
+
+* Add `stripPrefixSnake`
+
 ## v0.2.0.1 - 2014-04-17
 
 * Drop unnecessary dependency on `scientific` when using old `aeson`.
