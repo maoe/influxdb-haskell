@@ -22,7 +22,7 @@ import qualified Data.Vector as V
 
 import Database.InfluxDB.Decode
 import Database.InfluxDB.Encode
-import Database.InfluxDB.Types.Internal (stripPrefixLower)
+import Database.InfluxDB.Types.Internal
 
 data Options = Options
   { fieldLabelModifier :: String -> String
