@@ -22,7 +22,7 @@ flag examples
   manual: True
 
 flag aeson070
-  default: False
+  default: True
   manual: False
 
 library
