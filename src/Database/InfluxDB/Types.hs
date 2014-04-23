@@ -109,7 +109,7 @@ instance A.FromJSON Series where
 data SeriesData = SeriesData
   { seriesDataColumns :: Vector Column
   , seriesDataPoints :: [Vector Value]
-  } deriving Show
+  } deriving (Eq, Show)
 
 type Column = Text
 

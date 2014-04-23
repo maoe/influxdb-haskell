@@ -19,8 +19,8 @@ module Database.InfluxDB.Http
   , writePoints
 
   -- ** Deleting Points
-  -- *** One Time Deletes (not implemented)
-  -- , deleteSeries
+  -- *** One Time Deletes
+  , deleteSeries
   -- *** Regularly Scheduled Deletes (not implemented)
   -- , getScheduledDeletes
   -- , addScheduledDelete
@@ -225,15 +225,26 @@ writePoints
   -> PointT a m ()
 writePoints = tell . DL.singleton . toSeriesPoints
 
+deleteSeries
+  :: Config
+  -> Text -- ^ Database name
+  -> Text -- ^ Series name
+  -> IO ()
+deleteSeries Config {..} databaseName seriesName =
+  void $ httpLbsWithRetry configServerPool makeRequest configHttpManager
+  where
+    makeRequest = def
+      { HC.method = "DELETE"
+      , HC.path = escapeString $ printf "/db/%s/series/%s"
+          (T.unpack databaseName)
+          (T.unpack seriesName)
+      , HC.queryString = escapeString $ printf "u=%s&p=%s"
+          (T.unpack credsUser)
+          (T.unpack credsPassword)
+      }
+    Credentials {..} = configCreds
+
 -- TODO: Delete API hasn't been implemented in InfluxDB yet
---
--- deleteSeries
---   :: Config
---   -> HC.Manager
---   -> Series
---   -> IO ()
--- deleteSeries Config {..} manager =
---   error "deleteSeries: not implemented"
 --
 -- getScheduledDeletes
 --   :: Config

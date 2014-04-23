@@ -38,8 +38,8 @@ module Database.InfluxDB
   , writePoints
 
   -- *** Deleting Points
-  -- **** One Time Deletes (not implemented)
-  -- , deleteSeries
+  -- **** One Time Deletes
+  , deleteSeries
   -- **** Regularly Scheduled Deletes (not implemented)
   -- , getScheduledDeletes
   -- , addScheduledDelete

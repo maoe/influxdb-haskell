@@ -156,6 +156,20 @@ case_post_with_precision = runTest $ \config ->
       [series] -> fromSeriesData series @=? Right [Val 42]
       _ -> assertFailure $ "Expect one series, but got: " ++ show ss
 
+case_delete_series :: Assertion
+case_delete_series = runTest $ \config ->
+  withTestDatabase config $ \database -> do
+    name <- liftIO newName
+    post config database $
+      writeSeries name $ Val 42
+    ss <- query config database $ "select value from " <> name
+    case ss of
+      [series] -> fromSeriesData series @=? Right [Val 42]
+      _ -> assertFailure $ "Expect one series, but got: " ++ show ss
+    deleteSeries config database name
+    ss' <- query config database $ "select value from " <> name
+    ss' @=? ([] :: [SeriesData])
+
 case_listDatabases :: Assertion
 case_listDatabases = runTest $ \config ->
   withTestDatabase config $ \name -> do
