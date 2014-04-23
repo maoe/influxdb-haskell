@@ -39,6 +39,21 @@ library
     Database.InfluxDB.TH
   other-modules:
     Database.InfluxDB.Types.Internal
+  other-extensions:
+    BangPatterns
+    CPP
+    ConstraintKinds
+    DeriveDataTypeable
+    FlexibleInstances
+    GeneralizedNewtypeDeriving
+    NamedFieldPuns
+    OverloadedStrings
+    RankNTypes
+    RecordWildCards
+    ScopedTypeVariables
+    TemplateHaskell
+    TypeSynonymInstances
+    ViewPatterns
   ghc-options: -Wall
   build-depends:
       base >= 4 && < 4.8
