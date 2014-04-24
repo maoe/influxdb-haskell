@@ -77,7 +77,7 @@ library
     , time
     , vector
 
-  if flag(aeson070)
+  if flag(aeson-070)
     build-depends:
         aeson >= 0.7.0
       , scientific >= 0.2
