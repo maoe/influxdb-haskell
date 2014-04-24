@@ -40,6 +40,7 @@ module Database.InfluxDB.Http
   -- ** Security
   -- *** Cluster admin
   , listClusterAdmins
+  , authenticateClusterAdmin
   , addClusterAdmin
   , updateClusterAdminPassword
   , deleteClusterAdmin
@@ -407,6 +408,18 @@ listClusterAdmins Config {..} = do
   where
     makeRequest = def
       { HC.path = "/cluster_admins"
+      , HC.queryString = escapeString $ printf "u=%s&p=%s"
+          (T.unpack credsUser)
+          (T.unpack credsPassword)
+      }
+    Credentials {..} = configCreds
+
+authenticateClusterAdmin :: Config -> IO ()
+authenticateClusterAdmin Config {..} =
+  void $ httpLbsWithRetry configServerPool makeRequest configHttpManager
+  where
+    makeRequest = def
+      { HC.path = "/cluster_admins/authenticate"
       , HC.queryString = escapeString $ printf "u=%s&p=%s"
           (T.unpack credsUser)
           (T.unpack credsPassword)

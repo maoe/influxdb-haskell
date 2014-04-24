@@ -59,6 +59,7 @@ module Database.InfluxDB
   -- *** Security
   -- **** Cluster admin
   , listClusterAdmins
+  , authenticateClusterAdmin
   , addClusterAdmin
   , updateClusterAdminPassword
   , deleteClusterAdmin

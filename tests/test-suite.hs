@@ -196,6 +196,9 @@ case_list_cluster_admins = runTest $ \config -> do
   assertBool "No root admin" $
     any (("root" ==) . adminUsername) admins
 
+case_authenticate_cluster_admin :: Assertion
+case_authenticate_cluster_admin = runTest authenticateClusterAdmin
+
 case_add_then_delete_cluster_admin :: Assertion
 case_add_then_delete_cluster_admin = runTest $ \config -> do
   name <- newName
