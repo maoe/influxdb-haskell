@@ -21,7 +21,13 @@ flag examples
   default: False
   manual: True
 
-flag aeson070
+flag aeson-070
+  description: Use aeson >= 0.7.0
+  default: True
+  manual: False
+
+flag retry-040
+  description: Use retry >= 0.4, which depends on exceptions
   default: True
   manual: False
 
@@ -63,10 +69,8 @@ library
     , data-default-class
     , dlist
     , http-client
-    , lifted-base
     , mtl
     , network
-    , retry
     , tagged
     , template-haskell
     , text
@@ -80,6 +84,15 @@ library
   else
     build-depends:
         aeson >= 0.6.1.0 && < 0.7.0
+
+  if flag(retry-040)
+    build-depends:
+        exceptions == 0.5.*
+      , retry >= 0.4
+  else
+    build-depends:
+        lifted-base
+      , retry < 0.4
 
   hs-source-dirs: src
   default-language: Haskell2010

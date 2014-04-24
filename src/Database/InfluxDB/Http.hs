@@ -1,3 +1,4 @@
+{-# LANGUAGE CPP #-}
 {-# LANGUAGE GeneralizedNewtypeDeriving #-}
 {-# LANGUAGE NamedFieldPuns #-}
 {-# LANGUAGE OverloadedStrings #-}
@@ -69,7 +70,6 @@ import qualified Data.ByteString.Lazy as BL
 import qualified Data.DList as DL
 import qualified Data.Text as T
 
-import Control.Exception.Lifted (Handler(..))
 import Control.Retry
 import Data.Aeson ((.=))
 import Data.Default.Class (Default(def))
@@ -83,6 +83,12 @@ import Database.InfluxDB.Encode
 import Database.InfluxDB.Types
 import Database.InfluxDB.Stream (Stream(..))
 import qualified Database.InfluxDB.Stream as S
+
+#if MIN_VERSION_retry(0, 4, 0)
+import Control.Monad.Catch (Handler(..))
+#else
+import Control.Exception.Lifted (Handler(..))
+#endif
 
 -- | Configurations for HTTP API client.
 data Config = Config
