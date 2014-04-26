@@ -65,6 +65,7 @@ module Database.InfluxDB
   , deleteClusterAdmin
   -- **** Database user
   , listDatabaseUsers
+  , authenticateDatabaseUser
   , addDatabaseUser
   , updateDatabaseUserPassword
   , deleteDatabaseUser

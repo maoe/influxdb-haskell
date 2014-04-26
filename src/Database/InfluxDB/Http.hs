@@ -47,6 +47,7 @@ module Database.InfluxDB.Http
   , deleteClusterAdmin
   -- *** Database user
   , listDatabaseUsers
+  , authenticateDatabaseUser
   , addDatabaseUser
   , updateDatabaseUserPassword
   , deleteDatabaseUser
@@ -513,6 +514,22 @@ listDatabaseUsers Config {..} database = do
   where
     makeRequest = def
       { HC.path = escapeString $ printf "/db/%s/users"
+          (T.unpack database)
+      , HC.queryString = escapeString $ printf "u=%s&p=%s"
+          (T.unpack credsUser)
+          (T.unpack credsPassword)
+      }
+    Credentials {..} = configCreds
+
+authenticateDatabaseUser
+  :: Config
+  -> Text -- ^ Database name
+  -> IO ()
+authenticateDatabaseUser Config {..} database =
+  void $ httpLbsWithRetry configServerPool makeRequest configHttpManager
+  where
+    makeRequest = def
+      { HC.path = escapeString $ printf "/db/%s/authenticate"
           (T.unpack database)
       , HC.queryString = escapeString $ printf "u=%s&p=%s"
           (T.unpack credsUser)

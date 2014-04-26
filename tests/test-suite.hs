@@ -239,6 +239,11 @@ case_add_then_delete_database_users = runTest $ \config ->
       assertBool "There shouldn't be any users" $ null users
     newUserName <- newName
     addDatabaseUser config name newUserName "somePassword"
+    let newCreds = rootCreds
+          { credsUser = newUserName
+          , credsPassword = "somePassword" }
+        newConfig = config { configCreds = newCreds }
+    authenticateDatabaseUser newConfig name
     listDatabaseUsers config name >>= \users ->
       assertBool ("No such user: " <> T.unpack newUserName) $
         any ((newUserName ==) . userName) users
