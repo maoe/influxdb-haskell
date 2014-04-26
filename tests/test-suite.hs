@@ -100,7 +100,7 @@ case_post = runTest $ \config ->
       writeSeries name $ Val 42
     ss <- query config database $ "select value from " <> name
     case ss of
-      [series] -> fromSeriesData series @=? Right [Val 42]
+      [series] -> fromSeriesData series @?= Right [Val 42]
       _ -> assertFailure $ "Expect one series, but got: " ++ show ss
 
 case_post_multi_series :: Assertion
@@ -113,7 +113,7 @@ case_post_multi_series = runTest $ \config ->
       writeSeries name $ Val 42
     ss <- query config database $ "select value from " <> name
     case ss of
-      [series] -> fromSeriesData series @=? Right [Val 42, Val 42, Val 42]
+      [series] -> fromSeriesData series @?= Right [Val 42, Val 42, Val 42]
       _ -> assertFailure $ "Expect one series, but got: " ++ show ss
 
 case_post_multi_points :: Assertion
@@ -126,7 +126,7 @@ case_post_multi_points = runTest $ \config ->
       writePoints $ Val 42
     ss <- query config database $ "select value from " <> name
     case ss of
-      [series] -> fromSeriesData series @=? Right [Val 42, Val 42, Val 42]
+      [series] -> fromSeriesData series @?= Right [Val 42, Val 42, Val 42]
       _ -> assertFailure $ "Expect one series, but got: " ++ show ss
 
 case_queryChunked :: Assertion
@@ -139,7 +139,7 @@ case_queryChunked = runTest $ \config ->
       writePoints $ Val 42
     ss <- queryChunked config database ("select value from " <> name) $
       S.fold step []
-    mapM fromSeriesData ss @=? Right [[Val 42], [Val 42], [Val 42]]
+    mapM fromSeriesData ss @?= Right [[Val 42], [Val 42], [Val 42]]
   where
     step xs series = case fromSeriesData series of
       Left reason -> throwIO $ HUnitFailure reason
@@ -153,7 +153,7 @@ case_post_with_precision = runTest $ \config ->
       writeSeries name $ Val 42
     ss <- query config database $ "select value from " <> name
     case ss of
-      [series] -> fromSeriesData series @=? Right [Val 42]
+      [series] -> fromSeriesData series @?= Right [Val 42]
       _ -> assertFailure $ "Expect one series, but got: " ++ show ss
 
 case_delete_series :: Assertion
@@ -164,7 +164,7 @@ case_delete_series = runTest $ \config ->
       writeSeries name $ Val 42
     ss <- query config database $ "select value from " <> name
     case ss of
-      [series] -> fromSeriesData series @=? Right [Val 42]
+      [series] -> fromSeriesData series @?= Right [Val 42]
       _ -> assertFailure $ "Expect one series, but got: " ++ show ss
     deleteSeries config database name
     ss' <- query config database $ "select value from " <> name
