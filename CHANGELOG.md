@@ -1,3 +1,9 @@
+## v0.2.2 - 2014-05-08
+
+* Support for retry-0.4
+* Add deleteSeries
+* Add authenticateClusterAdmin and authenticateDatabaseUser
+
 ## v0.2.1.1 - 2014-04-22
 
 * Bug fix: Treat as integer if base10Exponent is positive
