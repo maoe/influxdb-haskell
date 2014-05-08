@@ -100,7 +100,7 @@ case_post = runTest $ \config ->
       writeSeries name $ Val 42
     ss <- query config database $ "select value from " <> name
     case ss of
-      [series] -> fromSeriesData series @=? Right [Val 42]
+      [series] -> fromSeriesData series @?= Right [Val 42]
       _ -> assertFailure $ "Expect one series, but got: " ++ show ss
 
 case_post_multi_series :: Assertion
@@ -113,7 +113,7 @@ case_post_multi_series = runTest $ \config ->
       writeSeries name $ Val 42
     ss <- query config database $ "select value from " <> name
     case ss of
-      [series] -> fromSeriesData series @=? Right [Val 42, Val 42, Val 42]
+      [series] -> fromSeriesData series @?= Right [Val 42, Val 42, Val 42]
       _ -> assertFailure $ "Expect one series, but got: " ++ show ss
 
 case_post_multi_points :: Assertion
@@ -126,7 +126,7 @@ case_post_multi_points = runTest $ \config ->
       writePoints $ Val 42
     ss <- query config database $ "select value from " <> name
     case ss of
-      [series] -> fromSeriesData series @=? Right [Val 42, Val 42, Val 42]
+      [series] -> fromSeriesData series @?= Right [Val 42, Val 42, Val 42]
       _ -> assertFailure $ "Expect one series, but got: " ++ show ss
 
 case_queryChunked :: Assertion
@@ -139,7 +139,7 @@ case_queryChunked = runTest $ \config ->
       writePoints $ Val 42
     ss <- queryChunked config database ("select value from " <> name) $
       S.fold step []
-    mapM fromSeriesData ss @=? Right [[Val 42], [Val 42], [Val 42]]
+    mapM fromSeriesData ss @?= Right [[Val 42], [Val 42], [Val 42]]
   where
     step xs series = case fromSeriesData series of
       Left reason -> throwIO $ HUnitFailure reason
@@ -153,8 +153,22 @@ case_post_with_precision = runTest $ \config ->
       writeSeries name $ Val 42
     ss <- query config database $ "select value from " <> name
     case ss of
-      [series] -> fromSeriesData series @=? Right [Val 42]
+      [series] -> fromSeriesData series @?= Right [Val 42]
       _ -> assertFailure $ "Expect one series, but got: " ++ show ss
+
+case_delete_series :: Assertion
+case_delete_series = runTest $ \config ->
+  withTestDatabase config $ \database -> do
+    name <- liftIO newName
+    post config database $
+      writeSeries name $ Val 42
+    ss <- query config database $ "select value from " <> name
+    case ss of
+      [series] -> fromSeriesData series @?= Right [Val 42]
+      _ -> assertFailure $ "Expect one series, but got: " ++ show ss
+    deleteSeries config database name
+    ss' <- query config database $ "select value from " <> name
+    ss' @=? ([] :: [SeriesData])
 
 case_listDatabases :: Assertion
 case_listDatabases = runTest $ \config ->
@@ -181,6 +195,9 @@ case_list_cluster_admins = runTest $ \config -> do
   admins <- listClusterAdmins config
   assertBool "No root admin" $
     any (("root" ==) . adminUsername) admins
+
+case_authenticate_cluster_admin :: Assertion
+case_authenticate_cluster_admin = runTest authenticateClusterAdmin
 
 case_add_then_delete_cluster_admin :: Assertion
 case_add_then_delete_cluster_admin = runTest $ \config -> do
@@ -222,6 +239,11 @@ case_add_then_delete_database_users = runTest $ \config ->
       assertBool "There shouldn't be any users" $ null users
     newUserName <- newName
     addDatabaseUser config name newUserName "somePassword"
+    let newCreds = rootCreds
+          { credsUser = newUserName
+          , credsPassword = "somePassword" }
+        newConfig = config { configCreds = newCreds }
+    authenticateDatabaseUser newConfig name
     listDatabaseUsers config name >>= \users ->
       assertBool ("No such user: " <> T.unpack newUserName) $
         any ((newUserName ==) . userName) users

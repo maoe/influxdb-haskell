@@ -1,3 +1,4 @@
+{-# LANGUAGE CPP #-}
 {-# LANGUAGE GeneralizedNewtypeDeriving #-}
 {-# LANGUAGE NamedFieldPuns #-}
 {-# LANGUAGE OverloadedStrings #-}
@@ -19,8 +20,8 @@ module Database.InfluxDB.Http
   , writePoints
 
   -- ** Deleting Points
-  -- *** One Time Deletes (not implemented)
-  -- , deleteSeries
+  -- *** One Time Deletes
+  , deleteSeries
   -- *** Regularly Scheduled Deletes (not implemented)
   -- , getScheduledDeletes
   -- , addScheduledDelete
@@ -40,11 +41,13 @@ module Database.InfluxDB.Http
   -- ** Security
   -- *** Cluster admin
   , listClusterAdmins
+  , authenticateClusterAdmin
   , addClusterAdmin
   , updateClusterAdminPassword
   , deleteClusterAdmin
   -- *** Database user
   , listDatabaseUsers
+  , authenticateDatabaseUser
   , addDatabaseUser
   , updateDatabaseUserPassword
   , deleteDatabaseUser
@@ -68,7 +71,6 @@ import qualified Data.ByteString.Lazy as BL
 import qualified Data.DList as DL
 import qualified Data.Text as T
 
-import Control.Exception.Lifted (Handler(..))
 import Control.Retry
 import Data.Aeson ((.=))
 import Data.Default.Class (Default(def))
@@ -82,6 +84,12 @@ import Database.InfluxDB.Encode
 import Database.InfluxDB.Types
 import Database.InfluxDB.Stream (Stream(..))
 import qualified Database.InfluxDB.Stream as S
+
+#if MIN_VERSION_retry(0, 4, 0)
+import Control.Monad.Catch (Handler(..))
+#else
+import Control.Exception.Lifted (Handler(..))
+#endif
 
 -- | Configurations for HTTP API client.
 data Config = Config
@@ -225,15 +233,26 @@ writePoints
   -> PointT a m ()
 writePoints = tell . DL.singleton . toSeriesPoints
 
+deleteSeries
+  :: Config
+  -> Text -- ^ Database name
+  -> Text -- ^ Series name
+  -> IO ()
+deleteSeries Config {..} databaseName seriesName =
+  void $ httpLbsWithRetry configServerPool makeRequest configHttpManager
+  where
+    makeRequest = def
+      { HC.method = "DELETE"
+      , HC.path = escapeString $ printf "/db/%s/series/%s"
+          (T.unpack databaseName)
+          (T.unpack seriesName)
+      , HC.queryString = escapeString $ printf "u=%s&p=%s"
+          (T.unpack credsUser)
+          (T.unpack credsPassword)
+      }
+    Credentials {..} = configCreds
+
 -- TODO: Delete API hasn't been implemented in InfluxDB yet
---
--- deleteSeries
---   :: Config
---   -> HC.Manager
---   -> Series
---   -> IO ()
--- deleteSeries Config {..} manager =
---   error "deleteSeries: not implemented"
 --
 -- getScheduledDeletes
 --   :: Config
@@ -402,6 +421,18 @@ listClusterAdmins Config {..} = do
       }
     Credentials {..} = configCreds
 
+authenticateClusterAdmin :: Config -> IO ()
+authenticateClusterAdmin Config {..} =
+  void $ httpLbsWithRetry configServerPool makeRequest configHttpManager
+  where
+    makeRequest = def
+      { HC.path = "/cluster_admins/authenticate"
+      , HC.queryString = escapeString $ printf "u=%s&p=%s"
+          (T.unpack credsUser)
+          (T.unpack credsPassword)
+      }
+    Credentials {..} = configCreds
+
 -- | Add a new cluster administrator. Requires cluster admin privilege.
 addClusterAdmin
   :: Config
@@ -483,6 +514,22 @@ listDatabaseUsers Config {..} database = do
   where
     makeRequest = def
       { HC.path = escapeString $ printf "/db/%s/users"
+          (T.unpack database)
+      , HC.queryString = escapeString $ printf "u=%s&p=%s"
+          (T.unpack credsUser)
+          (T.unpack credsPassword)
+      }
+    Credentials {..} = configCreds
+
+authenticateDatabaseUser
+  :: Config
+  -> Text -- ^ Database name
+  -> IO ()
+authenticateDatabaseUser Config {..} database =
+  void $ httpLbsWithRetry configServerPool makeRequest configHttpManager
+  where
+    makeRequest = def
+      { HC.path = escapeString $ printf "/db/%s/authenticate"
           (T.unpack database)
       , HC.queryString = escapeString $ printf "u=%s&p=%s"
           (T.unpack credsUser)

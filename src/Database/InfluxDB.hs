@@ -38,8 +38,8 @@ module Database.InfluxDB
   , writePoints
 
   -- *** Deleting Points
-  -- **** One Time Deletes (not implemented)
-  -- , deleteSeries
+  -- **** One Time Deletes
+  , deleteSeries
   -- **** Regularly Scheduled Deletes (not implemented)
   -- , getScheduledDeletes
   -- , addScheduledDelete
@@ -59,11 +59,13 @@ module Database.InfluxDB
   -- *** Security
   -- **** Cluster admin
   , listClusterAdmins
+  , authenticateClusterAdmin
   , addClusterAdmin
   , updateClusterAdminPassword
   , deleteClusterAdmin
   -- **** Database user
   , listDatabaseUsers
+  , authenticateDatabaseUser
   , addDatabaseUser
   , updateDatabaseUserPassword
   , deleteDatabaseUser

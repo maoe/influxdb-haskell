@@ -1,5 +1,5 @@
 name: influxdb
-version: 0.2.1.1
+version: 0.2.2
 synopsis: Haskell client library for InfluxDB
 description: Haskell client library for InfluxDB
 homepage: https://github.com/maoe/influxdb-haskell
@@ -21,8 +21,14 @@ flag examples
   default: False
   manual: True
 
-flag aeson070
-  default: False
+flag aeson-070
+  description: Use aeson >= 0.7.0
+  default: True
+  manual: False
+
+flag retry-040
+  description: Use retry >= 0.4, which depends on exceptions
+  default: True
   manual: False
 
 library
@@ -39,6 +45,21 @@ library
     Database.InfluxDB.TH
   other-modules:
     Database.InfluxDB.Types.Internal
+  other-extensions:
+    BangPatterns
+    CPP
+    ConstraintKinds
+    DeriveDataTypeable
+    FlexibleInstances
+    GeneralizedNewtypeDeriving
+    NamedFieldPuns
+    OverloadedStrings
+    RankNTypes
+    RecordWildCards
+    ScopedTypeVariables
+    TemplateHaskell
+    TypeSynonymInstances
+    ViewPatterns
   ghc-options: -Wall
   build-depends:
       base >= 4 && < 4.8
@@ -48,23 +69,30 @@ library
     , data-default-class
     , dlist
     , http-client
-    , lifted-base
     , mtl
     , network
-    , retry
     , tagged
     , template-haskell
     , text
     , time
     , vector
 
-  if flag(aeson070)
+  if flag(aeson-070)
     build-depends:
         aeson >= 0.7.0
       , scientific >= 0.2
   else
     build-depends:
         aeson >= 0.6.1.0 && < 0.7.0
+
+  if flag(retry-040)
+    build-depends:
+        exceptions == 0.5.*
+      , retry >= 0.4
+  else
+    build-depends:
+        lifted-base
+      , retry < 0.4
 
   hs-source-dirs: src
   default-language: Haskell2010
@@ -113,5 +141,5 @@ source-repository head
 
 source-repository this
   type: git
-  tag: v0.2.1.1
+  tag: v0.2.2
   location: https://github.com/maoe/influxdb-haskell.git
