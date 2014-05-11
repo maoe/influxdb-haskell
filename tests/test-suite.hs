@@ -129,6 +129,24 @@ case_post_multi_points = runTest $ \config ->
       [series] -> fromSeriesData series @?= Right [Val 42, Val 42, Val 42]
       _ -> assertFailure $ "Expect one series, but got: " ++ show ss
 
+case_query_nonexistent_series :: Assertion
+case_query_nonexistent_series = runTest $ \config ->
+  withTestDatabase config $ \database -> do
+    name <- liftIO newName
+    ss <- query config database $ "select * from " <> name
+    ss @?= ([] :: [SeriesData])
+
+case_query_empty_series :: Assertion
+case_query_empty_series = runTest $ \config ->
+  withTestDatabase config $ \database -> do
+    name <- liftIO newName
+    post config database $
+      writeSeries name $ Val 42
+    ss1 <- query config database $ "delete from " <> name
+    ss1 @?= ([] :: [SeriesData])
+    ss2 <- query config database $ "select * from " <> name
+    ss2 @?= ([] :: [SeriesData])
+
 case_queryChunked :: Assertion
 case_queryChunked = runTest $ \config ->
   withTestDatabase config $ \database -> do
