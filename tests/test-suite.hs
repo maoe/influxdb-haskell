@@ -212,7 +212,7 @@ case_list_cluster_admins :: Assertion
 case_list_cluster_admins = runTest $ \config -> do
   admins <- listClusterAdmins config
   assertBool "No root admin" $
-    any (("root" ==) . adminUsername) admins
+    any (("root" ==) . adminName) admins
 
 case_authenticate_cluster_admin :: Assertion
 case_authenticate_cluster_admin = runTest authenticateClusterAdmin
@@ -223,11 +223,11 @@ case_add_then_delete_cluster_admin = runTest $ \config -> do
   admin <- addClusterAdmin config name "somePassword"
   listClusterAdmins config >>= \admins ->
     assertBool ("No such admin: " ++ T.unpack name) $
-      any ((name ==) . adminUsername) admins
+      any ((name ==) . adminName) admins
   deleteClusterAdmin config admin
   listClusterAdmins config >>= \admins ->
     assertBool ("Found a deleted admin: " ++ T.unpack name) $
-      all ((name /=) . adminUsername) admins
+      all ((name /=) . adminName) admins
 
 case_update_cluster_admin_password :: Assertion
 case_update_cluster_admin_password = runTest $ \config -> do
