@@ -57,6 +57,7 @@ before_install:
  - export PATH=/opt/ghc/$GHCVER/bin:~/.cabal/bin:$PATH
  - wget http://s3.amazonaws.com/influxdb/influxdb_latest_amd64.deb
  - sudo dpkg -i influxdb_latest_amd64.deb
+ - sudo /etc/init.d/influxdb start
 
 install:
  - cabal-1.18 update
