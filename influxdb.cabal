@@ -87,7 +87,7 @@ library
 
   if flag(retry-040)
     build-depends:
-        exceptions == 0.5.*
+        exceptions >= 0.5 && < 0.7
       , retry >= 0.4
   else
     build-depends:
