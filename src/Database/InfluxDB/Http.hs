@@ -76,7 +76,7 @@ import Data.Aeson ((.=))
 import Data.Default.Class (Default(def))
 import qualified Data.Aeson as A
 import qualified Data.Aeson.Encode as AE
-import qualified Data.Attoparsec as P
+import qualified Data.Attoparsec.ByteString as P
 import qualified Network.HTTP.Client as HC
 
 import Database.InfluxDB.Decode
