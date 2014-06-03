@@ -129,6 +129,24 @@ case_post_multi_points = runTest $ \config ->
       [series] -> fromSeriesData series @?= Right [Val 42, Val 42, Val 42]
       _ -> assertFailure $ "Expect one series, but got: " ++ show ss
 
+case_query_nonexistent_series :: Assertion
+case_query_nonexistent_series = runTest $ \config ->
+  withTestDatabase config $ \database -> do
+    name <- liftIO newName
+    ss <- query config database $ "select * from " <> name
+    ss @?= ([] :: [SeriesData])
+
+case_query_empty_series :: Assertion
+case_query_empty_series = runTest $ \config ->
+  withTestDatabase config $ \database -> do
+    name <- liftIO newName
+    post config database $
+      writeSeries name $ Val 42
+    ss1 <- query config database $ "delete from " <> name
+    ss1 @?= ([] :: [SeriesData])
+    ss2 <- query config database $ "select * from " <> name
+    ss2 @?= ([] :: [SeriesData])
+
 case_queryChunked :: Assertion
 case_queryChunked = runTest $ \config ->
   withTestDatabase config $ \database -> do
@@ -194,7 +212,7 @@ case_list_cluster_admins :: Assertion
 case_list_cluster_admins = runTest $ \config -> do
   admins <- listClusterAdmins config
   assertBool "No root admin" $
-    any (("root" ==) . adminUsername) admins
+    any (("root" ==) . adminName) admins
 
 case_authenticate_cluster_admin :: Assertion
 case_authenticate_cluster_admin = runTest authenticateClusterAdmin
@@ -205,11 +223,11 @@ case_add_then_delete_cluster_admin = runTest $ \config -> do
   admin <- addClusterAdmin config name "somePassword"
   listClusterAdmins config >>= \admins ->
     assertBool ("No such admin: " ++ T.unpack name) $
-      any ((name ==) . adminUsername) admins
+      any ((name ==) . adminName) admins
   deleteClusterAdmin config admin
   listClusterAdmins config >>= \admins ->
     assertBool ("Found a deleted admin: " ++ T.unpack name) $
-      all ((name /=) . adminUsername) admins
+      all ((name /=) . adminName) admins
 
 case_update_cluster_admin_password :: Assertion
 case_update_cluster_admin_password = runTest $ \config -> do

@@ -76,7 +76,7 @@ import Data.Aeson ((.=))
 import Data.Default.Class (Default(def))
 import qualified Data.Aeson as A
 import qualified Data.Aeson.Encode as AE
-import qualified Data.Attoparsec as P
+import qualified Data.Attoparsec.ByteString as P
 import qualified Network.HTTP.Client as HC
 
 import Database.InfluxDB.Decode
@@ -442,7 +442,7 @@ addClusterAdmin
 addClusterAdmin Config {..} name password = do
   void $ httpLbsWithRetry configServerPool makeRequest configHttpManager
   return Admin
-    { adminUsername = name
+    { adminName = name
     }
   where
     makeRequest = def
@@ -474,12 +474,12 @@ updateClusterAdminPassword Config {..} admin password =
           [ "password" .= password
           ]
       , HC.path = escapeString $ printf "/cluster_admins/%s"
-          (T.unpack adminUsername)
+          (T.unpack adminName)
       , HC.queryString = escapeString $ printf "u=%s&p=%s"
           (T.unpack credsUser)
           (T.unpack credsPassword)
       }
-    Admin {adminUsername} = admin
+    Admin {adminName} = admin
     Credentials {..} = configCreds
 
 -- | Delete a cluster administrator. Requires cluster admin privilege.
@@ -493,12 +493,12 @@ deleteClusterAdmin Config {..} admin =
     makeRequest = def
       { HC.method = "DELETE"
       , HC.path = escapeString $ printf "/cluster_admins/%s"
-          (T.unpack adminUsername)
+          (T.unpack adminName)
       , HC.queryString = escapeString $ printf "u=%s&p=%s"
           (T.unpack credsUser)
           (T.unpack credsPassword)
       }
-    Admin {adminUsername} = admin
+    Admin {adminName} = admin
     Credentials {..} = configCreds
 
 -- | List database users.
