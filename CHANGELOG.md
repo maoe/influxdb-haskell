@@ -1,3 +1,9 @@
+## v0.3.3 - 2014-06-03
+
+* Support for InfluxDB v0.7
+    * Renamed `username` field for `/cluster_admins` to `user`
+    * No support for the old field name
+
 ## v0.2.2 - 2014-05-08
 
 * Support for retry-0.4
