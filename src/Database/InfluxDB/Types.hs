@@ -193,7 +193,7 @@ data User = User
 
 -- | Administrator
 newtype Admin = Admin
-  { adminUsername :: Text
+  { adminName :: Text
   } deriving Show
 
 
