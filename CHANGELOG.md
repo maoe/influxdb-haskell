@@ -1,4 +1,4 @@
-## v0.3.0.1
+## v0.3.0.1 - 2014-06-04
 
 * Allow exceptions-0.6 (@JohnLato)
 
