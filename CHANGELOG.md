@@ -1,4 +1,8 @@
-## v0.3.3 - 2014-06-03
+## v0.3.0.1
+
+* Allow exceptions-0.6 (@jwlato)
+
+## v0.3.0 - 2014-06-03
 
 * Support for InfluxDB v0.7
     * Renamed `username` field for `/cluster_admins` to `user`
