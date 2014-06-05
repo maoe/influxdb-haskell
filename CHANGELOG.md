@@ -1,3 +1,7 @@
+## v0.4.0 - 2014-06-05
+
+* Remove `databaseReplicationFactor` field from `Database` type
+
 ## v0.3.0.1 - 2014-06-04
 
 * Allow exceptions-0.6 (@JohnLato)
