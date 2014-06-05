@@ -68,7 +68,7 @@ before_install:
  - sudo /etc/init.d/influxdb start
 
 install:
- - cabal-1.20 install --only-dependencies --enable-tests --enable-benchmarks
+ - cabal-1.20 install -j --only-dependencies --enable-tests --enable-benchmarks
 
 # Here starts the actual work to be performed for the package under
 # test; any command which exits with a non-zero exit code causes the
@@ -79,7 +79,7 @@ script:
 
  # this builds all libraries and executables
  # (including tests/benchmarks)
- - cabal-1.20 build
+ - cabal-1.20 build -j
 
  - run-cabal-test --cabal-name=cabal-1.20 --show-details=always
  - cabal-1.20 run influx-random-points -- 10 10
