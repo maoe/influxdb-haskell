@@ -25,6 +25,7 @@ module Database.InfluxDB.Types
   , ServerPool
   , serverRetrySettings
   , newServerPool
+  , newServerPoolWithRetrySettings
   , activeServer
   , failover
   ) where
@@ -39,7 +40,7 @@ import Data.Typeable (Typeable)
 import Data.Vector (Vector)
 import qualified Data.Sequence as Seq
 
-import Control.Retry (RetrySettings)
+import Control.Retry (RetrySettings(..), limitedRetries)
 import Data.Aeson ((.=), (.:))
 import Data.Aeson.TH
 import qualified Data.Aeson as A
@@ -203,12 +204,23 @@ newtype Admin = Admin
 
 -- | Create a non-empty server pool. You must specify at least one server
 -- location to create a pool.
-newServerPool :: Server -> [Server] -> RetrySettings -> IO (IORef ServerPool)
-newServerPool active backups retrySettings = newIORef ServerPool
-  { serverActive = active
-  , serverBackup = Seq.fromList backups
-  , serverRetrySettings = retrySettings
-  }
+newServerPool :: Server -> [Server] -> IO (IORef ServerPool)
+newServerPool = newServerPoolWithRetrySettings defaultRetrySettings
+  where
+    defaultRetrySettings = RetrySettings
+      { numRetries = limitedRetries 5
+      , backoff = True
+      , baseDelay = 50
+      }
+
+newServerPoolWithRetrySettings
+    :: RetrySettings -> Server -> [Server] -> IO (IORef ServerPool)
+newServerPoolWithRetrySettings retrySettings active backups =
+  newIORef ServerPool
+    { serverActive = active
+    , serverBackup = Seq.fromList backups
+    , serverRetrySettings = retrySettings
+    }
 
 -- | Get a server from the pool.
 activeServer :: IORef ServerPool -> IO Server

@@ -14,7 +14,6 @@ import System.Environment
 import System.IO
 import qualified Data.Text as T
 
-import Control.Retry (RetrySettings(..), limitedRetries)
 import System.Random.MWC (Variate(..))
 import qualified Network.HTTP.Client as HC
 import qualified System.Random.MWC as MWC
@@ -68,18 +67,12 @@ main = do
 
 newConfig :: HC.Manager -> IO Config
 newConfig manager = do
-  pool <- newServerPool localServer [] retrySettings
+  pool <- newServerPool localServer []
   return Config
     { configCreds = rootCreds
     , configServerPool = pool
     , configHttpManager = manager
     }
-  where
-    retrySettings = RetrySettings
-      { numRetries = limitedRetries 5
-      , backoff = True
-      , baseDelay = 50
-      }
 
 managerSettings :: HC.ManagerSettings
 managerSettings = HC.defaultManagerSettings
