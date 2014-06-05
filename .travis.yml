@@ -7,6 +7,7 @@
 # release of a major GHC version. Setting HPVER implictly sets
 # GHCVER. Omit lines with versions you don't need/want testing for.
 env:
+ - GHCVER=7.8.3
  - GHCVER=7.8.2
  - GHCVER=7.8.1
  - GHCVER=7.6.3
@@ -20,6 +21,7 @@ env:
 
 matrix:
   allow_failures:
+   - env: GHCVER=7.8.3
    - env: HPVER=2012.2.0.0
 
 # Note: the distinction between `before_install` and `install` is not
@@ -66,7 +68,7 @@ before_install:
  - sudo /etc/init.d/influxdb start
 
 install:
- - cabal-1.20 install --only-dependencies --enable-tests --enable-benchmarks
+ - cabal-1.20 install -j --only-dependencies --enable-tests --enable-benchmarks
 
 # Here starts the actual work to be performed for the package under
 # test; any command which exits with a non-zero exit code causes the
@@ -77,7 +79,7 @@ script:
 
  # this builds all libraries and executables
  # (including tests/benchmarks)
- - cabal-1.20 build
+ - cabal-1.20 build -j
 
  - run-cabal-test --cabal-name=cabal-1.20 --show-details=always
  - cabal-1.20 run influx-random-points -- 10 10

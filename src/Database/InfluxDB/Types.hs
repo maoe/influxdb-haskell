@@ -175,10 +175,8 @@ data ServerPool = ServerPool
   -- ^ The rest of the servers in the pool.
   }
 
--- | Database consits of name and replication factor.
-data Database = Database
-  { databaseName :: !Text
-  , databaseReplicationFactor :: !(Maybe Int)
+newtype Database = Database
+  { databaseName :: Text
   } deriving Show
 
 newtype ScheduledDelete = ScheduledDelete
