@@ -175,7 +175,6 @@ data ServerPool = ServerPool
   -- ^ The rest of the servers in the pool.
   }
 
--- | Database consits of name and replication factor.
 newtype Database = Database
   { databaseName :: Text
   } deriving Show
