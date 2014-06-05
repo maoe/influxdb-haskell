@@ -23,6 +23,7 @@ module Database.InfluxDB.Types
 
   -- * Server pool
   , ServerPool
+  , serverRetrySettings
   , newServerPool
   , activeServer
   , failover
@@ -38,6 +39,7 @@ import Data.Typeable (Typeable)
 import Data.Vector (Vector)
 import qualified Data.Sequence as Seq
 
+import Control.Retry (RetrySettings)
 import Data.Aeson ((.=), (.:))
 import Data.Aeson.TH
 import qualified Data.Aeson as A
@@ -173,6 +175,7 @@ data ServerPool = ServerPool
   -- ^ Current active server
   , serverBackup :: !(Seq Server)
   -- ^ The rest of the servers in the pool.
+  , serverRetrySettings :: !RetrySettings
   }
 
 newtype Database = Database
@@ -200,10 +203,11 @@ newtype Admin = Admin
 
 -- | Create a non-empty server pool. You must specify at least one server
 -- location to create a pool.
-newServerPool :: Server -> [Server] -> IO (IORef ServerPool)
-newServerPool active backups = newIORef ServerPool
+newServerPool :: Server -> [Server] -> RetrySettings -> IO (IORef ServerPool)
+newServerPool active backups retrySettings = newIORef ServerPool
   { serverActive = active
   , serverBackup = Seq.fromList backups
+  , serverRetrySettings = retrySettings
   }
 
 -- | Get a server from the pool.
@@ -219,9 +223,9 @@ failover :: IORef ServerPool -> IO ()
 failover ref = atomicModifyIORef' ref $ \pool@ServerPool {..} ->
   case Seq.viewl serverBackup of
     EmptyL -> (pool, ())
-    active :< rest -> (pool', ())
+    active :< rest -> (newPool, ())
       where
-        pool' = ServerPool
+        newPool = pool
           { serverActive = active
           , serverBackup = rest |> serverActive
           }

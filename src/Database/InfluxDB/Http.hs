@@ -59,7 +59,7 @@ import Control.Applicative
 import Control.Monad.Identity
 import Control.Monad.Writer
 import Data.DList (DList)
-import Data.IORef (IORef)
+import Data.IORef
 import Data.Proxy
 import Data.Text (Text)
 import Data.Vector (Vector)
@@ -655,8 +655,9 @@ withPool
   -> HC.Request
   -> (HC.Request -> IO a)
   -> IO a
-withPool pool request f =
-  recovering defaultRetrySettings handlers $ do
+withPool pool request f = do
+  retrySettings <- serverRetrySettings <$> readIORef pool
+  recovering retrySettings handlers $ do
     server <- activeServer pool
     f $ makeRequest server
   where
@@ -672,13 +673,6 @@ withPool pool request f =
             return True
           _ -> return False
       ]
-
-defaultRetrySettings :: RetrySettings
-defaultRetrySettings = RetrySettings
-  { numRetries = limitedRetries 5
-  , backoff = True
-  , baseDelay = 50
-  }
 
 escapeText :: Text -> BS.ByteString
 escapeText = escapeString . T.unpack

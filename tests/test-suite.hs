@@ -15,6 +15,7 @@ import qualified Data.Text as T
 import qualified Data.Text.Lazy as TL
 import qualified Data.Vector as V
 
+import Control.Retry (RetrySettings(..), limitedRetries)
 import Test.HUnit.Lang (HUnitFailure(..))
 import Test.Tasty
 import Test.Tasty.HUnit
@@ -332,10 +333,15 @@ deleteClusterAdminIfExists config name =
 
 runTest :: (Config -> IO a) -> IO a
 runTest f = do
-  pool <- newServerPool localServer []
+  pool <- newServerPool localServer [] retrySettings
   HC.withManager settings (f . Config rootCreds pool)
   where
     settings = HC.defaultManagerSettings
+    retrySettings = RetrySettings
+      { numRetries = limitedRetries 5
+      , backoff = True
+      , baseDelay = 50
+      }
 
 newName :: IO Text
 newName = do
