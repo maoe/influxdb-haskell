@@ -1,3 +1,7 @@
+## v0.4.1 - 2014-06-05
+
+* Make retry settings configurable (#5)
+
 ## v0.4.0 - 2014-06-05
 
 * Remove `databaseReplicationFactor` field from `Database` type

@@ -67,7 +67,7 @@ main = do
 
 newConfig :: HC.Manager -> IO Config
 newConfig manager = do
-  pool <- newServerPool localServer [] -- no backup servers
+  pool <- newServerPool localServer []
   return Config
     { configCreds = rootCreds
     , configServerPool = pool
