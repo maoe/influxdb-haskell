@@ -54,11 +54,10 @@ module Database.InfluxDB.Http
   , grantAdminPrivilegeTo
   , revokeAdminPrivilegeFrom
 
-  -- ** Health check
+  -- ** Other API
   , ping
-
-  -- ** Fetch current list of available interfaces
   , listInterfaces
+  , isInSync
   ) where
 
 import Control.Applicative
@@ -82,7 +81,10 @@ import Data.Aeson ((.=))
 import Data.Default.Class (Default(def))
 import qualified Data.Aeson as A
 import qualified Data.Aeson.Encode as AE
+import qualified Data.Aeson.Parser as AP
+import qualified Data.Aeson.Types as AT
 import qualified Data.Attoparsec.ByteString as P
+import qualified Data.Attoparsec.ByteString.Lazy as PL
 import qualified Network.HTTP.Client as HC
 
 import Database.InfluxDB.Decode
@@ -656,6 +658,7 @@ ping Config {..} = do
       { HC.path = "/ping"
       }
 
+-- | Fetch current list of available interfaces
 listInterfaces :: Config -> IO [Text]
 listInterfaces Config {..} = do
   response <- httpLbsWithRetry configServerPool makeRequest configHttpManager
@@ -666,6 +669,24 @@ listInterfaces Config {..} = do
     makeRequest = def
       { HC.path = "/interfaces"
       }
+
+isInSync :: Config -> IO Bool
+isInSync Config {..} = do
+  response <- httpLbsWithRetry configServerPool makeRequest configHttpManager
+  case decodeBool (HC.responseBody response) of
+    Nothing -> fail $ show response
+    Just status -> return status
+  where
+    makeRequest = def
+      { HC.path = "/sync"
+      , HC.queryString = escapeString $ printf "u=%s&p=%s"
+          (T.unpack credsUser)
+          (T.unpack credsPassword)
+      }
+    Credentials {..} = configCreds
+    decodeBool lbs = do
+      val <- PL.maybeResult $ PL.parse AP.value lbs
+      AT.parseMaybe A.parseJSON val
 
 -----------------------------------------------------------
 

@@ -73,11 +73,10 @@ module Database.InfluxDB
   , grantAdminPrivilegeTo
   , revokeAdminPrivilegeFrom
 
-  -- *** Health check
+  -- *** Other API
   , ping
-
-  -- *** Fetch current list of available interfaces
   , listInterfaces
+  , isInSync
   ) where
 
 import Database.InfluxDB.Decode

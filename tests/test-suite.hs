@@ -102,6 +102,11 @@ case_listInterfaces = runTest $ \config -> do
   ifaces <- listInterfaces config
   ifaces @?= ["default"]
 
+case_isInSync :: Assertion
+case_isInSync = runTest $ \config -> do
+  inSync <- isInSync config
+  assertBool "The database is not in sync." inSync
+
 case_post :: Assertion
 case_post = runTest $ \config ->
   withTestDatabase config $ \database -> do
