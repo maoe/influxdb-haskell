@@ -53,6 +53,9 @@ module Database.InfluxDB.Http
   , deleteDatabaseUser
   , grantAdminPrivilegeTo
   , revokeAdminPrivilegeFrom
+
+  -- ** Health check
+  , ping
   ) where
 
 import Control.Applicative
@@ -638,6 +641,17 @@ makeRequestFromDatabaseUser Config {..} databaseName userName = def
   }
   where
     Credentials {..} = configCreds
+
+ping :: Config -> IO Ping
+ping Config {..} = do
+  response <- httpLbsWithRetry configServerPool makeRequest configHttpManager
+  case A.decode (HC.responseBody response) of
+    Nothing -> fail $ show response
+    Just status -> return status
+  where
+    makeRequest = def
+      { HC.path = "/ping"
+      }
 
 -----------------------------------------------------------
 

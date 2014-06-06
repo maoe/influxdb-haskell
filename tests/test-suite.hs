@@ -92,6 +92,11 @@ fromValueToValueIdentity a = fromValue (toValue a) == Right a
 
 -------------------------------------------------
 
+case_ping :: Assertion
+case_ping = runTest $ \config -> do
+  Ping status <- ping config
+  status @?= "ok"
+
 case_post :: Assertion
 case_post = runTest $ \config ->
   withTestDatabase config $ \database -> do

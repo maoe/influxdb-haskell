@@ -27,6 +27,7 @@ module Database.InfluxDB
   , Database(..)
   , User(..)
   , Admin(..)
+  , Ping(..)
 
   -- ** Writing Data
 
@@ -71,6 +72,9 @@ module Database.InfluxDB
   , deleteDatabaseUser
   , grantAdminPrivilegeTo
   , revokeAdminPrivilegeFrom
+
+  -- *** Health check
+  , ping
   ) where
 
 import Database.InfluxDB.Decode

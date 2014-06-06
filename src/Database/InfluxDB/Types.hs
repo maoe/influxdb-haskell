@@ -20,6 +20,7 @@ module Database.InfluxDB.Types
   , ScheduledDelete(..)
   , User(..)
   , Admin(..)
+  , Ping(..)
 
   -- * Server pool
   , ServerPool
@@ -198,6 +199,9 @@ newtype Admin = Admin
   { adminName :: Text
   } deriving Show
 
+newtype Ping = Ping
+  { pingStatus :: Text
+  } deriving Show
 
 -----------------------------------------------------------
 -- Server pool manipulation
@@ -248,3 +252,4 @@ failover ref = atomicModifyIORef' ref $ \pool@ServerPool {..} ->
 deriveFromJSON (stripPrefixOptions "database") ''Database
 deriveFromJSON (stripPrefixOptions "admin") ''Admin
 deriveFromJSON (stripPrefixOptions "user") ''User
+deriveFromJSON (stripPrefixOptions "ping") ''Ping
