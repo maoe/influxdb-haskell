@@ -21,6 +21,7 @@ module Database.InfluxDB.Types
   , User(..)
   , Admin(..)
   , Ping(..)
+  , Interface
 
   -- * Server pool
   , ServerPool
@@ -202,6 +203,8 @@ newtype Admin = Admin
 newtype Ping = Ping
   { pingStatus :: Text
   } deriving Show
+
+type Interface = Text
 
 -----------------------------------------------------------
 -- Server pool manipulation

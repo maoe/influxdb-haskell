@@ -75,6 +75,9 @@ module Database.InfluxDB
 
   -- *** Health check
   , ping
+
+  -- *** Fetch current list of available interfaces
+  , listInterfaces
   ) where
 
 import Database.InfluxDB.Decode

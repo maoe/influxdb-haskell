@@ -56,6 +56,9 @@ module Database.InfluxDB.Http
 
   -- ** Health check
   , ping
+
+  -- ** Fetch current list of available interfaces
+  , listInterfaces
   ) where
 
 import Control.Applicative
@@ -651,6 +654,17 @@ ping Config {..} = do
   where
     makeRequest = def
       { HC.path = "/ping"
+      }
+
+listInterfaces :: Config -> IO [Text]
+listInterfaces Config {..} = do
+  response <- httpLbsWithRetry configServerPool makeRequest configHttpManager
+  case A.decode (HC.responseBody response) of
+    Nothing -> fail $ show response
+    Just ifaces -> return ifaces
+  where
+    makeRequest = def
+      { HC.path = "/interfaces"
       }
 
 -----------------------------------------------------------

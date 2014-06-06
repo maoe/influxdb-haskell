@@ -97,6 +97,11 @@ case_ping = runTest $ \config -> do
   Ping status <- ping config
   status @?= "ok"
 
+case_listInterfaces :: Assertion
+case_listInterfaces = runTest $ \config -> do
+  ifaces <- listInterfaces config
+  ifaces @?= ["default"]
+
 case_post :: Assertion
 case_post = runTest $ \config ->
   withTestDatabase config $ \database -> do
