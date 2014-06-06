@@ -23,7 +23,7 @@ module Database.InfluxDB
   , Credentials(..), rootCreds
   , TimePrecision(..)
   , Server(..), localServer
-  , ServerPool, newServerPool
+  , ServerPool, newServerPool, newServerPoolWithRetrySettings
   , Database(..)
   , User(..)
   , Admin(..)
