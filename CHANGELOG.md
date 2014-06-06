@@ -1,3 +1,7 @@
+## v0.4.2 - 2014-06-06
+
+* Export `newServerPoolWithRetrySettings` from `Database.InfluxDB`
+
 ## v0.4.1 - 2014-06-05
 
 * Make retry settings configurable (#5)
