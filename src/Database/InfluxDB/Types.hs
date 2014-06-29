@@ -30,9 +30,15 @@ module Database.InfluxDB.Types
   , newServerPoolWithRetrySettings
   , activeServer
   , failover
+
+  -- * Exceptions
+  , InfluxException(..)
+  , jsonDecodeError
+  , seriesDecodeError
   ) where
 
 import Control.Applicative (empty)
+import Control.Exception (Exception, throwIO)
 import Data.Data (Data)
 import Data.IORef
 import Data.Int (Int64)
@@ -248,6 +254,22 @@ failover ref = atomicModifyIORef' ref $ \pool@ServerPool {..} ->
           { serverActive = active
           , serverBackup = rest |> serverActive
           }
+
+-----------------------------------------------------------
+-- Exceptions
+
+data InfluxException
+  = JsonDecodeError String
+  | SeriesDecodeError String
+  deriving (Show, Typeable)
+
+instance Exception InfluxException
+
+jsonDecodeError :: String -> IO a
+jsonDecodeError = throwIO . JsonDecodeError
+
+seriesDecodeError :: String -> IO a
+seriesDecodeError = throwIO . SeriesDecodeError
 
 -----------------------------------------------------------
 -- Aeson instances
