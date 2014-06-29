@@ -75,7 +75,7 @@ install:
 # build to fail.
 script:
  # -v2 provides useful information for debugging
- - cabal-1.20 configure -fexamples --enable-tests --enable-benchmarks --enable-library-coverage
+ - cabal-1.20 configure -fexamples --enable-tests --enable-benchmarks --enable-library-coverage --ghc-options="-Wall -Werror"
 
  # this builds all libraries and executables
  # (including tests/benchmarks)

@@ -1,10 +1,9 @@
 {-# LANGUAGE OverloadedStrings #-}
 {-# LANGUAGE TemplateHaskell #-}
+{-# OPTIONS_GHC -fno-warn-orphans #-}
 import Control.Applicative
 import Control.Exception as E
-import Control.Monad
 import Control.Monad.Trans
-import Data.Function
 import Data.Int
 import Data.List (find)
 import Data.Monoid
@@ -16,10 +15,9 @@ import qualified Data.Text.Lazy as TL
 import qualified Data.Vector as V
 
 import Test.HUnit.Lang (HUnitFailure(..))
-import Test.Tasty
 import Test.Tasty.HUnit
 import Test.Tasty.TH
-import Test.Tasty.QuickCheck
+import Test.Tasty.QuickCheck hiding (reason)
 import qualified Network.HTTP.Client as HC
 
 import Database.InfluxDB
@@ -254,16 +252,16 @@ case_update_cluster_admin_password = runTest $ \config -> do
   updateClusterAdminPassword config admin newPassword
   let newCreds = Credentials name newPassword
       newConfig = config { configCreds = newCreds }
-  name <- newName
-  dropDatabaseIfExists config name
-  createDatabase newConfig name
+  name' <- newName
+  dropDatabaseIfExists config name'
+  createDatabase newConfig name'
   listDatabases newConfig >>= \databases ->
-    assertBool ("No such database: " ++ T.unpack name) $
-      any ((name ==) . databaseName) databases
-  dropDatabase newConfig name
+    assertBool ("No such database: " ++ T.unpack name') $
+      any ((name' ==) . databaseName) databases
+  dropDatabase newConfig name'
   listDatabases newConfig >>= \databases ->
-    assertBool ("Found a dropped database: " ++ T.unpack name) $
-      all ((name /=) . databaseName) databases
+    assertBool ("Found a dropped database: " ++ T.unpack name') $
+      all ((name' /=) . databaseName) databases
 
 case_add_then_delete_database_users :: Assertion
 case_add_then_delete_database_users = runTest $ \config ->
