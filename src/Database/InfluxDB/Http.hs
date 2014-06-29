@@ -126,10 +126,10 @@ data TimePrecision
   | MillisecondsPrecision
   | MicrosecondsPrecision
 
-timePrecChar :: TimePrecision -> Char
-timePrecChar SecondsPrecision = 's'
-timePrecChar MillisecondsPrecision = 'm'
-timePrecChar MicrosecondsPrecision = 'u'
+timePrecString :: TimePrecision -> String
+timePrecString SecondsPrecision = "s"
+timePrecString MillisecondsPrecision = "ms"
+timePrecString MicrosecondsPrecision = "u"
 
 -----------------------------------------------------------
 -- Writing Data
@@ -177,7 +177,7 @@ postGeneric Config {..} databaseName timePrec write = do
           (T.unpack credsPassword)
           (maybe
             ""
-            (printf "&time_precision=%c" . timePrecChar)
+            (printf "&time_precision=%s" . timePrecString)
             timePrec :: String)
       }
     Credentials {..} = configCreds
