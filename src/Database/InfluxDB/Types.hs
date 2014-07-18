@@ -150,15 +150,23 @@ instance A.FromJSON Value where
     where
 #if MIN_VERSION_aeson(0, 7, 0)
       numberToValue
+        -- If the number is larger than Int64, it must be
+        -- a float64 (Double in Haskell).
+        | n > maxInt = Float $ toRealFloat n
         | e < 0 = Float $ realToFrac n
         | otherwise = Int $ fromIntegral $ coefficient n * 10 ^ e
         where
           e = base10Exponent n
 #else
       numberToValue = case n of
-        I i -> Int $ fromIntegral i
+        I i
+          -- If the number is larger than Int64, it must be
+          -- a float64 (Double in Haskell).
+          | i > maxInt -> Float $ fromIntegral i
+          | otherwise -> Int $ fromIntegral i
         D d -> Float d
 #endif
+      maxInt = fromIntegral (maxBound :: Int64)
 
 -----------------------------------------------------------
 
