@@ -29,6 +29,9 @@ module Database.InfluxDB
   , Admin(..)
   , Ping(..)
 
+  -- *** Exception
+  , InfluxException(..)
+
   -- ** Writing Data
 
   -- *** Updating Points
