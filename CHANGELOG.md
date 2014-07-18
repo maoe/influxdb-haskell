@@ -1,3 +1,12 @@
+## v0.5.0 - 2014-07-18
+
+* Add `InfluxException` type and use it when decoding JSON or SeriesData (#12)
+* New API
+    * `ping`
+    * `listInterfaces`
+    * `isInSync`
+* BUGFIX: Fix `when expecting a Float, encountered Int instead` error (#14)
+
 ## v0.4.2 - 2014-06-06
 
 * Export `newServerPoolWithRetrySettings` from `Database.InfluxDB`
