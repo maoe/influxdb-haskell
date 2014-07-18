@@ -336,7 +336,7 @@ case_regression_whole_Float_number = runTest $ \config ->
       writeSeries series $ WholeFloat 42.0
     ss <- query config database $ "select value from " <> series
     case ss of
-      [series] -> fromSeriesData series @?= Right [WholeFloat 42]
+      [sd] -> fromSeriesData sd @?= Right [WholeFloat 42]
       _ -> assertFailure $ "Expect one series, but got: " ++ show ss
 
 case_regression_really_big_Float_number :: Assertion
@@ -347,7 +347,7 @@ case_regression_really_big_Float_number = runTest $ \config ->
       writeSeries series $ WholeFloat 42e100
     ss <- query config database $ "select value from " <> series
     case ss of
-      [series] -> fromSeriesData series @?= Right [WholeFloat 42e100]
+      [sd] -> fromSeriesData sd @?= Right [WholeFloat 42e100]
       _ -> assertFailure $ "Expect one series, but got: " ++ show ss
 
 -------------------------------------------------
