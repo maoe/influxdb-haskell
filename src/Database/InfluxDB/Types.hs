@@ -157,6 +157,10 @@ instance A.FromJSON Value where
         | otherwise = Int $ fromIntegral $ coefficient n * 10 ^ e
         where
           e = base10Exponent n
+#if !MIN_VERSION_scientific(0, 3, 0)
+          toRealFloat = realToFrac
+-- scientific
+#endif
 #else
       numberToValue = case n of
         I i
@@ -165,6 +169,7 @@ instance A.FromJSON Value where
           | i > maxInt -> Float $ fromIntegral i
           | otherwise -> Int $ fromIntegral i
         D d -> Float d
+-- aeson
 #endif
       maxInt = fromIntegral (maxBound :: Int64)
 
