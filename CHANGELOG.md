@@ -1,3 +1,7 @@
+## v0.5.1 - 2014-07-18
+
+* Export `InfluxException` from `Database.InfluxDB`
+
 ## v0.5.0 - 2014-07-18
 
 * Add `InfluxException` type and use it when decoding JSON or SeriesData (#12)
