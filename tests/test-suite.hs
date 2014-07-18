@@ -21,6 +21,7 @@ import Test.Tasty.QuickCheck hiding (reason)
 import qualified Network.HTTP.Client as HC
 
 import Database.InfluxDB
+import Database.InfluxDB.TH
 import qualified Database.InfluxDB.Stream as S
 
 prop_fromValue_toValue_identity_Value :: Value -> Bool
@@ -319,6 +320,26 @@ case_grant_revoke_database_user = runTest $ \config ->
     deleteDatabaseUser config name newUserName
 
 -------------------------------------------------
+-- Regressions
+
+newtype WholeFloat = WholeFloat
+  { wholeFloatValue :: Double
+  } deriving (Eq, Show)
+
+-- #14: InfluxDB may return Int instead of Float when
+-- the WholeFloat value happens to be a whole number.
+case_regression_whole_Float_number :: Assertion
+case_regression_whole_Float_number = runTest $ \config ->
+  withTestDatabase config $ \database -> do
+    series <- newName
+    post config database $
+      writeSeries series $ WholeFloat 42.0
+    ss <- query config database $ "select value from " <> series
+    case ss of
+      [series] -> fromSeriesData series @?= Right [WholeFloat 42]
+      _ -> assertFailure $ "Expect one series, but got: " ++ show ss
+
+-------------------------------------------------
 
 data Val = Val Int deriving (Eq, Show)
 
@@ -372,3 +393,10 @@ catchAll = E.catch
 
 main :: IO ()
 main = $defaultMainGenerator
+
+-------------------------------------------------
+-- Instance deriving
+
+deriveSeriesData defaultOptions
+  { fieldLabelModifier = stripPrefixLower "wholeFloat" }
+  ''WholeFloat
