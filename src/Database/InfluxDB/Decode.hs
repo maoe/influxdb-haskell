@@ -174,6 +174,10 @@ instance FromValue Word32 where
 
 instance FromValue Double where
   parseValue (Float d) = return d
+  -- If the floating number happens to be a whole number, it must
+  -- have encoded as an integer. We should decode it back as a floating
+  -- number here.
+  parseValue (Int n) = return $ fromIntegral n
   parseValue v = typeMismatch "Float" v
 
 instance FromValue T.Text where

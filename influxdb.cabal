@@ -1,5 +1,5 @@
 name: influxdb
-version: 0.4.2
+version: 0.5.0
 synopsis: Haskell client library for InfluxDB
 description: Haskell client library for InfluxDB
 homepage: https://github.com/maoe/influxdb-haskell
@@ -141,5 +141,5 @@ source-repository head
 
 source-repository this
   type: git
-  tag: v0.4.2
+  tag: v0.5.0
   location: https://github.com/maoe/influxdb-haskell.git

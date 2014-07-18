@@ -20,6 +20,8 @@ module Database.InfluxDB.Types
   , ScheduledDelete(..)
   , User(..)
   , Admin(..)
+  , Ping(..)
+  , Interface
 
   -- * Server pool
   , ServerPool
@@ -28,9 +30,15 @@ module Database.InfluxDB.Types
   , newServerPoolWithRetrySettings
   , activeServer
   , failover
+
+  -- * Exceptions
+  , InfluxException(..)
+  , jsonDecodeError
+  , seriesDecodeError
   ) where
 
 import Control.Applicative (empty)
+import Control.Exception (Exception, throwIO)
 import Data.Data (Data)
 import Data.IORef
 import Data.Int (Int64)
@@ -142,15 +150,28 @@ instance A.FromJSON Value where
     where
 #if MIN_VERSION_aeson(0, 7, 0)
       numberToValue
+        -- If the number is larger than Int64, it must be
+        -- a float64 (Double in Haskell).
+        | n > maxInt = Float $ toRealFloat n
         | e < 0 = Float $ realToFrac n
         | otherwise = Int $ fromIntegral $ coefficient n * 10 ^ e
         where
           e = base10Exponent n
+#if !MIN_VERSION_scientific(0, 3, 0)
+          toRealFloat = realToFrac
+-- scientific
+#endif
 #else
       numberToValue = case n of
-        I i -> Int $ fromIntegral i
+        I i
+          -- If the number is larger than Int64, it must be
+          -- a float64 (Double in Haskell).
+          | i > maxInt -> Float $ fromIntegral i
+          | otherwise -> Int $ fromIntegral i
         D d -> Float d
+-- aeson
 #endif
+      maxInt = fromIntegral (maxBound :: Int64)
 
 -----------------------------------------------------------
 
@@ -198,6 +219,11 @@ newtype Admin = Admin
   { adminName :: Text
   } deriving Show
 
+newtype Ping = Ping
+  { pingStatus :: Text
+  } deriving Show
+
+type Interface = Text
 
 -----------------------------------------------------------
 -- Server pool manipulation
@@ -243,8 +269,25 @@ failover ref = atomicModifyIORef' ref $ \pool@ServerPool {..} ->
           }
 
 -----------------------------------------------------------
+-- Exceptions
+
+data InfluxException
+  = JsonDecodeError String
+  | SeriesDecodeError String
+  deriving (Show, Typeable)
+
+instance Exception InfluxException
+
+jsonDecodeError :: String -> IO a
+jsonDecodeError = throwIO . JsonDecodeError
+
+seriesDecodeError :: String -> IO a
+seriesDecodeError = throwIO . SeriesDecodeError
+
+-----------------------------------------------------------
 -- Aeson instances
 
 deriveFromJSON (stripPrefixOptions "database") ''Database
 deriveFromJSON (stripPrefixOptions "admin") ''Admin
 deriveFromJSON (stripPrefixOptions "user") ''User
+deriveFromJSON (stripPrefixOptions "ping") ''Ping

@@ -1,10 +1,9 @@
 {-# LANGUAGE OverloadedStrings #-}
 {-# LANGUAGE TemplateHaskell #-}
+{-# OPTIONS_GHC -fno-warn-orphans #-}
 import Control.Applicative
 import Control.Exception as E
-import Control.Monad
 import Control.Monad.Trans
-import Data.Function
 import Data.Int
 import Data.List (find)
 import Data.Monoid
@@ -16,13 +15,13 @@ import qualified Data.Text.Lazy as TL
 import qualified Data.Vector as V
 
 import Test.HUnit.Lang (HUnitFailure(..))
-import Test.Tasty
 import Test.Tasty.HUnit
 import Test.Tasty.TH
-import Test.Tasty.QuickCheck
+import Test.Tasty.QuickCheck hiding (reason)
 import qualified Network.HTTP.Client as HC
 
 import Database.InfluxDB
+import Database.InfluxDB.TH
 import qualified Database.InfluxDB.Stream as S
 
 prop_fromValue_toValue_identity_Value :: Value -> Bool
@@ -91,6 +90,21 @@ fromValueToValueIdentity :: (Eq a, FromValue a, ToValue a) => a -> Bool
 fromValueToValueIdentity a = fromValue (toValue a) == Right a
 
 -------------------------------------------------
+
+case_ping :: Assertion
+case_ping = runTest $ \config -> do
+  Ping status <- ping config
+  status @?= "ok"
+
+case_listInterfaces :: Assertion
+case_listInterfaces = runTest $ \config -> do
+  ifaces <- listInterfaces config
+  ifaces @?= ["default"]
+
+case_isInSync :: Assertion
+case_isInSync = runTest $ \config -> do
+  inSync <- isInSync config
+  assertBool "The database is not in sync." inSync
 
 case_post :: Assertion
 case_post = runTest $ \config ->
@@ -239,16 +253,16 @@ case_update_cluster_admin_password = runTest $ \config -> do
   updateClusterAdminPassword config admin newPassword
   let newCreds = Credentials name newPassword
       newConfig = config { configCreds = newCreds }
-  name <- newName
-  dropDatabaseIfExists config name
-  createDatabase newConfig name
+  name' <- newName
+  dropDatabaseIfExists config name'
+  createDatabase newConfig name'
   listDatabases newConfig >>= \databases ->
-    assertBool ("No such database: " ++ T.unpack name) $
-      any ((name ==) . databaseName) databases
-  dropDatabase newConfig name
+    assertBool ("No such database: " ++ T.unpack name') $
+      any ((name' ==) . databaseName) databases
+  dropDatabase newConfig name'
   listDatabases newConfig >>= \databases ->
-    assertBool ("Found a dropped database: " ++ T.unpack name) $
-      all ((name /=) . databaseName) databases
+    assertBool ("Found a dropped database: " ++ T.unpack name') $
+      all ((name' /=) . databaseName) databases
 
 case_add_then_delete_database_users :: Assertion
 case_add_then_delete_database_users = runTest $ \config ->
@@ -306,6 +320,37 @@ case_grant_revoke_database_user = runTest $ \config ->
     deleteDatabaseUser config name newUserName
 
 -------------------------------------------------
+-- Regressions
+
+newtype WholeFloat = WholeFloat
+  { wholeFloatValue :: Double
+  } deriving (Eq, Show)
+
+-- #14: InfluxDB may return Int instead of Float when
+-- the WholeFloat value happens to be a whole number.
+case_regression_whole_Float_number :: Assertion
+case_regression_whole_Float_number = runTest $ \config ->
+  withTestDatabase config $ \database -> do
+    series <- newName
+    post config database $
+      writeSeries series $ WholeFloat 42.0
+    ss <- query config database $ "select value from " <> series
+    case ss of
+      [sd] -> fromSeriesData sd @?= Right [WholeFloat 42]
+      _ -> assertFailure $ "Expect one series, but got: " ++ show ss
+
+case_regression_really_big_Float_number :: Assertion
+case_regression_really_big_Float_number = runTest $ \config ->
+  withTestDatabase config $ \database -> do
+    series <- newName
+    post config database $
+      writeSeries series $ WholeFloat 42e100
+    ss <- query config database $ "select value from " <> series
+    case ss of
+      [sd] -> fromSeriesData sd @?= Right [WholeFloat 42e100]
+      _ -> assertFailure $ "Expect one series, but got: " ++ show ss
+
+-------------------------------------------------
 
 data Val = Val Int deriving (Eq, Show)
 
@@ -359,3 +404,10 @@ catchAll = E.catch
 
 main :: IO ()
 main = $defaultMainGenerator
+
+-------------------------------------------------
+-- Instance deriving
+
+deriveSeriesData defaultOptions
+  { fieldLabelModifier = stripPrefixLower "wholeFloat" }
+  ''WholeFloat

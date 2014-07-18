@@ -7,22 +7,20 @@
 # release of a major GHC version. Setting HPVER implictly sets
 # GHCVER. Omit lines with versions you don't need/want testing for.
 env:
- - GHCVER=7.8.3
- - GHCVER=7.8.2
- - GHCVER=7.8.1
- - GHCVER=7.6.3
- - GHCVER=7.6.2
- - GHCVER=7.6.1
- - GHCVER=7.4.2
- - GHCVER=7.4.1
- - HPVER=2013.2.0.0
- - HPVER=2012.4.0.0
- - HPVER=2012.2.0.0
+  matrix:
+    - GHCVER=7.8.3      INFLUXVER=latest
+    - GHCVER=7.8.3      INFLUXVER=0.7.3
+    - GHCVER=7.8.3      INFLUXVER=0.7.2
+    - GHCVER=7.8.3      INFLUXVER=0.8.0-rc.2
+
+    - GHCVER=7.6.3      INFLUXVER=latest
+    - GHCVER=7.4.2      INFLUXVER=latest
+    - HPVER=2013.2.0.0  INFLUXVER=latest
+    - HPVER=2012.4.0.0  INFLUXVER=latest
 
 matrix:
   allow_failures:
-   - env: GHCVER=7.8.3
-   - env: HPVER=2012.2.0.0
+   - env: GHCVER=7.8.3      INFLUXVER=0.8.0-rc.2
 
 # Note: the distinction between `before_install` and `install` is not
 #       important.
@@ -63,8 +61,8 @@ before_install:
  - cabal-1.20 install hpc-coveralls -j --bindir=$HOME/.cabal/bin/ --constraint='aeson >= 0.7'
  - cabal-1.20 sandbox delete
  # install influxdb
- - wget http://s3.amazonaws.com/influxdb/influxdb_latest_amd64.deb
- - sudo dpkg -i influxdb_latest_amd64.deb
+ - wget http://s3.amazonaws.com/influxdb/influxdb_${INFLUXVER}_amd64.deb
+ - sudo dpkg -i influxdb_${INFLUXVER}_amd64.deb
  - sudo /etc/init.d/influxdb start
 
 install:
@@ -75,7 +73,7 @@ install:
 # build to fail.
 script:
  # -v2 provides useful information for debugging
- - cabal-1.20 configure -fexamples --enable-tests --enable-benchmarks --enable-library-coverage
+ - cabal-1.20 configure -fexamples --enable-tests --enable-benchmarks --enable-library-coverage --ghc-options="-Wall -Werror"
 
  # this builds all libraries and executables
  # (including tests/benchmarks)
