@@ -676,8 +676,8 @@ withPool
   -> (HC.Request -> IO a)
   -> IO a
 withPool pool request f = do
-  retrySettings <- serverRetrySettings <$> readIORef pool
-  recovering retrySettings handlers $ do
+  retryPolicy <- serverRetryPolicy <$> readIORef pool
+  recovering retryPolicy handlers $ do
     server <- activeServer pool
     f $ makeRequest server
   where
@@ -687,7 +687,11 @@ withPool pool request f = do
       , HC.secure = serverSsl
       }
     handlers =
-      [ Handler $ \e -> case e of
+      [
+#if MIN_VERSION_retry(0, 5, 0)
+        const $
+#endif
+        Handler $ \e -> case e of
           HC.InternalIOException _ -> do
             failover pool
             return True
