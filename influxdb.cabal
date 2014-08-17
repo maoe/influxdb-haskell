@@ -105,7 +105,7 @@ test-suite test-suite
     , influxdb
     , mtl
     , tasty
-    , tasty-hunit
+    , tasty-hunit == 0.9.*
     , tasty-quickcheck
     , tasty-th
     , text
