@@ -75,7 +75,6 @@ library
     , exceptions >= 0.5 && < 0.7
     , http-client < 0.4
     , mtl < 2.3
-    , network
     , tagged
     , template-haskell
     , text
