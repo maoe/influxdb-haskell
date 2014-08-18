@@ -14,6 +14,7 @@ env:
     - GHCVER=7.8.3      INFLUXVER=0.8.0-rc.5
 
     - GHCVER=7.8.3      INFLUXVER=latest FLAGS=-f-retry050
+    - GHCVER=7.8.3      INFLUXVER=latest FLAGS=-f-network-uri
 
     - GHCVER=7.6.3      INFLUXVER=latest
     - GHCVER=7.4.2      INFLUXVER=latest
