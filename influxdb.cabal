@@ -31,6 +31,10 @@ flag retry-050
   default: True
   manual: False
 
+flag network-uri
+   description: Get Network.URI from the network-uri package
+   default: True
+
 library
   exposed-modules:
     Database.InfluxDB
@@ -91,6 +95,13 @@ library
   else
     build-depends:
       retry == 0.4.*
+
+  if flag(network-uri)
+    build-depends:
+      network-uri >= 2.6
+  else
+    build-depends:
+      network < 2.6
 
   hs-source-dirs: src
   default-language: Haskell2010
