@@ -28,6 +28,7 @@ module Database.InfluxDB.Types
   , serverRetryPolicy
   , serverRetrySettings
   , newServerPool
+  , newServerPoolWithRetryPolicy
   , newServerPoolWithRetrySettings
   , activeServer
   , failover
@@ -261,14 +262,20 @@ newServerPool = newServerPoolWithRetrySettings defaultRetryPolicy
       }
 #endif
 
-newServerPoolWithRetrySettings
-    :: RetryPolicy -> Server -> [Server] -> IO (IORef ServerPool)
-newServerPoolWithRetrySettings retryPolicy active backups =
+newServerPoolWithRetryPolicy
+  :: RetryPolicy -> Server -> [Server] -> IO (IORef ServerPool)
+newServerPoolWithRetryPolicy retryPolicy active backups =
   newIORef ServerPool
     { serverActive = active
     , serverBackup = Seq.fromList backups
     , serverRetryPolicy = retryPolicy
     }
+
+{-# DEPRECATED newServerPoolWithRetrySettings
+  "Use newServerPoolWithRetryPolicy instead" #-}
+newServerPoolWithRetrySettings
+  :: RetryPolicy -> Server -> [Server] -> IO (IORef ServerPool)
+newServerPoolWithRetrySettings = newServerPoolWithRetryPolicy
 
 -- | Get a server from the pool.
 activeServer :: IORef ServerPool -> IO Server
