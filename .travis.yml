@@ -11,7 +11,10 @@ env:
     - GHCVER=7.8.3      INFLUXVER=latest
     - GHCVER=7.8.3      INFLUXVER=0.7.3
     - GHCVER=7.8.3      INFLUXVER=0.7.2
-    - GHCVER=7.8.3      INFLUXVER=0.8.0-rc.2
+    - GHCVER=7.8.3      INFLUXVER=0.8.0-rc.5
+
+    - GHCVER=7.8.3      INFLUXVER=latest FLAGS=-f-retry050
+    - GHCVER=7.8.3      INFLUXVER=latest FLAGS=-f-network-uri
 
     - GHCVER=7.6.3      INFLUXVER=latest
     - GHCVER=7.4.2      INFLUXVER=latest
@@ -20,7 +23,7 @@ env:
 
 matrix:
   allow_failures:
-   - env: GHCVER=7.8.3      INFLUXVER=0.8.0-rc.2
+   - env: GHCVER=7.8.3      INFLUXVER=0.8.0-rc.5
 
 # Note: the distinction between `before_install` and `install` is not
 #       important.
@@ -66,7 +69,7 @@ before_install:
  - sudo /etc/init.d/influxdb start
 
 install:
- - cabal-1.20 install -j --only-dependencies --enable-tests --enable-benchmarks
+ - cabal-1.20 install -j --only-dependencies --enable-tests --enable-benchmarks $FLAGS
 
 # Here starts the actual work to be performed for the package under
 # test; any command which exits with a non-zero exit code causes the

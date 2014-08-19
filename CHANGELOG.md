@@ -1,3 +1,10 @@
+## v0.6.0 - 2014-08-19
+
+* Support for retry-0.5 (#16)
+    * `newServerPoolWithRetrySettings` has been renamed to `newServerPoolWithRetryPolicy`
+    * `serverRetrySettings` field in `ServerPool` has been renamed to `serverRetryPolicy`
+* Support for network-uri (#17)
+
 ## v0.5.1 - 2014-07-18
 
 * Export `InfluxException` from `Database.InfluxDB`

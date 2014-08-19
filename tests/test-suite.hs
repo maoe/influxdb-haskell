@@ -14,7 +14,6 @@ import qualified Data.Text as T
 import qualified Data.Text.Lazy as TL
 import qualified Data.Vector as V
 
-import Test.HUnit.Lang (HUnitFailure(..))
 import Test.Tasty.HUnit
 import Test.Tasty.TH
 import Test.Tasty.QuickCheck hiding (reason)

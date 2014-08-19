@@ -25,8 +25,10 @@ module Database.InfluxDB.Types
 
   -- * Server pool
   , ServerPool
+  , serverRetryPolicy
   , serverRetrySettings
   , newServerPool
+  , newServerPoolWithRetryPolicy
   , newServerPoolWithRetrySettings
   , activeServer
   , failover
@@ -48,7 +50,6 @@ import Data.Typeable (Typeable)
 import Data.Vector (Vector)
 import qualified Data.Sequence as Seq
 
-import Control.Retry (RetrySettings(..), limitedRetries)
 import Data.Aeson ((.=), (.:))
 import Data.Aeson.TH
 import qualified Data.Aeson as A
@@ -59,6 +60,14 @@ import Database.InfluxDB.Types.Internal (stripPrefixOptions)
 import Data.Scientific
 #else
 import Data.Attoparsec.Number
+#endif
+
+#if MIN_VERSION_retry(0, 5, 0)
+import Data.Monoid ((<>))
+
+import Control.Retry (RetryPolicy(..), limitRetries, exponentialBackoff)
+#else
+import Control.Retry (RetrySettings(..), limitedRetries)
 #endif
 
 -----------------------------------------------------------
@@ -197,8 +206,16 @@ data ServerPool = ServerPool
   -- ^ Current active server
   , serverBackup :: !(Seq Server)
   -- ^ The rest of the servers in the pool.
-  , serverRetrySettings :: !RetrySettings
+  , serverRetryPolicy :: !RetryPolicy
   }
+
+{-# DEPRECATED serverRetrySettings "Use serverRetryPolicy instead" #-}
+serverRetrySettings :: ServerPool -> RetryPolicy
+serverRetrySettings = serverRetryPolicy
+
+#if !MIN_VERSION_retry(0, 5, 0)
+type RetryPolicy = RetrySettings
+#endif
 
 newtype Database = Database
   { databaseName :: Text
@@ -231,22 +248,34 @@ type Interface = Text
 -- | Create a non-empty server pool. You must specify at least one server
 -- location to create a pool.
 newServerPool :: Server -> [Server] -> IO (IORef ServerPool)
-newServerPool = newServerPoolWithRetrySettings defaultRetrySettings
+newServerPool = newServerPoolWithRetrySettings defaultRetryPolicy
   where
-    defaultRetrySettings = RetrySettings
+#if MIN_VERSION_retry(0, 5, 0)
+    defaultRetryPolicy =
+      limitRetries 5 <>
+      exponentialBackoff 50
+#else
+    defaultRetryPolicy = RetrySettings
       { numRetries = limitedRetries 5
       , backoff = True
       , baseDelay = 50
       }
+#endif
 
-newServerPoolWithRetrySettings
-    :: RetrySettings -> Server -> [Server] -> IO (IORef ServerPool)
-newServerPoolWithRetrySettings retrySettings active backups =
+newServerPoolWithRetryPolicy
+  :: RetryPolicy -> Server -> [Server] -> IO (IORef ServerPool)
+newServerPoolWithRetryPolicy retryPolicy active backups =
   newIORef ServerPool
     { serverActive = active
     , serverBackup = Seq.fromList backups
-    , serverRetrySettings = retrySettings
+    , serverRetryPolicy = retryPolicy
     }
+
+{-# DEPRECATED newServerPoolWithRetrySettings
+  "Use newServerPoolWithRetryPolicy instead" #-}
+newServerPoolWithRetrySettings
+  :: RetryPolicy -> Server -> [Server] -> IO (IORef ServerPool)
+newServerPoolWithRetrySettings = newServerPoolWithRetryPolicy
 
 -- | Get a server from the pool.
 activeServer :: IORef ServerPool -> IO Server
