@@ -146,8 +146,8 @@ case_query_nonexistent_series :: Assertion
 case_query_nonexistent_series = runTest $ \config ->
   withTestDatabase config $ \database -> do
     name <- liftIO newName
-    ss <- query config database $ "select * from " <> name
-    ss @?= ([] :: [SeriesData])
+    assertStatusCodeException
+      (query config database $ "select * from " <> name :: IO [SeriesData])
 
 case_query_empty_series :: Assertion
 case_query_empty_series = runTest $ \config ->
@@ -198,8 +198,8 @@ case_delete_series = runTest $ \config ->
       [series] -> fromSeriesData series @?= Right [Val 42]
       _ -> assertFailure $ "Expect one series, but got: " ++ show ss
     deleteSeries config database name
-    ss' <- query config database $ "select value from " <> name
-    ss' @=? ([] :: [SeriesData])
+    assertStatusCodeException
+      (query config database $ "select value from " <> name :: IO [SeriesData])
 
 case_listDatabases :: Assertion
 case_listDatabases = runTest $ \config ->
@@ -398,6 +398,16 @@ withTestDatabase config = bracket acquire release
 
 catchAll :: IO a -> (SomeException -> IO a) -> IO a
 catchAll = E.catch
+
+assertStatusCodeException :: Show a => IO a -> IO ()
+assertStatusCodeException io = do
+  r <- try io
+  case r of
+    Left e -> case fromException e of
+      Just HC.StatusCodeException {} -> return ()
+      Nothing ->
+        assertFailure $ "Expect a StatusCodeException, but got " ++ show e
+    Right ss -> assertFailure $ "Expect an exception, but got " ++ show ss
 
 -------------------------------------------------
 
