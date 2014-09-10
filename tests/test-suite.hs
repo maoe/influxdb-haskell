@@ -405,7 +405,7 @@ assertStatusCodeException io = do
   case r of
     Left e -> case fromException e of
       Just HC.StatusCodeException {} -> return ()
-      Nothing ->
+      _ ->
         assertFailure $ "Expect a StatusCodeException, but got " ++ show e
     Right ss -> assertFailure $ "Expect an exception, but got " ++ show ss
 
