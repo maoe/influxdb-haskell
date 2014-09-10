@@ -8,23 +8,22 @@
 # GHCVER. Omit lines with versions you don't need/want testing for.
 env:
   matrix:
-    - GHCVER=7.8.3      INFLUXVER=latest
-    - GHCVER=7.8.3      INFLUXVER=0.8.1
-    - GHCVER=7.8.3      INFLUXVER=0.8.0
-    - GHCVER=7.8.3      INFLUXVER=0.7.3
+    - GHCVER=7.8.3 INFLUXVER=latest
+    - GHCVER=7.8.3 INFLUXVER=0.8.1
+    - GHCVER=7.8.3 INFLUXVER=0.8.0
+    - GHCVER=7.8.3 INFLUXVER=0.7.3
 
-    - GHCVER=7.8.3      INFLUXVER=latest FLAGS=-f-retry050
-    - GHCVER=7.8.3      INFLUXVER=latest FLAGS=-f-network-uri
+    - GHCVER=7.8.3 INFLUXVER=latest FLAGS=-f-retry050
+    - GHCVER=7.8.3 INFLUXVER=latest FLAGS=-f-network-uri
 
-    - GHCVER=7.6.3      INFLUXVER=latest
-    - GHCVER=7.4.2      INFLUXVER=latest
-    - HPVER=2013.2.0.0  INFLUXVER=latest
-    - HPVER=2012.4.0.0  INFLUXVER=latest
+    - GHCVER=7.6.3 INFLUXVER=latest
+    - GHCVER=7.4.2 INFLUXVER=latest
+    - HPVER=2013.2.0.0 INFLUXVER=latest
+    - HPVER=2012.4.0.0 INFLUXVER=latest
 
 matrix:
   allow_failures:
-   # - env: GHCVER=7.8.3      INFLUXVER=0.8.0-rc.5
-   - env: GHCVER=7.8.3      INFLUXVER=0.7.3
+   - env: GHCVER=7.8.3 INFLUXVER=0.7.3
 
 # Note: the distinction between `before_install` and `install` is not
 #       important.
