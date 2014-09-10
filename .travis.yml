@@ -24,6 +24,7 @@ env:
 matrix:
   allow_failures:
    # - env: GHCVER=7.8.3      INFLUXVER=0.8.0-rc.5
+   - env: GHCVER=7.8.3      INFLUXVER=0.7.3
 
 # Note: the distinction between `before_install` and `install` is not
 #       important.
