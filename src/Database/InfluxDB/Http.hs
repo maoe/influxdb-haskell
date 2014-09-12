@@ -21,12 +21,7 @@ module Database.InfluxDB.Http
   , writePoints
 
   -- ** Deleting Points
-  -- *** One Time Deletes
   , deleteSeries
-  -- *** Regularly Scheduled Deletes (not implemented)
-  -- , getScheduledDeletes
-  -- , addScheduledDelete
-  -- , removeScheduledDelete
 
   -- * Querying Data
   , query
@@ -271,30 +266,6 @@ deleteSeries config databaseName seriesName = runRequest_ config request
           (T.unpack credsPassword)
       }
     Credentials {..} = configCreds config
-
--- TODO: Delete API hasn't been implemented in InfluxDB yet
---
--- getScheduledDeletes
---   :: Config
---   -> HC.Manager
---   -> IO [ScheduledDelete]
--- getScheduledDeletes = do
---   error "getScheduledDeletes: not implemented"
---
--- addScheduledDelete
---   :: Config
---   -> HC.Manager
---   -> IO ScheduledDelete
--- addScheduledDelete =
---   error "addScheduledDeletes: not implemented"
---
--- removeScheduledDelete
---   :: Config
---   -> HC.Manager
---   -> ScheduledDeletes
---   -> IO ()
--- removeScheduledDelete =
---   error "removeScheduledDelete: not implemented"
 
 -----------------------------------------------------------
 -- Querying Data
