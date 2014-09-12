@@ -212,7 +212,7 @@ case_configureDatabase :: Assertion
 case_configureDatabase = runTest $ \config -> do
   dbName <- newName
   do
-    configureDatabase config dbName $ DatabaseRequest spaces contQueries
+    configureDatabase config dbName $ DatabaseRequest shardSpaces contQueries
     listDatabases config >>= \databases ->
       assertBool ("No such database: " ++ T.unpack dbName) $
         any ((dbName ==) . databaseName) databases
@@ -222,8 +222,8 @@ case_configureDatabase = runTest $ \config -> do
     `finally`
       dropDatabase config dbName
   where
-    spaceNames = map shardSpaceRequestName spaces
-    spaces =
+    spaceNames = map shardSpaceRequestName shardSpaces
+    shardSpaces =
       [ ShardSpaceRequest
           { shardSpaceRequestName = "everything_30d"
           , shardSpaceRequestRetentionPolicy = "30d"
