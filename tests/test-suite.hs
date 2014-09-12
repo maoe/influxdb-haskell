@@ -146,8 +146,8 @@ case_query_nonexistent_series :: Assertion
 case_query_nonexistent_series = runTest $ \config ->
   withTestDatabase config $ \database -> do
     name <- liftIO newName
-    ss <- query config database $ "select * from " <> name
-    ss @?= ([] :: [SeriesData])
+    assertStatusCodeException
+      (query config database $ "select * from " <> name :: IO [SeriesData])
 
 case_query_empty_series :: Assertion
 case_query_empty_series = runTest $ \config ->
@@ -198,8 +198,8 @@ case_delete_series = runTest $ \config ->
       [series] -> fromSeriesData series @?= Right [Val 42]
       _ -> assertFailure $ "Expect one series, but got: " ++ show ss
     deleteSeries config database name
-    ss' <- query config database $ "select value from " <> name
-    ss' @=? ([] :: [SeriesData])
+    assertStatusCodeException
+      (query config database $ "select value from " <> name :: IO [SeriesData])
 
 case_listDatabases :: Assertion
 case_listDatabases = runTest $ \config ->
@@ -207,6 +207,72 @@ case_listDatabases = runTest $ \config ->
     databases <- listDatabases config
     assertBool ("No such database: " ++ T.unpack name) $
       any ((name ==) . databaseName) databases
+
+case_configureDatabase :: Assertion
+case_configureDatabase = runTest $ \config -> do
+  dbName <- newName
+  do
+    configureDatabase config dbName $ DatabaseRequest shardSpaces contQueries
+    listDatabases config >>= \databases ->
+      assertBool ("No such database: " ++ T.unpack dbName) $
+        any ((dbName ==) . databaseName) databases
+    listShardSpaces config >>= \spaces ->
+        assertBool "Missing shard space(s)" $
+          any ((`elem` spaceNames) . shardSpaceName) spaces
+    `finally`
+      dropDatabase config dbName
+  where
+    spaceNames = map shardSpaceRequestName shardSpaces
+    shardSpaces =
+      [ ShardSpaceRequest
+          { shardSpaceRequestName = "everything_30d"
+          , shardSpaceRequestRetentionPolicy = "30d"
+          , shardSpaceRequestShardDuration = "7d"
+          , shardSpaceRequestRegex = "/.*/"
+          , shardSpaceRequestReplicationFactor = 1
+          , shardSpaceRequestSplit = 1
+          }
+      , ShardSpaceRequest
+          { shardSpaceRequestName = "forever"
+          , shardSpaceRequestRetentionPolicy = "inf"
+          , shardSpaceRequestShardDuration = "7d"
+          , shardSpaceRequestRegex = "/^_.*/"
+          , shardSpaceRequestReplicationFactor = 1
+          , shardSpaceRequestSplit = 1
+          }
+      , ShardSpaceRequest
+          { shardSpaceRequestName = "rollups"
+          , shardSpaceRequestRetentionPolicy = "365d"
+          , shardSpaceRequestShardDuration = "30d"
+          , shardSpaceRequestRegex = "/^\\d+.*/"
+          , shardSpaceRequestReplicationFactor = 1
+          , shardSpaceRequestSplit = 1
+          }
+      ]
+    contQueries =
+      [ "select * from events into events.[id]"
+      , "select count(value) from events group by time(5m) into 5m.count.events"
+      ]
+
+case_shardSpaces :: Assertion
+case_shardSpaces = runTest $ \config ->
+  withTestDatabase config $ \name -> do
+    spaceName <- newName
+    createShardSpace config name $ ShardSpaceRequest
+      { shardSpaceRequestName = spaceName
+      , shardSpaceRequestRegex = "^[a-z].*"
+      , shardSpaceRequestRetentionPolicy = "7d"
+      , shardSpaceRequestShardDuration = "1d"
+      , shardSpaceRequestReplicationFactor = 1
+      , shardSpaceRequestSplit = 1
+      }
+    listShardSpaces config >>= \spaces ->
+      assertBool ("No such shard space: " ++ T.unpack spaceName) $
+        any ((spaceName ==) . shardSpaceName) spaces
+    dropShardSpace config name spaceName
+    listShardSpaces config >>= \spaces ->
+      assertBool ("Found a dropped shard space: " ++ T.unpack spaceName) $
+        all ((spaceName /=) . shardSpaceName) spaces
 
 case_create_then_drop_database :: Assertion
 case_create_then_drop_database = runTest $ \config -> do
@@ -262,6 +328,7 @@ case_update_cluster_admin_password = runTest $ \config -> do
   listDatabases newConfig >>= \databases ->
     assertBool ("Found a dropped database: " ++ T.unpack name') $
       all ((name' /=) . databaseName) databases
+  deleteClusterAdmin config admin
 
 case_add_then_delete_database_users :: Assertion
 case_add_then_delete_database_users = runTest $ \config ->
@@ -398,6 +465,16 @@ withTestDatabase config = bracket acquire release
 
 catchAll :: IO a -> (SomeException -> IO a) -> IO a
 catchAll = E.catch
+
+assertStatusCodeException :: Show a => IO a -> IO ()
+assertStatusCodeException io = do
+  r <- try io
+  case r of
+    Left e -> case fromException e of
+      Just HC.StatusCodeException {} -> return ()
+      _ ->
+        assertFailure $ "Expect a StatusCodeException, but got " ++ show e
+    Right ss -> assertFailure $ "Expect an exception, but got " ++ show ss
 
 -------------------------------------------------
 

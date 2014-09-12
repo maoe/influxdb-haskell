@@ -1,3 +1,11 @@
+## v0.7.0 - 2014-09-12
+
+* Support for influxdb v0.8 (#15)
+    * Add shard spaces API
+    * Add `configureDatabase`
+* Add Typeable and Generic instances where missing
+* Remove unused `ScheduledDelete` type
+
 ## v0.6.0 - 2014-08-19
 
 * Support for retry-0.5 (#16)

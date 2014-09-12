@@ -1,5 +1,5 @@
 name: influxdb
-version: 0.6.0
+version: 0.7.0
 synopsis: Haskell client library for InfluxDB
 description: Haskell client library for InfluxDB
 homepage: https://github.com/maoe/influxdb-haskell
@@ -102,6 +102,10 @@ library
     build-depends:
       network < 2.6
 
+  if impl(ghc < 7.6)
+    build-depends:
+      ghc-prim
+
   hs-source-dirs: src
   default-language: Haskell2010
 
@@ -149,5 +153,5 @@ source-repository head
 
 source-repository this
   type: git
-  tag: v0.6.0
+  tag: v0.7.0
   location: https://github.com/maoe/influxdb-haskell.git

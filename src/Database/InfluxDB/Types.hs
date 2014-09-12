@@ -1,5 +1,6 @@
 {-# LANGUAGE CPP #-}
 {-# LANGUAGE DeriveDataTypeable #-}
+{-# LANGUAGE DeriveGeneric #-}
 {-# LANGUAGE NamedFieldPuns #-}
 {-# LANGUAGE OverloadedStrings #-}
 {-# LANGUAGE RecordWildCards #-}
@@ -17,11 +18,11 @@ module Database.InfluxDB.Types
   , Credentials(..)
   , Server(..)
   , Database(..)
-  , ScheduledDelete(..)
   , User(..)
   , Admin(..)
   , Ping(..)
   , Interface
+  , ShardSpace(..)
 
   -- * Server pool
   , ServerPool
@@ -42,12 +43,14 @@ module Database.InfluxDB.Types
 import Control.Applicative (empty)
 import Control.Exception (Exception, throwIO)
 import Data.Data (Data)
-import Data.IORef
 import Data.Int (Int64)
+import Data.IORef
 import Data.Sequence (Seq, ViewL(..), (|>))
 import Data.Text (Text)
 import Data.Typeable (Typeable)
 import Data.Vector (Vector)
+import Data.Word (Word32)
+import GHC.Generics (Generic)
 import qualified Data.Sequence as Seq
 
 import Data.Aeson ((.=), (.:))
@@ -92,7 +95,7 @@ data Series = Series
   -- ^ Series name
   , seriesData :: {-# UNPACK #-} !SeriesData
   -- ^ Columns and data points in the series
-  }
+  } deriving (Typeable, Generic)
 
 -- | Convenient accessor for columns.
 seriesColumns :: Series -> Vector Column
@@ -129,7 +132,7 @@ instance A.FromJSON Series where
 data SeriesData = SeriesData
   { seriesDataColumns :: Vector Column
   , seriesDataPoints :: [Vector Value]
-  } deriving (Eq, Show)
+  } deriving (Eq, Show, Typeable, Generic)
 
 type Column = Text
 
@@ -140,7 +143,7 @@ data Value
   | String !Text
   | Bool !Bool
   | Null
-  deriving (Eq, Show, Data, Typeable)
+  deriving (Eq, Show, Data, Typeable, Generic)
 
 instance A.ToJSON Value where
   toJSON (Int n) = A.toJSON n
@@ -188,7 +191,7 @@ instance A.FromJSON Value where
 data Credentials = Credentials
   { credsUser :: !Text
   , credsPassword :: !Text
-  } deriving Show
+  } deriving (Show, Typeable, Generic)
 
 -- | Server location.
 data Server = Server
@@ -197,7 +200,7 @@ data Server = Server
   , serverPort :: !Int
   , serverSsl :: !Bool
   -- ^ SSL is enabled or not in the server side
-  } deriving Show
+  } deriving (Show, Typeable, Generic)
 
 -- | Non-empty set of server locations. The active server will always be used
 -- until any HTTP communications fail.
@@ -207,7 +210,7 @@ data ServerPool = ServerPool
   , serverBackup :: !(Seq Server)
   -- ^ The rest of the servers in the pool.
   , serverRetryPolicy :: !RetryPolicy
-  }
+  } deriving (Typeable, Generic)
 
 {-# DEPRECATED serverRetrySettings "Use serverRetryPolicy instead" #-}
 serverRetrySettings :: ServerPool -> RetryPolicy
@@ -219,28 +222,34 @@ type RetryPolicy = RetrySettings
 
 newtype Database = Database
   { databaseName :: Text
-  } deriving Show
-
-newtype ScheduledDelete = ScheduledDelete
-  { scheduledDeleteId :: Int
-  } deriving Show
+  } deriving (Show, Typeable, Generic)
 
 -- | User
 data User = User
   { userName :: Text
   , userIsAdmin :: Bool
-  } deriving Show
+  } deriving (Show, Typeable, Generic)
 
 -- | Administrator
 newtype Admin = Admin
   { adminName :: Text
-  } deriving Show
+  } deriving (Show, Typeable, Generic)
 
 newtype Ping = Ping
   { pingStatus :: Text
-  } deriving Show
+  } deriving (Show, Typeable, Generic)
 
 type Interface = Text
+
+data ShardSpace = ShardSpace
+  { shardSpaceDatabase :: Maybe Text
+  , shardSpaceName :: Text
+  , shardSpaceRegex :: Text
+  , shardSpaceRetentionPolicy :: Text
+  , shardSpaceShardDuration :: Text
+  , shardSpaceReplicationFactor :: Word32
+  , shardSpaceSplit :: Word32
+  } deriving (Show, Typeable, Generic)
 
 -----------------------------------------------------------
 -- Server pool manipulation
@@ -320,3 +329,4 @@ deriveFromJSON (stripPrefixOptions "database") ''Database
 deriveFromJSON (stripPrefixOptions "admin") ''Admin
 deriveFromJSON (stripPrefixOptions "user") ''User
 deriveFromJSON (stripPrefixOptions "ping") ''Ping
+deriveFromJSON (stripPrefixOptions "shardSpace") ''ShardSpace
