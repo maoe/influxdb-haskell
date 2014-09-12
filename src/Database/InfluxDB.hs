@@ -62,6 +62,9 @@ module Database.InfluxDB
   , createDatabase
   , dropDatabase
 
+  , DatabaseRequest(..)
+  , configureDatabase
+
   -- *** Security
   -- **** Shard spaces
   , ShardSpaceRequest(..)

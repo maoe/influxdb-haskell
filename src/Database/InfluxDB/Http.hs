@@ -39,6 +39,9 @@ module Database.InfluxDB.Http
   , createDatabase
   , dropDatabase
 
+  , DatabaseRequest(..)
+  , configureDatabase
+
   -- ** Security
   -- *** Shard spaces
   , ShardSpaceRequest(..)
@@ -407,6 +410,31 @@ dropDatabase config databaseName = runRequest_ config request
     request = def
       { HC.method = "DELETE"
       , HC.path = escapeString $ printf "/db/%s"
+          (T.unpack databaseName)
+      , HC.queryString = escapeString $ printf "u=%s&p=%s"
+          (T.unpack credsUser)
+          (T.unpack credsPassword)
+      }
+    Credentials {..} = configCreds config
+
+
+data DatabaseRequest = DatabaseRequest
+  { databaseRequestSpaces :: [ShardSpaceRequest]
+  , databaseRequestContinuousQueries :: [Text]
+  } deriving Show
+
+configureDatabase
+  :: Config
+  -> Text -- ^ Database name
+  -> DatabaseRequest
+  -> IO ()
+configureDatabase config databaseName databaseRequest =
+  runRequest_ config request
+  where
+    request = def
+      { HC.method = "POST"
+      , HC.requestBody = HC.RequestBodyLBS $ AE.encode databaseRequest
+      , HC.path = escapeString $ printf "/cluster/database_configs/%s"
           (T.unpack databaseName)
       , HC.queryString = escapeString $ printf "u=%s&p=%s"
           (T.unpack credsUser)
@@ -794,3 +822,4 @@ runRequest_ Config {..} req =
 -- Aeson instances
 
 deriveToJSON (stripPrefixOptions "shardSpaceRequest") ''ShardSpaceRequest
+deriveToJSON (stripPrefixOptions "databaseRequest") ''DatabaseRequest

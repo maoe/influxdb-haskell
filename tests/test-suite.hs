@@ -208,6 +208,52 @@ case_listDatabases = runTest $ \config ->
     assertBool ("No such database: " ++ T.unpack name) $
       any ((name ==) . databaseName) databases
 
+case_configureDatabase :: Assertion
+case_configureDatabase = runTest $ \config -> do
+  dbName <- newName
+  do
+    configureDatabase config dbName $ DatabaseRequest spaces contQueries
+    listDatabases config >>= \databases ->
+      assertBool ("No such database: " ++ T.unpack dbName) $
+        any ((dbName ==) . databaseName) databases
+    listShardSpaces config >>= \spaces ->
+        assertBool "Missing shard space(s)" $
+          any ((`elem` spaceNames) . shardSpaceName) spaces
+    `finally`
+      dropDatabase config dbName
+  where
+    spaceNames = map shardSpaceRequestName spaces
+    spaces =
+      [ ShardSpaceRequest
+          { shardSpaceRequestName = "everything_30d"
+          , shardSpaceRequestRetentionPolicy = "30d"
+          , shardSpaceRequestShardDuration = "7d"
+          , shardSpaceRequestRegex = "/.*/"
+          , shardSpaceRequestReplicationFactor = 1
+          , shardSpaceRequestSplit = 1
+          }
+      , ShardSpaceRequest
+          { shardSpaceRequestName = "forever"
+          , shardSpaceRequestRetentionPolicy = "inf"
+          , shardSpaceRequestShardDuration = "7d"
+          , shardSpaceRequestRegex = "/^_.*/"
+          , shardSpaceRequestReplicationFactor = 1
+          , shardSpaceRequestSplit = 1
+          }
+      , ShardSpaceRequest
+          { shardSpaceRequestName = "rollups"
+          , shardSpaceRequestRetentionPolicy = "365d"
+          , shardSpaceRequestShardDuration = "30d"
+          , shardSpaceRequestRegex = "/^\\d+.*/"
+          , shardSpaceRequestReplicationFactor = 1
+          , shardSpaceRequestSplit = 1
+          }
+      ]
+    contQueries =
+      [ "select * from events into events.[id]"
+      , "select count(value) from events group by time(5m) into 5m.count.events"
+      ]
+
 case_shardSpaces :: Assertion
 case_shardSpaces = runTest $ \config ->
   withTestDatabase config $ \name -> do
