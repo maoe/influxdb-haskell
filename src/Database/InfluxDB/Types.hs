@@ -17,7 +17,6 @@ module Database.InfluxDB.Types
   , Credentials(..)
   , Server(..)
   , Database(..)
-  , ScheduledDelete(..)
   , User(..)
   , Admin(..)
   , Ping(..)
@@ -221,10 +220,6 @@ type RetryPolicy = RetrySettings
 
 newtype Database = Database
   { databaseName :: Text
-  } deriving Show
-
-newtype ScheduledDelete = ScheduledDelete
-  { scheduledDeleteId :: Int
   } deriving Show
 
 -- | User
