@@ -29,6 +29,7 @@ module Database.InfluxDB
   , User(..)
   , Admin(..)
   , Ping(..)
+  , ShardSpace(..)
 
   -- *** Exception
   , InfluxException(..)
@@ -62,6 +63,12 @@ module Database.InfluxDB
   , dropDatabase
 
   -- *** Security
+  -- **** Shard spaces
+  , ShardSpaceRequest(..)
+  , listShardSpaces
+  , createShardSpace
+  , dropShardSpace
+
   -- **** Cluster admin
   , listClusterAdmins
   , authenticateClusterAdmin

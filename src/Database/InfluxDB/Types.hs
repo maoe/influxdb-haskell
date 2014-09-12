@@ -22,6 +22,7 @@ module Database.InfluxDB.Types
   , Admin(..)
   , Ping(..)
   , Interface
+  , ShardSpace(..)
 
   -- * Server pool
   , ServerPool
@@ -42,12 +43,13 @@ module Database.InfluxDB.Types
 import Control.Applicative (empty)
 import Control.Exception (Exception, throwIO)
 import Data.Data (Data)
-import Data.IORef
 import Data.Int (Int64)
+import Data.IORef
 import Data.Sequence (Seq, ViewL(..), (|>))
 import Data.Text (Text)
 import Data.Typeable (Typeable)
 import Data.Vector (Vector)
+import Data.Word (Word32)
 import qualified Data.Sequence as Seq
 
 import Data.Aeson ((.=), (.:))
@@ -242,6 +244,16 @@ newtype Ping = Ping
 
 type Interface = Text
 
+data ShardSpace = ShardSpace
+  { shardSpaceDatabase :: Maybe Text
+  , shardSpaceName :: Text
+  , shardSpaceRegex :: Text
+  , shardSpaceRetentionPolicy :: Text
+  , shardSpaceShardDuration :: Text
+  , shardSpaceReplicationFactor :: Word32
+  , shardSpaceSplit :: Word32
+  } deriving Show
+
 -----------------------------------------------------------
 -- Server pool manipulation
 
@@ -320,3 +332,4 @@ deriveFromJSON (stripPrefixOptions "database") ''Database
 deriveFromJSON (stripPrefixOptions "admin") ''Admin
 deriveFromJSON (stripPrefixOptions "user") ''User
 deriveFromJSON (stripPrefixOptions "ping") ''Ping
+deriveFromJSON (stripPrefixOptions "shardSpace") ''ShardSpace

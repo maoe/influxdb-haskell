@@ -208,6 +208,26 @@ case_listDatabases = runTest $ \config ->
     assertBool ("No such database: " ++ T.unpack name) $
       any ((name ==) . databaseName) databases
 
+case_shardSpaces :: Assertion
+case_shardSpaces = runTest $ \config ->
+  withTestDatabase config $ \name -> do
+    spaceName <- newName
+    createShardSpace config name $ ShardSpaceRequest
+      { shardSpaceRequestName = spaceName
+      , shardSpaceRequestRegex = "^[a-z].*"
+      , shardSpaceRequestRetentionPolicy = "7d"
+      , shardSpaceRequestShardDuration = "1d"
+      , shardSpaceRequestReplicationFactor = 1
+      , shardSpaceRequestSplit = 1
+      }
+    listShardSpaces config >>= \spaces ->
+      assertBool ("No such shard space: " ++ T.unpack spaceName) $
+        any ((spaceName ==) . shardSpaceName) spaces
+    dropShardSpace config name spaceName
+    listShardSpaces config >>= \spaces ->
+      assertBool ("Found a dropped shard space: " ++ T.unpack spaceName) $
+        all ((spaceName /=) . shardSpaceName) spaces
+
 case_create_then_drop_database :: Assertion
 case_create_then_drop_database = runTest $ \config -> do
   name <- newName
