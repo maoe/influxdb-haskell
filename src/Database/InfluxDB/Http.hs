@@ -4,6 +4,7 @@
 {-# LANGUAGE OverloadedStrings #-}
 {-# LANGUAGE RecordWildCards #-}
 {-# LANGUAGE ScopedTypeVariables #-}
+{-# LANGUAGE TemplateHaskell #-}
 module Database.InfluxDB.Http
   ( Config(..)
   , Credentials(..), rootCreds
@@ -20,12 +21,7 @@ module Database.InfluxDB.Http
   , writePoints
 
   -- ** Deleting Points
-  -- *** One Time Deletes
   , deleteSeries
-  -- *** Regularly Scheduled Deletes (not implemented)
-  -- , getScheduledDeletes
-  -- , addScheduledDelete
-  -- , removeScheduledDelete
 
   -- * Querying Data
   , query
@@ -38,7 +34,16 @@ module Database.InfluxDB.Http
   , createDatabase
   , dropDatabase
 
+  , DatabaseRequest(..)
+  , configureDatabase
+
   -- ** Security
+  -- *** Shard spaces
+  , ShardSpaceRequest(..)
+  , listShardSpaces
+  , createShardSpace
+  , dropShardSpace
+
   -- *** Cluster admin
   , listClusterAdmins
   , authenticateClusterAdmin
@@ -68,16 +73,18 @@ import Data.IORef
 import Data.Proxy
 import Data.Text (Text)
 import Data.Vector (Vector)
+import Data.Word (Word32)
 import Network.URI (escapeURIString, isAllowedInURI)
-import Text.Printf (printf)
 import qualified Data.ByteString as BS
 import qualified Data.ByteString.Char8 as BS8
 import qualified Data.ByteString.Lazy as BL
 import qualified Data.DList as DL
 import qualified Data.Text as T
+import Text.Printf (printf)
 
 import Control.Retry
 import Data.Aeson ((.=))
+import Data.Aeson.TH (deriveToJSON)
 import Data.Default.Class (Default(def))
 import qualified Data.Aeson as A
 import qualified Data.Aeson.Encode as AE
@@ -90,6 +97,7 @@ import qualified Network.HTTP.Client as HC
 import Database.InfluxDB.Decode
 import Database.InfluxDB.Encode
 import Database.InfluxDB.Types
+import Database.InfluxDB.Types.Internal (stripPrefixOptions)
 import Database.InfluxDB.Stream (Stream(..))
 import qualified Database.InfluxDB.Stream as S
 
@@ -259,30 +267,6 @@ deleteSeries config databaseName seriesName = runRequest_ config request
       }
     Credentials {..} = configCreds config
 
--- TODO: Delete API hasn't been implemented in InfluxDB yet
---
--- getScheduledDeletes
---   :: Config
---   -> HC.Manager
---   -> IO [ScheduledDelete]
--- getScheduledDeletes = do
---   error "getScheduledDeletes: not implemented"
---
--- addScheduledDelete
---   :: Config
---   -> HC.Manager
---   -> IO ScheduledDelete
--- addScheduledDelete =
---   error "addScheduledDeletes: not implemented"
---
--- removeScheduledDelete
---   :: Config
---   -> HC.Manager
---   -> ScheduledDeletes
---   -> IO ()
--- removeScheduledDelete =
---   error "removeScheduledDelete: not implemented"
-
 -----------------------------------------------------------
 -- Querying Data
 
@@ -398,6 +382,89 @@ dropDatabase config databaseName = runRequest_ config request
       { HC.method = "DELETE"
       , HC.path = escapeString $ printf "/db/%s"
           (T.unpack databaseName)
+      , HC.queryString = escapeString $ printf "u=%s&p=%s"
+          (T.unpack credsUser)
+          (T.unpack credsPassword)
+      }
+    Credentials {..} = configCreds config
+
+
+data DatabaseRequest = DatabaseRequest
+  { databaseRequestSpaces :: [ShardSpaceRequest]
+  , databaseRequestContinuousQueries :: [Text]
+  } deriving Show
+
+configureDatabase
+  :: Config
+  -> Text -- ^ Database name
+  -> DatabaseRequest
+  -> IO ()
+configureDatabase config databaseName databaseRequest =
+  runRequest_ config request
+  where
+    request = def
+      { HC.method = "POST"
+      , HC.requestBody = HC.RequestBodyLBS $ AE.encode databaseRequest
+      , HC.path = escapeString $ printf "/cluster/database_configs/%s"
+          (T.unpack databaseName)
+      , HC.queryString = escapeString $ printf "u=%s&p=%s"
+          (T.unpack credsUser)
+          (T.unpack credsPassword)
+      }
+    Credentials {..} = configCreds config
+
+-- | List shard spaces.
+listShardSpaces :: Config -> IO [ShardSpace]
+listShardSpaces config = runRequest config request
+  where
+    request = def
+      { HC.path = "/cluster/shard_spaces"
+      , HC.queryString = escapeString $ printf "u=%s&p=%s"
+          (T.unpack credsUser)
+          (T.unpack credsPassword)
+      }
+    Credentials {..} = configCreds config
+
+data ShardSpaceRequest = ShardSpaceRequest
+  { shardSpaceRequestName :: Text
+  , shardSpaceRequestRegex :: Text
+  , shardSpaceRequestRetentionPolicy :: Text
+  , shardSpaceRequestShardDuration :: Text
+  , shardSpaceRequestReplicationFactor :: Word32
+  , shardSpaceRequestSplit :: Word32
+  } deriving Show
+
+-- | Create a shard space.
+createShardSpace
+  :: Config
+  -> Text -- ^ Database
+  -> ShardSpaceRequest
+  -> IO ()
+createShardSpace config databaseName shardSpace = runRequest_ config request
+  where
+    request = def
+      { HC.method = "POST"
+      , HC.requestBody = HC.RequestBodyLBS $ AE.encode shardSpace
+      , HC.path = escapeString $ printf "/cluster/shard_spaces/%s"
+          (T.unpack databaseName)
+      , HC.queryString = escapeString $ printf "u=%s&p=%s"
+          (T.unpack credsUser)
+          (T.unpack credsPassword)
+      }
+    Credentials {..} = configCreds config
+
+dropShardSpace
+  :: Config
+  -> Text -- ^ Database name
+  -> Text -- ^ Shard space name
+  -> IO ()
+dropShardSpace config databaseName shardSpaceName = runRequest_ config request
+  where
+    request = def
+      { HC.method = "DELETE"
+      , HC.path = escapeString $ printf "/cluster/shard_spaces/%s/%s"
+          (T.unpack databaseName)
+          (T.unpack shardSpaceName)
       , HC.queryString = escapeString $ printf "u=%s&p=%s"
           (T.unpack credsUser)
           (T.unpack credsPassword)
@@ -721,3 +788,9 @@ runRequest Config {..} req = do
 runRequest_ :: Config -> HC.Request -> IO ()
 runRequest_ Config {..} req =
   void $ httpLbsWithRetry configServerPool req configHttpManager
+
+-----------------------------------------------------------
+-- Aeson instances
+
+deriveToJSON (stripPrefixOptions "shardSpaceRequest") ''ShardSpaceRequest
+deriveToJSON (stripPrefixOptions "databaseRequest") ''DatabaseRequest

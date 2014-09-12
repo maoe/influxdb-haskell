@@ -29,6 +29,7 @@ module Database.InfluxDB
   , User(..)
   , Admin(..)
   , Ping(..)
+  , ShardSpace(..)
 
   -- *** Exception
   , InfluxException(..)
@@ -43,12 +44,7 @@ module Database.InfluxDB
   , writePoints
 
   -- *** Deleting Points
-  -- **** One Time Deletes
   , deleteSeries
-  -- **** Regularly Scheduled Deletes (not implemented)
-  -- , getScheduledDeletes
-  -- , addScheduledDelete
-  -- , removeScheduledDelete
 
   -- ** Querying Data
   , query
@@ -61,7 +57,16 @@ module Database.InfluxDB
   , createDatabase
   , dropDatabase
 
+  , DatabaseRequest(..)
+  , configureDatabase
+
   -- *** Security
+  -- **** Shard spaces
+  , ShardSpaceRequest(..)
+  , listShardSpaces
+  , createShardSpace
+  , dropShardSpace
+
   -- **** Cluster admin
   , listClusterAdmins
   , authenticateClusterAdmin
