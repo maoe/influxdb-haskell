@@ -262,6 +262,7 @@ case_update_cluster_admin_password = runTest $ \config -> do
   listDatabases newConfig >>= \databases ->
     assertBool ("Found a dropped database: " ++ T.unpack name') $
       all ((name' /=) . databaseName) databases
+  deleteClusterAdmin config admin
 
 case_add_then_delete_database_users :: Assertion
 case_add_then_delete_database_users = runTest $ \config ->
