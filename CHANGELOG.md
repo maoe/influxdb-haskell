@@ -1,3 +1,7 @@
+## v0.7.1 - 2014-09-16
+
+* Add more lenses
+
 ## v0.7.0 - 2014-09-12
 
 * Support for influxdb v0.8 (#15)
