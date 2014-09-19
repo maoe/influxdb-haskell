@@ -73,7 +73,7 @@ library
     , data-default-class
     , dlist
     , exceptions >= 0.5 && < 0.7
-    , http-client < 0.4
+    , http-client < 0.5
     , mtl < 2.3
     , tagged
     , template-haskell
