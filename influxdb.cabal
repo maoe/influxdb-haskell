@@ -67,7 +67,7 @@ library
   ghc-options: -Wall
   build-depends:
       base >= 4 && < 4.8
-    , attoparsec
+    , attoparsec < 0.13
     , bytestring
     , containers
     , data-default-class
@@ -77,12 +77,12 @@ library
     , mtl < 2.3
     , tagged
     , template-haskell
-    , text
+    , text < 1.3
     , vector
 
   if flag(aeson-070)
     build-depends:
-        aeson >= 0.7.0
+        aeson >= 0.7.0 && < 0.9
       , scientific >= 0.2
   else
     build-depends:
