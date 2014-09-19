@@ -1,3 +1,8 @@
+## v0.7.1.1 - 2014-09-19
+
+* Relax upper bound for http-client
+* Set upper bounds for some packages
+
 ## v0.7.1 - 2014-09-16
 
 * Add more lenses
