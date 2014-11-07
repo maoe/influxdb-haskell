@@ -1,3 +1,8 @@
+## v0.8.0 - 2014-11-07
+
+* Retry on connection failure and response timeout in addition to IOException
+    * Note that this may break existing code silently
+
 ## v0.7.1.1 - 2014-09-19
 
 * Relax upper bound for http-client
