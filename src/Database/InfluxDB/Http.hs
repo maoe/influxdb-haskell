@@ -759,11 +759,13 @@ withPool pool request f = do
         const $
 #endif
         Handler $ \e -> case e of
-          HC.InternalIOException _ -> do
-            failover pool
-            return True
+          HC.FailedConnectionException {} -> retry
+          HC.FailedConnectionException2 {} -> retry
+          HC.InternalIOException {} -> retry
+          HC.ResponseTimeout {} -> retry
           _ -> return False
       ]
+    retry = True <$ failover pool
 
 escapeText :: Text -> BS.ByteString
 escapeText = escapeString . T.unpack
