@@ -4,13 +4,14 @@
 {-# LANGUAGE TypeSynonymInstances #-}
 module Database.InfluxDB.Decode
   ( FromSeries(..), fromSeries
-  , FromSeriesData(..), fromSeriesData
+  , FromSeriesData(..), fromSeriesData, fromSeriesData_
   , withValues, (.:), (.:?), (.!=)
   , FromValue(..), fromValue
   , Parser, ValueParser, typeMismatch
   ) where
 import Control.Applicative
 import Control.Monad.Reader
+import Data.Either (rights)
 import Data.Int
 import Data.Word
 import Data.Map (Map)
@@ -65,6 +66,13 @@ instance FromSeriesData SeriesData where
 -- | Converte a value from a 'SeriesData', failing if the types do not match.
 fromSeriesData :: FromSeriesData a => SeriesData -> Either String [a]
 fromSeriesData SeriesData {..} = mapM
+  (runParser . parseSeriesData seriesDataColumns)
+  seriesDataPoints
+
+-- | Same as @fromSeriesData@ but ignores parse errors and returns only
+-- successful data.
+fromSeriesData_ :: FromSeriesData a => SeriesData -> [a]
+fromSeriesData_ SeriesData {..} = rights $ map
   (runParser . parseSeriesData seriesDataColumns)
   seriesDataPoints
 
