@@ -84,7 +84,6 @@ module Database.InfluxDB
 
   -- *** Other API
   , ping
-  , listInterfaces
   , isInSync
   ) where
 

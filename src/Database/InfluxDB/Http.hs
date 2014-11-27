@@ -61,7 +61,6 @@ module Database.InfluxDB.Http
 
   -- ** Other API
   , ping
-  , listInterfaces
   , isInSync
   ) where
 
@@ -698,14 +697,6 @@ ping config = runRequest config request
   where
     request = def
       { HC.path = "/ping"
-      }
-
--- | Fetch current list of available interfaces
-listInterfaces :: Config -> IO [Text]
-listInterfaces config = runRequest config request
-  where
-    request = def
-      { HC.path = "/interfaces"
       }
 
 isInSync :: Config -> IO Bool
