@@ -84,7 +84,7 @@ withValues f columns values =
 values .: column = do
   found <- asks $ Map.lookup column
   case found of
-    Nothing -> fail $ "No such column: " ++ T.unpack column
+    Nothing -> liftParser $ parseError $ "No such column: " ++ T.unpack column
     Just idx -> do
       value <- V.indexM values idx
       liftParser $ parseValue value
@@ -133,43 +133,43 @@ instance FromValue Int where
 instance FromValue Int8 where
   parseValue (Int n)
     | n <= fromIntegral (maxBound :: Int8) = return $ fromIntegral n
-    | otherwise = fail $ "Larger than the maximum Int8: " ++ show n
+    | otherwise = parseError $ "Larger than the maximum Int8: " ++ show n
   parseValue v = typeMismatch "Int8" v
 
 instance FromValue Int16 where
   parseValue (Int n)
     | n <= fromIntegral (maxBound :: Int16) = return $ fromIntegral n
-    | otherwise = fail $ "Larger than the maximum Int16: " ++ show n
+    | otherwise = parseError $ "Larger than the maximum Int16: " ++ show n
   parseValue v = typeMismatch "Int16" v
 
 instance FromValue Int32 where
   parseValue (Int n)
     | n <= fromIntegral (maxBound :: Int32) = return $ fromIntegral n
-    | otherwise = fail $ "Larger than the maximum Int32: " ++ show n
+    | otherwise = parseError $ "Larger than the maximum Int32: " ++ show n
   parseValue v = typeMismatch "Int32" v
 
 instance FromValue Int64 where
   parseValue (Int n)
     | n <= fromIntegral (maxBound :: Int64) = return $ fromIntegral n
-    | otherwise = fail $ "Larger than the maximum Int64: " ++ show n
+    | otherwise = parseError $ "Larger than the maximum Int64: " ++ show n
   parseValue v = typeMismatch "Int64" v
 
 instance FromValue Word8 where
   parseValue (Int n)
     | n <= fromIntegral (maxBound :: Word8) = return $ fromIntegral n
-    | otherwise = fail $ "Larger than the maximum Word8: " ++ show n
+    | otherwise = parseError $ "Larger than the maximum Word8: " ++ show n
   parseValue v = typeMismatch "Word8" v
 
 instance FromValue Word16 where
   parseValue (Int n)
     | n <= fromIntegral (maxBound :: Word16) = return $ fromIntegral n
-    | otherwise = fail $ "Larger than the maximum Word16: " ++ show n
+    | otherwise = parseError $ "Larger than the maximum Word16: " ++ show n
   parseValue v = typeMismatch "Word16" v
 
 instance FromValue Word32 where
   parseValue (Int n)
     | n <= fromIntegral (maxBound :: Word32) = return $ fromIntegral n
-    | otherwise = fail $ "Larger than the maximum Word32: " ++ show n
+    | otherwise = parseError $ "Larger than the maximum Word32: " ++ show n
   parseValue v = typeMismatch "Word32" v
 
 instance FromValue Double where
@@ -196,7 +196,7 @@ typeMismatch
   :: String
   -> Value
   -> Parser a
-typeMismatch expected actual = fail $
+typeMismatch expected actual = parseError $
   "when expecting a " ++ expected ++
   ", encountered " ++ name ++ " instead"
   where
@@ -218,3 +218,6 @@ newtype ValueParser a = ValueParser (ReaderT ColumnIndex Parser a)
 
 liftParser :: Parser a -> ValueParser a
 liftParser = ValueParser . ReaderT . const
+
+parseError :: String -> Parser a
+parseError = Parser . Left
