@@ -95,11 +95,6 @@ case_ping = runTest $ \config -> do
   Ping status <- ping config
   status @?= "ok"
 
-case_listInterfaces :: Assertion
-case_listInterfaces = runTest $ \config -> do
-  ifaces <- listInterfaces config
-  ifaces @?= ["default"]
-
 case_isInSync :: Assertion
 case_isInSync = runTest $ \config -> do
   inSync <- isInSync config
