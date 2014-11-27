@@ -1,3 +1,9 @@
+## v0.9.0 - 2014-11-27
+
+* The `Value` parsers (accidentally) could throw exceptions. It's fixed now.
+* Add `fromSeriesData_` which discards parsing errors and returns only successful data
+* Remove `listInterfaces`
+
 ## v0.8.0 - 2014-11-07
 
 * Retry on connection failure and response timeout in addition to IOException
