@@ -17,6 +17,7 @@ module Database.InfluxDB.Http
   , post, postWithPrecision
   , SeriesT, PointT
   , writeSeries
+  , writeSeriesData
   , withSeries
   , writePoints
 
@@ -218,9 +219,19 @@ writeSeries
   -> a
   -- ^ Series data
   -> SeriesT m ()
-writeSeries name a = tell . DL.singleton $ Series
+writeSeries name = writeSeriesData name . toSeriesData
+
+-- | Write a single series data.
+writeSeriesData
+  :: Monad m
+  => Text
+  -- ^ Series name
+  -> SeriesData
+  -- ^ Series data
+  -> SeriesT m ()
+writeSeriesData name a = tell . DL.singleton $ Series
   { seriesName = name
-  , seriesData = toSeriesData a
+  , seriesData = a
   }
 
 -- | Write a bunch of data for a single series. Columns for the points don't
