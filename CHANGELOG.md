@@ -1,3 +1,7 @@
+## v0.9.0.1 - 2015-01-06
+
+* Support for GHC 7.10.1
+
 ## v0.9.0 - 2014-11-27
 
 * The `Value` parsers (accidentally) could throw exceptions. It's fixed now.
