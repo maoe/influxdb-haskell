@@ -19,7 +19,7 @@ import Network.HTTP.Client (Manager)
 
 import Database.InfluxDB.Http
 
-type Lens s t a b = Functor f => (a -> f b) -> s -> f t
+type Lens s t a b = forall f. Functor f => (a -> f b) -> s -> f t
 type Lens' s a = Lens s s a a
 
 -- | User credentials for authentication
