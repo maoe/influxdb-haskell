@@ -1,5 +1,5 @@
 name: influxdb
-version: 0.9.0
+version: 0.9.1
 synopsis: Haskell client library for InfluxDB
 description: Haskell client library for InfluxDB
 homepage: https://github.com/maoe/influxdb-haskell
