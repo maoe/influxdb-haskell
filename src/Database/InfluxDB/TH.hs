@@ -70,8 +70,13 @@ toSeriesDataBody opts tyName tyVars con = do
     _ -> fail $ "Expected a record, but got " ++ show con
   where
     tyVarToPred tv = case tv of
+#if MIN_VERSION_template_haskell(2, 10, 0)
+      PlainTV name -> conT ''FromValue `appT` varT name
+      KindedTV name _ -> conT ''FromValue `appT` varT name
+#else
       PlainTV name -> classP ''FromValue [varT name]
       KindedTV name _ -> classP ''FromValue [varT name]
+#endif
     deriveDecs _conName vars = do
       a <- newName "a"
       sequence
@@ -98,8 +103,13 @@ fromSeriesDataBody opts tyName tyVars con = do
     _ -> fail $ "Expected a record, but got " ++ show con
   where
     tyVarToPred tv = case tv of
+#if MIN_VERSION_template_haskell(2, 10, 0)
+      PlainTV name -> conT ''FromValue `appT` varT name
+      KindedTV name _ -> conT ''FromValue `appT` varT name
+#else
       PlainTV name -> classP ''FromValue [varT name]
       KindedTV name _ -> classP ''FromValue [varT name]
+#endif
     deriveDec conName vars = funD 'parseSeriesData
       [ clause [] (normalB deriveBody) []
       ]
