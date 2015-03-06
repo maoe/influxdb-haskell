@@ -64,4 +64,5 @@ deploy:
     secure: qXXEEWsAzvXZZDgiMMLGCzkIy4IjwH20E1kWwExAje2twEVE4jEYMW2NKr5+Lt+BZgBNN1vHr1yWBMf7iLbj07jwxrkU37lWNmuVEF0RyXvsYQJ4g/Na0+to2Smfu8NrqwdfR2gnPgpxIO30jKlqon3sF9WcJA+qxWsh20ZKyuo=
   on:
     repo: maoe/influxdb-haskell
-    branch: master
+    tags: true
+    condition: GHCVER=7.8.3 INFLUXVER=latest
