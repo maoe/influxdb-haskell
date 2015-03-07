@@ -1,3 +1,10 @@
+## v0.9.1 - 2015-03-07
+
+* Add `writeSeriesData`
+* Relax upper version bound for exceptions
+* Drop support for old retry package
+    * retry < 0.6 had an unexpected behavior wrt exception masking state (https://github.com/Soostone/retry/pull/12)
+
 ## v0.9.0.1 - 2015-01-06
 
 * Support for GHC 7.10.1
