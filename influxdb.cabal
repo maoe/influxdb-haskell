@@ -70,7 +70,7 @@ library
     , exceptions >= 0.5 && < 0.9
     , http-client < 0.5
     , mtl < 2.3
-    , retry == 0.6
+    , retry >= 0.6 && < 0.7
     , tagged
     , template-haskell
     , text < 1.3
