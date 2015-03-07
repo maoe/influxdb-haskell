@@ -1,5 +1,5 @@
 name: influxdb
-version: 0.9.0.1
+version: 0.9.1
 synopsis: Haskell client library for InfluxDB
 description: Haskell client library for InfluxDB
 homepage: https://github.com/maoe/influxdb-haskell
@@ -23,11 +23,6 @@ flag examples
 
 flag aeson-070
   description: Use aeson >= 0.7.0
-  default: True
-  manual: False
-
-flag retry-050
-  description: Use retry == 0.5.*
   default: True
   manual: False
 
@@ -72,9 +67,10 @@ library
     , containers
     , data-default-class
     , dlist
-    , exceptions >= 0.5 && < 0.7
+    , exceptions >= 0.5 && < 0.9
     , http-client < 0.5
     , mtl < 2.3
+    , retry == 0.6
     , tagged
     , template-haskell
     , text < 1.3
@@ -87,13 +83,6 @@ library
   else
     build-depends:
         aeson >= 0.6.1.0 && < 0.7.0
-
-  if flag(retry-050)
-    build-depends:
-      retry == 0.5.*
-  else
-    build-depends:
-      retry == 0.4.*
 
   if flag(network-uri)
     build-depends:
@@ -153,5 +142,5 @@ source-repository head
 
 source-repository this
   type: git
-  tag: v0.9.0.1
+  tag: v0.9.1
   location: https://github.com/maoe/influxdb-haskell.git

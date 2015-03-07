@@ -17,6 +17,7 @@ module Database.InfluxDB.Http
   , post, postWithPrecision
   , SeriesT, PointT
   , writeSeries
+  , writeSeriesData
   , withSeries
   , writePoints
 
@@ -81,6 +82,7 @@ import qualified Data.DList as DL
 import qualified Data.Text as T
 import Text.Printf (printf)
 
+import Control.Monad.Catch (Handler(..))
 import Control.Retry
 import Data.Aeson ((.=))
 import Data.Aeson.TH (deriveToJSON)
@@ -99,12 +101,6 @@ import Database.InfluxDB.Types
 import Database.InfluxDB.Types.Internal (stripPrefixOptions)
 import Database.InfluxDB.Stream (Stream(..))
 import qualified Database.InfluxDB.Stream as S
-
-#if MIN_VERSION_retry(0, 4, 0)
-import Control.Monad.Catch (Handler(..))
-#else
-import Control.Exception.Lifted (Handler(..))
-#endif
 
 -- | Configurations for HTTP API client.
 data Config = Config
@@ -218,9 +214,19 @@ writeSeries
   -> a
   -- ^ Series data
   -> SeriesT m ()
-writeSeries name a = tell . DL.singleton $ Series
+writeSeries name = writeSeriesData name . toSeriesData
+
+-- | Write a single series data.
+writeSeriesData
+  :: Monad m
+  => Text
+  -- ^ Series name
+  -> SeriesData
+  -- ^ Series data
+  -> SeriesT m ()
+writeSeriesData name a = tell . DL.singleton $ Series
   { seriesName = name
-  , seriesData = toSeriesData a
+  , seriesData = a
   }
 
 -- | Write a bunch of data for a single series. Columns for the points don't
@@ -745,16 +751,12 @@ withPool pool request f = do
       , HC.secure = serverSsl
       }
     handlers =
-      [
-#if MIN_VERSION_retry(0, 5, 0)
-        const $
-#endif
-        Handler $ \e -> case e of
-          HC.FailedConnectionException {} -> retry
-          HC.FailedConnectionException2 {} -> retry
-          HC.InternalIOException {} -> retry
-          HC.ResponseTimeout {} -> retry
-          _ -> return False
+      [ const $ Handler $ \e -> case e of
+        HC.FailedConnectionException {} -> retry
+        HC.FailedConnectionException2 {} -> retry
+        HC.InternalIOException {} -> retry
+        HC.ResponseTimeout {} -> retry
+        _ -> return False
       ]
     retry = True <$ failover pool
 

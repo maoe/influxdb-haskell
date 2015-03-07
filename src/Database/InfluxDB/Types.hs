@@ -43,8 +43,9 @@ module Database.InfluxDB.Types
 import Control.Applicative (empty)
 import Control.Exception (Exception, throwIO)
 import Data.Data (Data)
-import Data.Int (Int64)
 import Data.IORef
+import Data.Int (Int64)
+import Data.Monoid ((<>))
 import Data.Sequence (Seq, ViewL(..), (|>))
 import Data.Text (Text)
 import Data.Typeable (Typeable)
@@ -53,6 +54,7 @@ import Data.Word (Word32)
 import GHC.Generics (Generic)
 import qualified Data.Sequence as Seq
 
+import Control.Retry (RetryPolicy(..), limitRetries, exponentialBackoff)
 import Data.Aeson ((.=), (.:))
 import Data.Aeson.TH
 import qualified Data.Aeson as A
@@ -63,14 +65,6 @@ import Database.InfluxDB.Types.Internal (stripPrefixOptions)
 import Data.Scientific
 #else
 import Data.Attoparsec.Number
-#endif
-
-#if MIN_VERSION_retry(0, 5, 0)
-import Data.Monoid ((<>))
-
-import Control.Retry (RetryPolicy(..), limitRetries, exponentialBackoff)
-#else
-import Control.Retry (RetrySettings(..), limitedRetries)
 #endif
 
 -----------------------------------------------------------
@@ -216,10 +210,6 @@ data ServerPool = ServerPool
 serverRetrySettings :: ServerPool -> RetryPolicy
 serverRetrySettings = serverRetryPolicy
 
-#if !MIN_VERSION_retry(0, 5, 0)
-type RetryPolicy = RetrySettings
-#endif
-
 newtype Database = Database
   { databaseName :: Text
   } deriving (Show, Typeable, Generic)
@@ -259,17 +249,7 @@ data ShardSpace = ShardSpace
 newServerPool :: Server -> [Server] -> IO (IORef ServerPool)
 newServerPool = newServerPoolWithRetrySettings defaultRetryPolicy
   where
-#if MIN_VERSION_retry(0, 5, 0)
-    defaultRetryPolicy =
-      limitRetries 5 <>
-      exponentialBackoff 50
-#else
-    defaultRetryPolicy = RetrySettings
-      { numRetries = limitedRetries 5
-      , backoff = True
-      , baseDelay = 50
-      }
-#endif
+    defaultRetryPolicy = limitRetries 5 <> exponentialBackoff 50
 
 newServerPoolWithRetryPolicy
   :: RetryPolicy -> Server -> [Server] -> IO (IORef ServerPool)

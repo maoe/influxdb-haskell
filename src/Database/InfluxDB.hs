@@ -40,6 +40,7 @@ module Database.InfluxDB
   , post, postWithPrecision
   , SeriesT, PointT
   , writeSeries
+  , writeSeriesData
   , withSeries
   , writePoints
 
