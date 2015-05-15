@@ -62,7 +62,7 @@ library
   ghc-options: -Wall
   build-depends:
       base >= 4 && < 4.9
-    , attoparsec < 0.13
+    , attoparsec < 0.14
     , bytestring
     , containers
     , data-default-class
