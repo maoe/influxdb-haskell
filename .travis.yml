@@ -11,7 +11,6 @@ env:
   - HPVER=2012.4.0.0 INFLUXVER=latest
 matrix:
   allow_failures:
-  - env: GHCVER=7.10.1 INFLUXVER=latest
   - env: GHCVER=7.4.2 INFLUXVER=latest
 before_install:
 - |-

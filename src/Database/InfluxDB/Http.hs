@@ -81,6 +81,7 @@ import qualified Data.ByteString.Lazy as BL
 import qualified Data.DList as DL
 import qualified Data.Text as T
 import Text.Printf (printf)
+import Prelude
 
 import Control.Monad.Catch (Handler(..))
 import Control.Retry
