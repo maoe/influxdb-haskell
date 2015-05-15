@@ -14,6 +14,7 @@ module Database.InfluxDB.Lens
   ) where
 import Control.Applicative
 import Data.Text (Text)
+import Prelude
 
 import Network.HTTP.Client (Manager)
 

@@ -22,6 +22,7 @@ import qualified Data.Map as Map
 import qualified Data.Text as T
 import qualified Data.Text.Lazy as TL
 import qualified Data.Vector as V
+import Prelude
 
 import Database.InfluxDB.Types
 

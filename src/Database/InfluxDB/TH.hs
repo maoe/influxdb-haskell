@@ -17,6 +17,7 @@ module Database.InfluxDB.TH
 import Control.Applicative
 import Language.Haskell.TH
 import Language.Haskell.TH.Syntax (VarStrictType)
+import Prelude
 
 import qualified Data.Vector as V
 
