@@ -1,3 +1,5 @@
+language: sh
+sudo: required
 env:
   matrix:
   - GHCVER=7.10.1 INFLUXVER=latest
@@ -22,20 +24,16 @@ before_install:
   "2011.4.0.0") export GHCVER=7.0.4 ; echo "constraints:cgi==3001.1.7.4,fgl==5.4.2.4,GLUT==2.1.2.1,haskell-src==1.0.1.4,html==1.0.1.2,HUnit==1.2.4.2,network==2.3.0.5,OpenGL==2.2.3.0,parallel==3.1.0.1,parsec==3.1.1,QuickCheck==2.4.1.1,regex-base==0.93.2,regex-compat==0.95.1,regex-posix==0.95.1,stm==2.2.0.1,syb==0.3.3,xhtml==3000.2.0.4,zlib==0.5.3.1,HTTP==4000.1.2,deepseq==1.1.0.2" > cabal.config ;;
   *) export GHCVER=unknown ; echo "unknown/invalid Haskell Platform requested" ; exit 1 ;;
   esac
-- travis_retry sudo add-apt-repository -y ppa:hvr/ghc
-- travis_retry sudo apt-get update
-- travis_retry sudo apt-get install cabal-install-1.22 ghc-$GHCVER
-- export PATH=/opt/ghc/$GHCVER/bin:/opt/cabal/1.22/bin:~/.cabal/bin:$PATH
-- travis_retry cabal update
-- travis_retry cabal sandbox init
-- cabal install hpc-coveralls -j --bindir=$HOME/.cabal/bin/ --constraint='aeson >=
-  0.7'
-- cabal sandbox delete
+- eval "$( curl -sL https://github.com/mietek/halcyon/raw/master/setup.sh )"
+- export HALCYON_GHC_VERSION=$GHCVER HALCYON_CABAL_VERSION=1.22.4.0
+- halcyon install hpc-coveralls
 - wget http://s3.amazonaws.com/influxdb/influxdb_${INFLUXVER}_amd64.deb
 - sudo dpkg -i influxdb_${INFLUXVER}_amd64.deb
 - sudo /etc/init.d/influxdb start
+
 install:
-- cabal install -j --only-dependencies --enable-tests --enable-benchmarks $FLAGS
+- export HALCYON_SANDBOX_EXTRA_CONFIGURE_FLAGS="--enable-tests --enable-benchmarks $FLAGS"
+- halcyon install
 script:
 - ./scripts/travis.sh
 after_script:
