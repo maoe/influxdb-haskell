@@ -26,7 +26,7 @@ before_install:
   esac
 - eval "$( curl -sL https://github.com/mietek/halcyon/raw/master/setup.sh )"
 - export HALCYON_GHC_VERSION=$GHCVER HALCYON_CABAL_VERSION=1.22.4.0
-- halcyon install hpc-coveralls
+- export HALCYON_SANDBOX_EXTRA_APPS=hpc-coveralls
 - wget http://s3.amazonaws.com/influxdb/influxdb_${INFLUXVER}_amd64.deb
 - sudo dpkg -i influxdb_${INFLUXVER}_amd64.deb
 - sudo /etc/init.d/influxdb start
