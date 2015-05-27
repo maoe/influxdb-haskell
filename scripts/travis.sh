@@ -1,5 +1,6 @@
 #!/bin/bash
 
+eval "$(halcyon paths)"
 run-cabal-test --cabal-name=cabal --show-details=always
 cabal run influx-random-points -- 10 10
 cabal check
