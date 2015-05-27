@@ -1,7 +1,5 @@
 #!/bin/bash
 
-cabal configure -fexamples --enable-tests --enable-benchmarks --enable-coverage --ghc-options="-Wall -Werror"
-cabal build -j
 run-cabal-test --cabal-name=cabal --show-details=always
 cabal run influx-random-points -- 10 10
 cabal check
