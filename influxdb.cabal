@@ -78,7 +78,7 @@ library
 
   if flag(aeson-070)
     build-depends:
-        aeson >= 0.7.0 && < 0.9
+        aeson >= 0.7.0 && < 0.10
       , scientific >= 0.2
   else
     build-depends:
