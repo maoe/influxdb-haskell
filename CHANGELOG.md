@@ -1,3 +1,7 @@
+## v0.9.1.3 - 2015-06-02
+
+* Relax upper bound for aeson
+
 ## v0.9.1.2 - 2015-05-15
 
 * Relax upper bound for attoparsec
