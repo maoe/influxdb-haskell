@@ -1,5 +1,5 @@
 name: influxdb
-version: 0.9.1.2
+version: 0.9.1.3
 synopsis: Haskell client library for InfluxDB
 description: Haskell client library for InfluxDB
 homepage: https://github.com/maoe/influxdb-haskell
@@ -78,7 +78,7 @@ library
 
   if flag(aeson-070)
     build-depends:
-        aeson >= 0.7.0 && < 0.9
+        aeson >= 0.7.0 && < 0.10
       , scientific >= 0.2
   else
     build-depends:
@@ -142,5 +142,5 @@ source-repository head
 
 source-repository this
   type: git
-  tag: v0.9.1.2
+  tag: v0.9.1.3
   location: https://github.com/maoe/influxdb-haskell.git
