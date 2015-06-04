@@ -28,7 +28,7 @@ class ToSeries a where
 -- > data EventType = Login | Logout
 -- >
 -- > instance ToSeriesData Event where
--- >   toSeriesColumn _ = V.fromList ["user", "type"]
+-- >   toSeriesColumns _ = V.fromList ["user", "type"]
 -- >   toSeriesPoints (Event user ty) = V.fromList [toValue user, toValue ty]
 -- >
 -- > instance ToValue EventType
