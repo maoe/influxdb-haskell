@@ -3,6 +3,7 @@
 {-# LANGUAGE DeriveGeneric #-}
 {-# LANGUAGE NamedFieldPuns #-}
 {-# LANGUAGE OverloadedStrings #-}
+{-# LANGUAGE RankNTypes #-}
 {-# LANGUAGE RecordWildCards #-}
 {-# LANGUAGE TemplateHaskell #-}
 module Database.InfluxDB.Types
@@ -52,7 +53,7 @@ import Data.Word (Word32)
 import GHC.Generics (Generic)
 import qualified Data.Sequence as Seq
 
-import Control.Retry (RetryPolicy(..), limitRetries, exponentialBackoff)
+import Control.Retry (RetryPolicy, limitRetries, exponentialBackoff)
 import Data.Aeson ((.=), (.:))
 import Data.Aeson.TH
 import qualified Data.Aeson as A
@@ -202,7 +203,7 @@ data ServerPool = ServerPool
   , serverBackup :: !(Seq Server)
   -- ^ The rest of the servers in the pool.
   , serverRetryPolicy :: !RetryPolicy
-  } deriving (Typeable, Generic)
+  }
 
 newtype Database = Database
   { databaseName :: Text
@@ -243,6 +244,7 @@ data ShardSpace = ShardSpace
 newServerPool :: Server -> [Server] -> IO (IORef ServerPool)
 newServerPool = newServerPoolWithRetryPolicy defaultRetryPolicy
   where
+    defaultRetryPolicy :: RetryPolicy
     defaultRetryPolicy = limitRetries 5 <> exponentialBackoff 50
 
 newServerPoolWithRetryPolicy
