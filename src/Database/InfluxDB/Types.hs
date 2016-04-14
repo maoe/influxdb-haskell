@@ -27,10 +27,8 @@ module Database.InfluxDB.Types
   -- * Server pool
   , ServerPool
   , serverRetryPolicy
-  , serverRetrySettings
   , newServerPool
   , newServerPoolWithRetryPolicy
-  , newServerPoolWithRetrySettings
   , activeServer
   , failover
 
@@ -206,10 +204,6 @@ data ServerPool = ServerPool
   , serverRetryPolicy :: !RetryPolicy
   } deriving (Typeable, Generic)
 
-{-# DEPRECATED serverRetrySettings "Use serverRetryPolicy instead" #-}
-serverRetrySettings :: ServerPool -> RetryPolicy
-serverRetrySettings = serverRetryPolicy
-
 newtype Database = Database
   { databaseName :: Text
   } deriving (Show, Typeable, Generic)
@@ -247,7 +241,7 @@ data ShardSpace = ShardSpace
 -- | Create a non-empty server pool. You must specify at least one server
 -- location to create a pool.
 newServerPool :: Server -> [Server] -> IO (IORef ServerPool)
-newServerPool = newServerPoolWithRetrySettings defaultRetryPolicy
+newServerPool = newServerPoolWithRetryPolicy defaultRetryPolicy
   where
     defaultRetryPolicy = limitRetries 5 <> exponentialBackoff 50
 
@@ -259,12 +253,6 @@ newServerPoolWithRetryPolicy retryPolicy active backups =
     , serverBackup = Seq.fromList backups
     , serverRetryPolicy = retryPolicy
     }
-
-{-# DEPRECATED newServerPoolWithRetrySettings
-  "Use newServerPoolWithRetryPolicy instead" #-}
-newServerPoolWithRetrySettings
-  :: RetryPolicy -> Server -> [Server] -> IO (IORef ServerPool)
-newServerPoolWithRetrySettings = newServerPoolWithRetryPolicy
 
 -- | Get a server from the pool.
 activeServer :: IORef ServerPool -> IO Server

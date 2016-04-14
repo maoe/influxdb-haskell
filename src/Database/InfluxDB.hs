@@ -24,7 +24,7 @@ module Database.InfluxDB
   , TimePrecision(..)
   , Server(..), localServer
   , ServerPool, newServerPool
-  , newServerPoolWithRetryPolicy, newServerPoolWithRetrySettings
+  , newServerPoolWithRetryPolicy
   , Database(..)
   , User(..)
   , Admin(..)
