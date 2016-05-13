@@ -61,7 +61,7 @@ library
     ViewPatterns
   ghc-options: -Wall
   build-depends:
-      base >= 4 && < 4.9
+      base >= 4 && < 5.0
     , attoparsec < 0.14
     , bytestring
     , containers
@@ -78,7 +78,7 @@ library
 
   if flag(aeson-070)
     build-depends:
-        aeson >= 0.7.0 && < 0.10
+        aeson >= 0.7.0 && < 0.12
       , scientific >= 0.2
   else
     build-depends:
