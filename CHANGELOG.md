@@ -1,3 +1,10 @@
+## v0.10.0 - 2016-05-17
+
+* Fix a typo in a Haddock comment (#28)
+* Drop support for retry < 0.7
+* Add stack.yml
+* Add support for GHC 8.0.1 (#29)
+
 ## v0.9.1.3 - 2015-06-02
 
 * Relax upper bound for aeson
