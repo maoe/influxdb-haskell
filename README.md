@@ -4,6 +4,8 @@ Haskell client library for InfluxDB
 [![Coverage Status](https://coveralls.io/repos/maoe/influxdb-haskell/badge.png?branch=develop)](https://coveralls.io/r/maoe/influxdb-haskell?branch=develop)
 [![Gitter chat](https://badges.gitter.im/maoe/influxdb-haskell.png)](https://gitter.im/maoe/influxdb-haskell)
 
+Support for current version of InfluxDB is under development.
+
 Contact information
 ----------
 
