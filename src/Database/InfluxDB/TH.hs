@@ -57,14 +57,22 @@ deriveWith
   :: (Options -> Name -> [TyVarBndr] -> Con -> Q Dec)
   -> Options -> Dec -> Q Dec
 deriveWith f opts dec = case dec of
+#if MIN_VERSION_template_haskell(2, 11, 0)
+  DataD _ tyName tyVars _ [con] _ -> f opts tyName tyVars con
+  NewtypeD _ tyName tyVars _ con _ -> f opts tyName tyVars con
+#else
   DataD _ tyName tyVars [con] _ -> f opts tyName tyVars con
   NewtypeD _ tyName tyVars con _ -> f opts tyName tyVars con
+#endif
   _ -> fail $ "Expected a data or newtype declaration, but got " ++ show dec
 
 toSeriesDataBody :: Options -> Name -> [TyVarBndr] -> Con -> Q Dec
 toSeriesDataBody opts tyName tyVars con = do
   case con of
     RecC conName vars -> InstanceD
+#if MIN_VERSION_template_haskell(2, 11, 0)
+        Nothing
+#endif
       <$> mapM tyVarToPred tyVars
       <*> [t| ToSeriesData $(conT tyName) |]
       <*> deriveDecs conName vars
