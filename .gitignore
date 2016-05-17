@@ -1,5 +1,6 @@
 *.sublime-*
 .DS_Store
 .cabal-sandbox
+/.stack-work/
 /dist/
 cabal.sandbox.config

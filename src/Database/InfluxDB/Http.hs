@@ -84,7 +84,7 @@ import Text.Printf (printf)
 import Prelude
 
 import Control.Monad.Catch (Handler(..))
-import Control.Retry
+import Control.Retry (recovering)
 import Data.Aeson ((.=))
 import Data.Aeson.TH (deriveToJSON)
 import Data.Default.Class (Default(def))
@@ -742,7 +742,7 @@ withPool
   -> IO a
 withPool pool request f = do
   retryPolicy <- serverRetryPolicy <$> readIORef pool
-  recovering retryPolicy handlers $ do
+  recovering retryPolicy handlers $ \_ -> do
     server <- activeServer pool
     f $ makeRequest server
   where
