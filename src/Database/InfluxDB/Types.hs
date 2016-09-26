@@ -35,7 +35,7 @@ data Server = Server
   { _host :: !Text
   , _port :: !Int
   , _ssl :: !Bool
-  }
+  } deriving (Show, Generic)
 
 localServer :: Server
 localServer = Server
