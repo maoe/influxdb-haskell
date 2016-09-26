@@ -18,12 +18,14 @@ module Database.InfluxDB.Format
   , decimal
   , realFloat
   , text
+  , time
   ) where
 import Control.Category
 import Data.Monoid
 import Data.String
 import Prelude hiding ((.), id)
 
+import Data.Time
 import qualified Data.ByteString as B
 import qualified Data.ByteString.Lazy as BL
 import qualified Data.ByteString.Lazy.Builder as BL
@@ -89,3 +91,9 @@ realFloat = makeFormat TL.realFloat
 
 text :: Format r (T.Text -> r)
 text = makeFormat TL.fromText
+
+time :: FormatTime time => Format r (time -> r)
+time = makeFormat $ \t ->
+  "'" <> TL.fromString (formatTime defaultTimeLocale fmt t) <> "'"
+  where
+    fmt = "%F %X%Q" -- YYYY-MM-DD HH:MM:SS.nnnnnnnnn
