@@ -26,6 +26,7 @@ module Database.InfluxDB
   , FieldValue(..)
   , Timestamp(..)
   , precisionScale
+  , precisionName
 
   -- * Querying data
   , Query
@@ -57,6 +58,7 @@ module Database.InfluxDB
   , host
   , port
   , ssl
+  , localServer
 
   , Credentials
   , user
