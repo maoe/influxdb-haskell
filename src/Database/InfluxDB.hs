@@ -53,6 +53,9 @@ module Database.InfluxDB
   , RetentionPolicy
   , Key
 
+  -- * Exception
+  , InfluxException(..)
+
   , HasServer(..)
   , HasDatabase(..)
   , HasPrecision(..)
