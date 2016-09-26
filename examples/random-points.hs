@@ -20,7 +20,6 @@ import Data.Time.Clock.POSIX
 import System.Random.MWC (Variate(..))
 import qualified Control.Foldl as Fold
 import qualified Data.Text as T
-import qualified Data.Vector as V
 import qualified Network.HTTP.Client as HC
 import qualified System.Random.MWC as MWC
 
@@ -77,22 +76,16 @@ data Row = Row
 
 instance QueryResults Row where
   parseResults prec = parseResultsWith $ \columns fields -> do
-    case V.elemIndex "time" columns >>= V.indexM fields of
-      Nothing -> fail "no timestamp"
-      Just time -> do
-        rowTime <- parseTimestamp prec time
-        maybe err return $ do
-          String name <- V.elemIndex "value" columns >>= V.indexM fields
-          rowValue <- case name of
-            "foo" -> return Foo
-            "bar" -> return Bar
-            "baz" -> return Baz
-            "quu" -> return Quu
-            "qux" -> return Qux
-            _ -> fail $ "unknown name: " ++ show name
-          return Row {..}
-    where
-      err = fail "failed to parse a Row"
+    rowTime <- parseField "time" columns fields >>= parseTimestamp prec
+    String name <- parseField "value" columns fields
+    rowValue <- case name of
+      "foo" -> return Foo
+      "bar" -> return Bar
+      "baz" -> return Baz
+      "quu" -> return Quu
+      "qux" -> return Qux
+      _ -> fail $ "unknown name: " ++ show name
+    return Row {..}
 
 data Name
   = Foo

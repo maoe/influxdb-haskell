@@ -8,6 +8,7 @@
 {-# LANGUAGE ViewPatterns #-}
 module Database.InfluxDB.JSON
   ( parseResultsWith
+  , parseField
   , resultsObject
   , seriesObject
   , columnsValuesObject
@@ -50,6 +51,18 @@ parseResultsWith row val0 = success <|> errorObject val0
           assert (V.length columns == V.length fields) $ return ()
           row columns fields
       return $! join values
+
+parseField
+  :: T.Text -- ^ Column name
+  -> Array -- ^ Columns
+  -> Array -- ^ Fields
+  -> A.Parser Value
+parseField (A.String -> column) columns fields = do
+  case V.elemIndex column columns of
+    Nothing -> fail $ "parseField: no such column " ++ show column
+    Just idx -> case V.indexM fields idx of
+      Nothing -> fail $ "parseField: index out of bound for " ++ show column
+      Just field -> return field
 
 resultsObject :: Value -> A.Parser (Vector A.Value)
 resultsObject = A.withObject "results" $ \obj -> do
