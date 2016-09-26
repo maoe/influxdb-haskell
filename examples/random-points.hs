@@ -23,7 +23,7 @@ import qualified Network.HTTP.Client as HC
 import qualified System.Random.MWC as MWC
 
 import Database.InfluxDB
-import Database.InfluxDB.Format as Q
+import qualified Database.InfluxDB.Format as F
 import qualified Database.InfluxDB.Manage as M
 
 oneWeekInSeconds :: Int
@@ -42,8 +42,8 @@ main = do
       & manager .~ Right manager'
       & precision .~ RFC3339
 
-  M.manage qparams $ Q.formatQuery ("DROP DATABASE "%fdatabase) ctx
-  M.manage qparams $ Q.formatQuery ("CREATE DATABASE "%fdatabase) ctx
+  M.manage qparams $ F.formatQuery ("DROP DATABASE "%F.database) ctx
+  M.manage qparams $ F.formatQuery ("CREATE DATABASE "%F.database) ctx
 
   let wparams = writeParams ctx & manager .~ Right manager'
 
@@ -61,7 +61,7 @@ main = do
         (Map.fromList [("value", nameToFVal value)])
         (Just time)
 
-  queryChunked qparams Default (Q.formatQuery ("SELECT * FROM "%fkey) ct1) $
+  queryChunked qparams Default (F.formatQuery ("SELECT * FROM "%F.key) ct1) $
     Fold.mapM_ $ \Row {..} ->
       printf "%s:\t%s\n"
         (show $ posixSecondsToUTCTime rowTime)

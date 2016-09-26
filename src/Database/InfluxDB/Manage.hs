@@ -32,7 +32,7 @@ import qualified Network.HTTP.Types as HT
 
 import Database.InfluxDB.Types as Types
 import Database.InfluxDB.Query hiding (query)
-import Database.InfluxDB.Format
+import qualified Database.InfluxDB.Format as F
 import qualified Network.HTTP.Client.Compat as HC
 
 manage :: QueryParams -> Query -> IO ()
@@ -59,7 +59,7 @@ manage params q = do
   where
     request = HC.setQueryString qs $ manageRequest params
     qs =
-      [ ("q", Just $ fromQuery q)
+      [ ("q", Just $ F.fromQuery q)
       ]
 
 manageRequest :: QueryParams -> HC.Request
@@ -85,9 +85,9 @@ instance QueryResults ShowQuery where
     maybe (fail "parseResults: parse error") return $ do
       Number (toBoundedInteger -> Just _qid) <-
         V.elemIndex "qid" columns >>= V.indexM fields
-      String (formatQuery ftext -> _query) <-
+      String (F.formatQuery F.text -> _query) <-
         V.elemIndex "query" columns >>= V.indexM fields
-      String (formatDatabase ftext -> _database) <-
+      String (F.formatDatabase F.text -> _database) <-
         V.elemIndex "database" columns >>= V.indexM fields
       String (parseDuration -> Right _duration) <-
         V.elemIndex "duration" columns >>= V.indexM fields

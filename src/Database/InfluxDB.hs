@@ -33,6 +33,10 @@ module Database.InfluxDB
   , query
   , queryChunked
 
+  -- * Query constructor
+  , formatQuery
+  , (%)
+
   -- ** Query parameters
   , QueryParams
   , queryParams
@@ -50,7 +54,6 @@ module Database.InfluxDB
 
   -- * Common data types and classes
   , Precision(..)
-  , RequestType
   , Database
   , RetentionPolicy
   , Key
@@ -74,6 +77,7 @@ module Database.InfluxDB
   , HasManager(..)
   ) where
 
+import Database.InfluxDB.Format ((%), formatQuery)
 import Database.InfluxDB.JSON
 import Database.InfluxDB.Line
 import Database.InfluxDB.Manage (manage)

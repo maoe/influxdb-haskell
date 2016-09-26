@@ -47,8 +47,8 @@ import qualified Data.Vector as V
 import qualified Network.HTTP.Types as HT
 
 import Database.InfluxDB.JSON
-import Database.InfluxDB.Format
 import Database.InfluxDB.Types as Types
+import qualified Database.InfluxDB.Format as F
 import qualified Network.HTTP.Client.Compat as HC
 
 class QueryResults a where
@@ -68,7 +68,7 @@ instance QueryResults () where
 parseKey :: Value -> Array -> Array -> A.Parser Key
 parseKey name columns fields = do
   case V.elemIndex name columns >>= V.indexM fields of
-    Just (String (formatKey ftext -> key)) -> return key
+    Just (String (F.formatKey F.text -> key)) -> return key
     _ -> fail $ printf "parseKey: %s not found in columns" $ show name
 
 -- | The full set of parameters for the query API
@@ -127,7 +127,7 @@ query params q = do
       HC.setQueryString (setPrecision (_precision params) qs) $
         queryRequest params
     qs =
-      [ ("q", Just $ fromQuery q)
+      [ ("q", Just $ F.fromQuery q)
       , ("db", Just $ TE.encodeUtf8 $ databaseName $ _database params)
       ]
 
@@ -178,7 +178,7 @@ queryChunked params chunkSize q
       HC.setQueryString (setPrecision (_precision params) qs) $
         queryRequest params
     qs =
-      [ ("q", Just $ fromQuery q)
+      [ ("q", Just $ F.fromQuery q)
       , ("db", Just $ TE.encodeUtf8 $ databaseName $ _database params)
       , ("chunked", Just $ optional "true" (decodeChunkSize . max 1) chunkSize)
       ]

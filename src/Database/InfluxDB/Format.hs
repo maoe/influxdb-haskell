@@ -12,12 +12,12 @@ module Database.InfluxDB.Format
   , formatDatabase
   , formatKey
 
-  , fdatabase
-  , fkey
-  , fval
-  , fdecimal
-  , frealFloat
-  , ftext
+  , database
+  , key
+  , fieldVal
+  , decimal
+  , realFloat
+  , text
   ) where
 import Control.Category
 import Data.Monoid
@@ -34,7 +34,7 @@ import qualified Data.Text.Lazy.Builder as TL
 import qualified Data.Text.Lazy.Builder.Int as TL
 import qualified Data.Text.Lazy.Builder.RealFloat as TL
 
-import Database.InfluxDB.Types
+import Database.InfluxDB.Types hiding (database)
 
 fromQuery :: Query -> B.ByteString
 fromQuery (Query q) =
@@ -67,25 +67,25 @@ formatKey fmt = runFormat fmt (Key . TL.toStrict . TL.toLazyText)
 makeFormat :: (a -> TL.Builder) -> Format r (a -> r)
 makeFormat build = Format $ \k a -> k $ build a
 
-fdatabase :: Format r (Database -> r)
-fdatabase = makeFormat $ \(Database name) -> "\"" <> TL.fromText name <> "\""
+database :: Format r (Database -> r)
+database = makeFormat $ \(Database name) -> "\"" <> TL.fromText name <> "\""
 
-fkey :: Format r (Key -> r)
-fkey = makeFormat $ \(Key name) -> "\"" <> TL.fromText name <> "\""
+key :: Format r (Key -> r)
+key = makeFormat $ \(Key name) -> "\"" <> TL.fromText name <> "\""
 
-fval :: Format r (FieldValue -> r)
-fval = makeFormat $ \case
+fieldVal :: Format r (FieldValue -> r)
+fieldVal = makeFormat $ \case
   FieldInt n -> TL.decimal n
   FieldFloat d -> TL.realFloat d
   FieldString s -> "'" <> TL.fromText s <> "'"
   FieldBool b -> if b then "true" else "false"
   FieldNull -> "null"
 
-fdecimal :: Integral a => Format r (a -> r)
-fdecimal = makeFormat TL.decimal
+decimal :: Integral a => Format r (a -> r)
+decimal = makeFormat TL.decimal
 
-frealFloat :: RealFloat a => Format r (a -> r)
-frealFloat = makeFormat TL.realFloat
+realFloat :: RealFloat a => Format r (a -> r)
+realFloat = makeFormat TL.realFloat
 
-ftext :: Format r (T.Text -> r)
-ftext = makeFormat TL.fromText
+text :: Format r (T.Text -> r)
+text = makeFormat TL.fromText
