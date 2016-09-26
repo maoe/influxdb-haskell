@@ -53,6 +53,15 @@ module Database.InfluxDB
   , RetentionPolicy
   , Key
 
+  , Server
+  , host
+  , port
+  , ssl
+
+  , Credentials
+  , user
+  , password
+
   -- * Exception
   , InfluxException(..)
 
