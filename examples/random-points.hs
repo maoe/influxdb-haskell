@@ -1,13 +1,11 @@
 {-# LANGUAGE BangPatterns #-}
-{-# LANGUAGE OverloadedLists #-}
 {-# LANGUAGE OverloadedStrings #-}
 {-# LANGUAGE RecordWildCards #-}
 {-# LANGUAGE ScopedTypeVariables #-}
 {-# LANGUAGE TemplateHaskell #-}
 {-# LANGUAGE TypeSynonymInstances #-}
 {-# LANGUAGE ViewPatterns #-}
-import Control.Monad
-import Data.Function (fix)
+import Data.Foldable
 import Data.Traversable
 import System.Environment
 import System.IO
@@ -19,6 +17,7 @@ import Data.Optional (Optional(Default))
 import Data.Time.Clock.POSIX
 import System.Random.MWC (Variate(..))
 import qualified Control.Foldl as Fold
+import qualified Data.Map.Strict as Map
 import qualified Data.Text as T
 import qualified Network.HTTP.Client as HC
 import qualified System.Random.MWC as MWC
@@ -49,7 +48,7 @@ main = do
   let wparams = writeParams ctx & manager .~ Right manager'
 
   gen <- MWC.create
-  flip fix batches $ \outerLoop !m -> when (m > 0) $ do
+  for_ [1..batches] $ \_ -> do
     batch <- for [1..numPoints] $ \_ -> do
       !time <- (-)
         <$> getPOSIXTime
@@ -57,8 +56,10 @@ main = do
       !value <- uniform gen
       return (time, value)
     writeBatch wparams $ flip map batch $ \(time, value) ->
-        Line ct1 [] [("value", nameToFVal value)] (Just time)
-    outerLoop $ m - 1
+      Line ct1
+        (Map.fromList [])
+        (Map.fromList [("value", nameToFVal value)])
+        (Just time)
 
   queryChunked qparams Default (Q.formatQuery ("SELECT * FROM "%fkey) ct1) $
     Fold.mapM_ $ \Row {..} ->
