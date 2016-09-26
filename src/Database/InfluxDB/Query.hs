@@ -44,12 +44,12 @@ import qualified Data.ByteString.Builder as BB
 import qualified Data.ByteString.Lazy as BL
 import qualified Data.Text.Encoding as TE
 import qualified Data.Vector as V
-import qualified Network.HTTP.Client as HC
 import qualified Network.HTTP.Types as HT
 
 import Database.InfluxDB.JSON
 import Database.InfluxDB.Format
 import Database.InfluxDB.Types as Types
+import qualified Network.HTTP.Client.Compat as HC
 
 class QueryResults a where
   parseResults

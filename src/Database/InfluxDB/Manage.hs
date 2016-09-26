@@ -28,12 +28,12 @@ import qualified Data.Attoparsec.Combinator as AC
 import qualified Data.Attoparsec.Text as AT
 import qualified Data.Text.Encoding as TE
 import qualified Data.Vector as V
-import qualified Network.HTTP.Client as HC
 import qualified Network.HTTP.Types as HT
 
 import Database.InfluxDB.Types as Types
 import Database.InfluxDB.Query hiding (query)
 import Database.InfluxDB.Format
+import qualified Network.HTTP.Client.Compat as HC
 
 manage :: QueryParams -> Query -> IO ()
 manage params q = do
