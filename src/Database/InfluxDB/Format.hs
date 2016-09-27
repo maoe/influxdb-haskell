@@ -7,6 +7,7 @@ module Database.InfluxDB.Format
   , fromQuery
 
   , Format
+  , makeFormat
   , (%)
   , formatQuery
   , formatDatabase
