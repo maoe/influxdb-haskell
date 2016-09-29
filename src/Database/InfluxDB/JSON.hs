@@ -43,14 +43,17 @@ parseResultsWith row val0 = success <|> errorObject val0
   where
     success = do
       results <- resultsObject val0
-      (join -> series) <- V.forM results $ \val ->
-        seriesObject val <|> errorObject val
-      values <- V.forM series $ \val -> do
-        (columns, values) <- columnsValuesObject val
-        V.forM values $ A.withArray "values" $ \fields -> do
-          assert (V.length columns == V.length fields) $ return ()
-          row columns fields
-      return $! join values
+      if results == V.fromList [A.emptyObject]
+        then return V.empty
+        else do
+          (join -> series) <- V.forM results $ \val ->
+            seriesObject val <|> errorObject val
+          values <- V.forM series $ \val -> do
+            (columns, values) <- columnsValuesObject val
+            V.forM values $ A.withArray "values" $ \fields -> do
+              assert (V.length columns == V.length fields) $ return ()
+              row columns fields
+          return $! join values
 
 parseField
   :: T.Text -- ^ Column name
