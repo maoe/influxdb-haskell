@@ -121,7 +121,8 @@ query params q = do
           throwIO $ ServerError message
         when (HT.statusIsClientError status) $
           throwIO $ BadRequest message request
-        fail $ "BUG: " ++ message ++ " in Database.InfluxDB.Query.query"
+        fail $ "BUG: " ++ message ++ " in Database.InfluxDB.Query.query - "
+          ++ show body
   where
     request =
       HC.setQueryString (setPrecision (_precision params) qs) $
