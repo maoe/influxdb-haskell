@@ -1,4 +1,5 @@
 {-# LANGUAGE BangPatterns #-}
+{-# LANGUAGE ExistentialQuantification #-}
 {-# LANGUAGE FlexibleInstances #-}
 {-# LANGUAGE GADTs #-}
 {-# LANGUAGE GeneralizedNewtypeDeriving #-}
@@ -8,6 +9,10 @@
 {-# LANGUAGE ViewPatterns #-}
 module Database.InfluxDB.JSON
   ( parseResultsWith
+  , parseResultsWithDecoder
+  , Decoder(..)
+  , strictDecoder
+  , lenientDecoder
   , parseField
   , resultsObject
   , seriesObject
@@ -17,9 +22,10 @@ module Database.InfluxDB.JSON
   , parsePOSIXTime
   , parseRFC3339
   ) where
-import Control.Applicative hiding (optional)
+import Control.Applicative
 import Control.Exception
 import Control.Monad
+import Data.Maybe
 
 import Data.Aeson
 import Data.Time.Clock
@@ -35,11 +41,18 @@ import Database.InfluxDB.Types
 
 parseResultsWith
   :: (Array -> Array -> A.Parser a)
+  -> Value
+  -> A.Parser (Vector a)
+parseResultsWith = parseResultsWithDecoder lenientDecoder
+
+parseResultsWithDecoder
+  :: Decoder a
+  -> (Array -> Array -> A.Parser a)
   -- ^ A parser that constucts a value from an array of field names and field
   -- values
   -> Value
   -> A.Parser (Vector a)
-parseResultsWith row val0 = success <|> errorObject val0
+parseResultsWithDecoder Decoder {..} row val0 = success <|> errorObject val0
   where
     success = do
       results <- resultsObject val0
@@ -50,10 +63,29 @@ parseResultsWith row val0 = success <|> errorObject val0
             seriesObject val <|> errorObject val
           values <- V.forM series $ \val -> do
             (columns, values) <- columnsValuesObject val
-            V.forM values $ A.withArray "values" $ \fields -> do
+            decodeFold $ V.forM values $ A.withArray "values" $ \fields -> do
               assert (V.length columns == V.length fields) $ return ()
-              row columns fields
+              decodeEach $ row columns fields
           return $! join values
+
+data Decoder a = forall b. Decoder
+  { decodeEach :: A.Parser a -> A.Parser b
+  , decodeFold :: A.Parser (Vector b) -> A.Parser (Vector a)
+  }
+
+strictDecoder :: Decoder a
+strictDecoder = Decoder
+  { decodeEach = id
+  , decodeFold = id
+  }
+
+lenientDecoder :: Decoder a
+lenientDecoder = Decoder
+  { decodeEach = optional
+  , decodeFold = \p -> do
+    bs <- p
+    return $! V.map fromJust $ V.filter isJust bs
+  }
 
 parseField
   :: T.Text -- ^ Column name
