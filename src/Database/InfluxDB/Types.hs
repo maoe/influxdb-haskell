@@ -80,8 +80,6 @@ password :: Lens' Credentials Text
 -- | Database name
 newtype Database = Database { databaseName :: Text } deriving (Eq, Ord)
 
-newtype RetentionPolicy = RetentionPolicy Text
-
 -- | String type that is used for measurements, tag keys and field keys.
 newtype Key = Key Text deriving (Eq, Ord)
 

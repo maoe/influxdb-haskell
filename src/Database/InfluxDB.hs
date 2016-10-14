@@ -55,7 +55,6 @@ module Database.InfluxDB
   -- * Common data types and classes
   , Precision(..)
   , Database
-  , RetentionPolicy
   , Key
 
   , Server

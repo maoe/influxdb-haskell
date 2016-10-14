@@ -43,7 +43,7 @@ data WriteParams = WriteParams
   { _server :: !Server
   , _database :: !Database
   -- ^ Database to be written
-  , _retentionPolicy :: !(Maybe RetentionPolicy)
+  , _retentionPolicy :: !(Maybe Key)
   -- ^ 'Nothing' means the default retention policy for the database.
   , _precision :: !(Precision 'WriteRequest)
   -- ^ Timestamp precision
@@ -137,7 +137,7 @@ writeRequest WriteParams {..} =
     qs = catMaybes
       [ Just ("db", Just $ TE.encodeUtf8 $ databaseName _database)
       , do
-        RetentionPolicy name <- _retentionPolicy
+        Key name <- _retentionPolicy
         return ("rp", Just (TE.encodeUtf8 name))
       ]
 
@@ -161,11 +161,16 @@ database :: Lens' WriteParams Database
 instance HasDatabase WriteParams where
   database = Database.InfluxDB.Write.database
 
--- | Target retention policy forthe write.
+-- | Target retention policy for the write.
 --
--- InfluxDB writes to the @DEFAULT@ retention policy if this parameter is set
+-- InfluxDB writes to the @default@ retention policy if this parameter is set
 -- to 'Nothing'.
-retentionPolicy :: Lens' WriteParams (Maybe RetentionPolicy)
+--
+-- >>> let p = writeParams "foo"
+-- >>> let p' = p & retentionPolicy .~ Just "two_hours"
+-- >>> p' ^. retentionPolicy
+-- Just "two_hours"
+retentionPolicy :: Lens' WriteParams (Maybe Key)
 
 precision :: Lens' WriteParams (Precision 'WriteRequest)
 
