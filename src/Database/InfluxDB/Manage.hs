@@ -7,7 +7,7 @@ module Database.InfluxDB.Manage
 
   , ShowQuery
   , qid
-  , query
+  , queryText
   , Types.database
   , duration
 
@@ -76,7 +76,7 @@ manageRequest params = HC.defaultRequest
 
 data ShowQuery = ShowQuery
   { _qid :: !Int
-  , _query :: !Query
+  , _queryText :: !Query
   , _database :: !Database
   , _duration :: !NominalDiffTime
   } deriving Show
@@ -86,7 +86,7 @@ instance QueryResults ShowQuery where
     maybe (fail "parseResults: parse error") return $ do
       Number (toBoundedInteger -> Just _qid) <-
         V.elemIndex "qid" columns >>= V.indexM fields
-      String (F.formatQuery F.text -> _query) <-
+      String (F.formatQuery F.text -> _queryText) <-
         V.elemIndex "query" columns >>= V.indexM fields
       String (F.formatDatabase F.text -> _database) <-
         V.elemIndex "database" columns >>= V.indexM fields
@@ -132,7 +132,7 @@ qid :: Lens' ShowQuery Int
 -- >>> v <- query (queryParams "_internal") "SHOW QUERIES" :: IO (V.Vector ShowQuery)
 -- >>> v ^.. each.queryText
 -- ["SHOW QUERIES"]
-query :: Lens' ShowQuery Query
+queryText :: Lens' ShowQuery Query
 
 database :: Lens' ShowQuery Database
 
