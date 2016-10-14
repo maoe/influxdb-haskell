@@ -35,6 +35,7 @@ import Database.InfluxDB.Query hiding (query)
 import qualified Database.InfluxDB.Format as F
 import qualified Network.HTTP.Client.Compat as HC
 
+-- | Send a database management query to InfluxDB.
 manage :: QueryParams -> Query -> IO ()
 manage params q = do
   manager' <- either HC.newManager return $ params^.manager
@@ -120,19 +121,40 @@ instance QueryResults ShowSeries where
 makeLensesWith (lensRules & generateSignatures .~ False) ''ShowQuery
 
 -- | Query ID
+--
+-- >>> v <- query (queryParams "_internal") "SHOW QUERIES" :: IO (V.Vector ShowQuery)
+-- >>> v ^.. each.qid
+-- [149250]
 qid :: Lens' ShowQuery Int
 
 -- | Query text
+--
+-- >>> v <- query (queryParams "_internal") "SHOW QUERIES" :: IO (V.Vector ShowQuery)
+-- >>> v ^.. each.queryText
+-- ["SHOW QUERIES"]
 query :: Lens' ShowQuery Query
 
 database :: Lens' ShowQuery Database
+
+-- |
+-- >>> v <- query (queryParams "_internal") "SHOW QUERIES" :: IO (V.Vector ShowQuery)
+-- >>> v ^.. each.database
+-- ["_internal"]
 instance HasDatabase ShowQuery where
   database = Database.InfluxDB.Manage.database
 
 -- | Duration of the query
+--
+-- >>> v <- query (queryParams "_internal") "SHOW QUERIES" :: IO (V.Vector ShowQuery)
+-- >>> v ^.. each.duration
+-- [0.06062s]
 duration :: Lens' ShowQuery NominalDiffTime
 
 makeLensesWith (lensRules & generateSignatures .~ False) ''ShowSeries
 
 -- | Series name
+--
+-- >>> v <- query (queryParams "_internal") "SHOW SERIES" :: IO (V.Vector ShowSeries)
+-- >>> length $ v ^.. each.key
+-- 755
 key :: Lens' ShowSeries Key

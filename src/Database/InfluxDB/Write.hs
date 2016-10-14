@@ -145,11 +145,19 @@ makeLensesWith (lensRules & generateSignatures .~ False) ''WriteParams
 
 server :: Lens' WriteParams Server
 
+-- |
+-- >>> let p = writeParams "foo"
+-- >>> p ^. server.host
+-- "localhost"
 instance HasServer WriteParams where
   server = Database.InfluxDB.Write.server
 
 database :: Lens' WriteParams Database
 
+-- |
+-- >>> let p = writeParams "foo"
+-- >>> p ^. database
+-- "foo"
 instance HasDatabase WriteParams where
   database = Database.InfluxDB.Write.database
 
@@ -161,14 +169,17 @@ retentionPolicy :: Lens' WriteParams (Maybe RetentionPolicy)
 
 precision :: Lens' WriteParams (Precision 'WriteRequest)
 
+-- |
+-- >>> let p = writeParams "foo"
+-- >>> p ^. precision
+-- Nanosecond
 instance HasPrecision 'WriteRequest WriteParams where
   precision = Database.InfluxDB.Write.precision
 
 manager :: Lens' WriteParams (Either HC.ManagerSettings HC.Manager)
 
--- | HTTP manager settings or a manager itself.
---
--- If it's set to 'HC.ManagerSettings', the library will create a 'HC.Manager'
--- from the settings for you.
+-- |
+-- >>> let p = writeParams "foo"
+-- >>> p & manager .~ Left HC.defaultManagerSettings
 instance HasManager WriteParams where
   manager = Database.InfluxDB.Write.manager

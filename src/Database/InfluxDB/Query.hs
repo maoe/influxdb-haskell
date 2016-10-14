@@ -223,27 +223,44 @@ makeLensesWith (lensRules & generateSignatures .~ False) ''QueryParams
 
 server :: Lens' QueryParams Server
 
+-- |
+-- >>> let p = queryParams "foo"
+-- >>> p ^. server.host
+-- "localhost"
 instance HasServer QueryParams where
   server = Database.InfluxDB.Query.server
 
 database :: Lens' QueryParams Database
 
+-- |
+-- >>> let p = queryParams "foo"
+-- >>> p ^. database
+-- "foo"
 instance HasDatabase QueryParams where
   database = Database.InfluxDB.Query.database
 
 precision :: Lens' QueryParams (Precision 'QueryRequest)
 
--- | Time precision for the query.
+-- | Returning JSON responses contain timestamps in the specified
+-- precision/format.
 --
--- Returning JSON responses contain timestamps in the specified format.
+-- >>> let p = queryParams "foo"
+-- >>> p ^. precision
+-- Nanosecond
 instance HasPrecision 'QueryRequest QueryParams where
   precision = Database.InfluxDB.Query.precision
 
 manager :: Lens' QueryParams (Either HC.ManagerSettings HC.Manager)
 
--- | HTTP manager.
+-- |
+-- >>> let p = queryParams "foo"
+-- >>> p & manager .~ Left HC.defaultManagerSettings
 instance HasManager QueryParams where
   manager = Database.InfluxDB.Query.manager
 
 -- | Authentication info for the query
+--
+-- >>> let p = queryParams "foo"
+-- >>> p ^. authentication
+-- Nothing
 authentication :: Lens' QueryParams (Maybe Credentials)

@@ -9,6 +9,7 @@
 {-# LANGUAGE LambdaCase #-}
 {-# LANGUAGE MultiParamTypeClasses #-}
 {-# LANGUAGE OverloadedStrings #-}
+{-# LANGUAGE StandaloneDeriving #-}
 {-# LANGUAGE TemplateHaskell #-}
 module Database.InfluxDB.Types where
 import Control.Exception
@@ -118,6 +119,7 @@ data RequestType
   -- ^ Request for @/query@
   | WriteRequest
   -- ^ Request for @/write@
+  deriving Show
 
 -- | Predefined set of time precision.
 --
@@ -138,6 +140,8 @@ data Precision (ty :: RequestType) where
   -- | Nanosecond precision time in a human readable format, like
   -- @2016-01-04T00:00:23.135623Z@. This is the default format for @/query@.
   RFC3339 :: Precision 'QueryRequest
+
+deriving instance Show (Precision a)
 
 precisionName :: Precision ty -> Text
 precisionName = \case

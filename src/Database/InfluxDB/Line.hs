@@ -106,4 +106,19 @@ buildLines
   -> B.Builder
 buildLines toTimestamp = foldMap ((<> "\n") . buildLine toTimestamp)
 
-makeLenses ''Line
+makeLensesWith (lensRules & generateSignatures .~ False) ''Line
+
+-- | Name of the measurement that you want to write your data to.
+measurement :: Lens' (Line time) Key
+
+-- | Tag(s) that you want to include with your data point. Tags are optional in
+-- the Line Protocol, so you can set it 'empty'.
+tagSet :: Lens' (Line time) (Map Key Text)
+
+-- | Field(s) for your data point. Every data point requires at least one field
+-- in the Line Protocol, so it shouldn't be 'empty'.
+fieldSet :: Lens' (Line time) (Map Key FieldValue)
+
+-- | Timestamp for your data point. You can put whatever type of timestamp that
+-- is an instance of the 'Timestamp' class.
+timestamp :: Lens' (Line time) (Maybe time)
