@@ -133,7 +133,12 @@ writeRequest WriteParams {..} =
     }
   where
     Server {..} = _server
-    qs = [("db", Just $ TE.encodeUtf8 $ databaseName _database)]
+    qs = catMaybes
+      [ Just ("db", Just $ TE.encodeUtf8 $ databaseName _database)
+      , do
+        RetentionPolicy name <- _retentionPolicy
+        return ("rp", Just (TE.encodeUtf8 name))
+      ]
 
 makeLenses ''WriteParams
 
