@@ -117,8 +117,22 @@ instance QueryResults ShowSeries where
   parseResults _ = parseResultsWith $ \columns fields ->
     ShowSeries <$> parseKey "key" columns fields
 
-makeLenses ''ShowQuery
-makeLenses ''ShowSeries
+makeLensesWith (lensRules & generateSignatures .~ False) ''ShowQuery
 
+-- | Query ID
+qid :: Lens' ShowQuery Int
+
+-- | Query text
+query :: Lens' ShowQuery Query
+
+database :: Lens' ShowQuery Database
 instance HasDatabase ShowQuery where
   database = Database.InfluxDB.Manage.database
+
+-- | Duration of the query
+duration :: Lens' ShowQuery NominalDiffTime
+
+makeLensesWith (lensRules & generateSignatures .~ False) ''ShowSeries
+
+-- | Series name
+key :: Lens' ShowSeries Key

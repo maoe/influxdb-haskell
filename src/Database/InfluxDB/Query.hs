@@ -219,16 +219,31 @@ queryRequest QueryParams {..} = HC.defaultRequest
   where
     Server {..} = _server
 
-makeLenses ''QueryParams
+makeLensesWith (lensRules & generateSignatures .~ False) ''QueryParams
+
+server :: Lens' QueryParams Server
 
 instance HasServer QueryParams where
   server = Database.InfluxDB.Query.server
 
+database :: Lens' QueryParams Database
+
 instance HasDatabase QueryParams where
   database = Database.InfluxDB.Query.database
 
+precision :: Lens' QueryParams (Precision 'QueryRequest)
+
+-- | Time precision for the query.
+--
+-- Returning JSON responses contain timestamps in the specified format.
 instance HasPrecision 'QueryRequest QueryParams where
   precision = Database.InfluxDB.Query.precision
 
+manager :: Lens' QueryParams (Either HC.ManagerSettings HC.Manager)
+
+-- | HTTP manager.
 instance HasManager QueryParams where
   manager = Database.InfluxDB.Query.manager
+
+-- | Authentication info for the query
+authentication :: Lens' QueryParams (Maybe Credentials)

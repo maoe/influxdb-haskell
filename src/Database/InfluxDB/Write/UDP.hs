@@ -28,14 +28,8 @@ import Database.InfluxDB.Types as Types
 -- | The full set of parameters for the UDP writer.
 data WriteParams = WriteParams
   { _socket :: !Socket
-  -- ^ Open UDP socket
   , _sockAddr :: !SockAddr
-  -- ^ UDP endopoint of the database
   , _precision :: !(Precision 'WriteRequest)
-  -- ^ Timestamp precision.
-  --
-  -- In the UDP API, all timestamps are sent in nanosecond but you can specify
-  -- lower precision. The writer just rounds timestamps.
   }
 
 -- | Smart constructor for 'WriteParams'
@@ -74,7 +68,20 @@ writeByteString :: WriteParams -> BL.ByteString -> IO ()
 writeByteString WriteParams {..} payload =
   sendManyTo _socket (BL.toChunks payload) _sockAddr
 
-makeLenses ''WriteParams
+makeLensesWith (lensRules & generateSignatures .~ False) ''WriteParams
 
+-- | Open UDP socket
+socket :: Lens' WriteParams Socket
+
+-- | UDP endopoint of the database
+sockAddr :: Lens' WriteParams SockAddr
+
+precision :: Lens' WriteParams (Precision 'WriteRequest)
+
+-- | Timestamp precision.
+--
+-- In the UDP API, all timestamps are sent in nanosecond but you can specify
+-- lower precision. The writer just rounds timestamps to the specified
+-- precision.
 instance HasPrecision 'WriteRequest WriteParams where
   precision = Database.InfluxDB.Write.UDP.precision

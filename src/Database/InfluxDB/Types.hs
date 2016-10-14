@@ -37,6 +37,13 @@ data Server = Server
   , _ssl :: !Bool
   } deriving (Show, Generic)
 
+-- | Default server settings.
+--
+-- Default parameters:
+--
+--  * 'host': @"localhost"@
+--  * 'port': @8086@
+--  * 'ssl': 'False'
 localServer :: Server
 localServer = Server
   { _host = "localhost"
@@ -44,7 +51,16 @@ localServer = Server
   , _ssl = False
   }
 
-makeLenses ''Server
+makeLensesWith (lensRules & generateSignatures .~ False) ''Server
+
+-- | Host name of the server
+host :: Lens' Server Text
+
+-- | Port number of the server
+port :: Lens' Server Int
+
+-- | If SSL is enabled
+ssl :: Lens' Server Bool
 
 -- | User credentials
 data Credentials = Credentials
@@ -52,7 +68,13 @@ data Credentials = Credentials
   , _password :: !Text
   }
 
-makeLenses ''Credentials
+makeLensesWith (lensRules & generateSignatures .~ False) ''Credentials
+
+-- | User name to access InfluxDB
+user :: Lens' Credentials Text
+
+-- | Password to access InfluxDB
+password :: Lens' Credentials Text
 
 -- | Database name
 newtype Database = Database { databaseName :: Text } deriving (Eq, Ord)
@@ -157,10 +179,25 @@ instance Timestamp NominalDiffTime where
     round $ 10^(9 :: Int) * roundAt (precisionScale prec) time
   scaleTo prec time = round $ time / precisionScale prec
 
+-- | Exceptions used in this library.
+--
+-- In general, the library tries to convert exceptions from the dependent
+-- libraries to the following types of errors.
 data InfluxException
   = ServerError String
+  -- ^ Server side error.
+  --
+  -- You can expect to get a successful response once the issue is resolved on
+  -- the server side.
   | BadRequest String Request
+  -- ^ Client side error.
+  --
+  -- You need to fix your query to get a successful response.
   | IllformedJSON String BL.ByteString
+  -- ^ Unexpected JSON response.
+  --
+  -- This can happen e.g. when the response from InfluxDB is incompatible with
+  -- what this library expects due to an upstream format change etc.
   deriving (Show, Typeable)
 
 instance Exception InfluxException
@@ -172,7 +209,12 @@ class HasDatabase a where
   database :: Lens' a Database
 
 class HasPrecision (ty :: RequestType) a | a -> ty where
+  -- Time precision parameter
   precision :: Lens' a (Precision ty)
 
 class HasManager a where
+  -- | HTTP manager settings or a manager itself.
+  --
+  -- If it's set to 'ManagerSettings', the library will create a 'Manager' from
+  -- the settings for you.
   manager :: Lens' a (Either ManagerSettings Manager)

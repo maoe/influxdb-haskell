@@ -23,6 +23,7 @@ module Database.InfluxDB.Write
 ) where
 import Control.Exception
 import Control.Monad
+import Data.Maybe
 
 import Control.Lens
 import qualified Data.Aeson as A
@@ -140,16 +141,34 @@ writeRequest WriteParams {..} =
         return ("rp", Just (TE.encodeUtf8 name))
       ]
 
-makeLenses ''WriteParams
+makeLensesWith (lensRules & generateSignatures .~ False) ''WriteParams
+
+server :: Lens' WriteParams Server
 
 instance HasServer WriteParams where
   server = Database.InfluxDB.Write.server
 
+database :: Lens' WriteParams Database
+
 instance HasDatabase WriteParams where
   database = Database.InfluxDB.Write.database
+
+-- | Target retention policy forthe write.
+--
+-- InfluxDB writes to the @DEFAULT@ retention policy if this parameter is set
+-- to 'Nothing'.
+retentionPolicy :: Lens' WriteParams (Maybe RetentionPolicy)
+
+precision :: Lens' WriteParams (Precision 'WriteRequest)
 
 instance HasPrecision 'WriteRequest WriteParams where
   precision = Database.InfluxDB.Write.precision
 
+manager :: Lens' WriteParams (Either HC.ManagerSettings HC.Manager)
+
+-- | HTTP manager settings or a manager itself.
+--
+-- If it's set to 'HC.ManagerSettings', the library will create a 'HC.Manager'
+-- from the settings for you.
 instance HasManager WriteParams where
   manager = Database.InfluxDB.Write.manager
