@@ -60,14 +60,14 @@ library
     , containers >= 0.5 && < 0.6
     , foldl < 1.3
     , http-types >= 0.8.6 && < 0.10
-    , lens >= 4.9 && < 4.15
+    , lens >= 4.9 && < 4.16
     , network >= 2.6 && < 2.7
     , optional-args >= 1.0 && < 1.1
     , scientific >= 0.3.3 && < 0.4
     , template-haskell >= 2.9 && < 2.12
     , text < 1.3
     , time >= 1.5 && < 1.7
-    , vector >= 0.10 && < 0.11
+    , vector >= 0.10 && < 0.12
   if flag(http-client-05)
     build-depends: http-client >= 0.5 && < 0.6
   else
