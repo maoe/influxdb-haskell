@@ -164,7 +164,7 @@ queryChunked
   -- points, whichever occurs first. If it set to a 'Specific' value, InfluxDB
   -- chunks responses by series or by that number of points.
   -> Query
-  -> Fold.FoldM IO a r
+  -> Fold.FoldM IO (Vector a) r
   -> IO r
 queryChunked params chunkSize q
   (Fold.FoldM step initialize extract) = do
@@ -197,7 +197,7 @@ queryChunked params chunkSize q
         AB.Done leftover val ->
           case A.parse (parseResults (_precision params)) val of
             A.Success vec -> do
-              x' <- V.foldM' step x vec
+              x' <- step x vec
               loop resp x' k0 leftover
             A.Error message -> do
               let status = HC.responseStatus resp

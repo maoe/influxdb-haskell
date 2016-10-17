@@ -62,7 +62,7 @@ main = do
         (Just time)
 
   queryChunked qparams Default (F.formatQuery ("SELECT * FROM "%F.key) ct1) $
-    Fold.mapM_ $ \Row {..} ->
+    Fold.mapM_ $ traverse_ $ \Row {..} ->
       printf "%s:\t%s\n"
         (show $ posixSecondsToUTCTime rowTime)
         (show rowValue)
