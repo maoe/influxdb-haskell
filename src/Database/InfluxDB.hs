@@ -47,6 +47,7 @@ module Database.InfluxDB
   , parseResultsWith
   , parseField
   , parseTimestamp
+  , parseFieldValue
   , parseKey
 
   -- * Database management

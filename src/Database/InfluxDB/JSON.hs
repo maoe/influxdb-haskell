@@ -21,6 +21,7 @@ module Database.InfluxDB.JSON
   , parseTimestamp
   , parsePOSIXTime
   , parseRFC3339
+  , parseFieldValue
   ) where
 import Control.Applicative
 import Control.Exception
@@ -154,3 +155,15 @@ parseRFC3339 val = A.withText err
     fmt, err :: String
     fmt = "%FT%X%QZ"
     err = "RFC3339-formatted timestamp"
+
+parseFieldValue :: A.Value -> A.Parser FieldValue
+parseFieldValue val = case val of
+  A.Number sci ->
+    return $! either FieldFloat FieldInt $ Sci.floatingOrInteger sci
+  A.String txt ->
+    return $! FieldString txt
+  A.Bool b ->
+    return $! FieldBool b
+  A.Null ->
+    return FieldNull
+  _ -> fail "parseFieldValue: expected a flat data structure"
