@@ -65,6 +65,86 @@ instance QueryResults () where
         V.forM results $ A.withObject "{}" $ \obj ->
           guard $ obj == mempty
 
+instance (a ~ Value, b ~ Value) => QueryResults (a, b) where
+  parseResults _ = parseResultsWith $ \_ fields ->
+    maybe (fail $ "invalid fields: " ++ show fields) return $ do
+      a <- fields V.!? 0
+      b <- fields V.!? 1
+      return (a, b)
+
+instance (a ~ Value, b ~ Value, c ~ Value)
+  => QueryResults (a, b, c) where
+    parseResults _ = parseResultsWith $ \_ fields ->
+      maybe (fail $ "invalid fields: " ++ show fields) return $ do
+        a <- fields V.!? 0
+        b <- fields V.!? 1
+        c <- fields V.!? 2
+        return (a, b, c)
+
+instance (a ~ Value, b ~ Value, c ~ Value, d ~ Value)
+  => QueryResults (a, b, c, d) where
+    parseResults _ = parseResultsWith $ \_ fields ->
+      maybe (fail $ "invalid fields: " ++ show fields) return $ do
+        a <- fields V.!? 0
+        b <- fields V.!? 1
+        c <- fields V.!? 2
+        d <- fields V.!? 3
+        return (a, b, c, d)
+
+instance (a ~ Value, b ~ Value, c ~ Value, d ~ Value, e ~ Value)
+  => QueryResults (a, b, c, d, e) where
+    parseResults _ = parseResultsWith $ \_ fields ->
+      maybe (fail $ "invalid fields: " ++ show fields) return $ do
+        a <- fields V.!? 0
+        b <- fields V.!? 1
+        c <- fields V.!? 2
+        d <- fields V.!? 3
+        e <- fields V.!? 4
+        return (a, b, c, d, e)
+
+instance (a ~ Value, b ~ Value, c ~ Value, d ~ Value, e ~ Value, f ~ Value)
+  => QueryResults (a, b, c, d, e, f) where
+    parseResults _ = parseResultsWith $ \_ fields ->
+      maybe (fail $ "invalid fields: " ++ show fields) return $ do
+        a <- fields V.!? 0
+        b <- fields V.!? 1
+        c <- fields V.!? 2
+        d <- fields V.!? 3
+        e <- fields V.!? 4
+        f <- fields V.!? 5
+        return (a, b, c, d, e, f)
+
+instance
+  ( a ~ Value, b ~ Value, c ~ Value, d ~ Value, e ~ Value, f ~ Value
+  , g ~ Value )
+  => QueryResults (a, b, c, d, e, f, g) where
+    parseResults _ = parseResultsWith $ \_ fields ->
+      maybe (fail $ "invalid fields: " ++ show fields) return $ do
+        a <- fields V.!? 0
+        b <- fields V.!? 1
+        c <- fields V.!? 2
+        d <- fields V.!? 3
+        e <- fields V.!? 4
+        f <- fields V.!? 5
+        g <- fields V.!? 6
+        return (a, b, c, d, e, f, g)
+
+instance
+  ( a ~ Value, b ~ Value, c ~ Value, d ~ Value, e ~ Value, f ~ Value
+  , g ~ Value, h ~ Value )
+  => QueryResults (a, b, c, d, e, f, g, h) where
+    parseResults _ = parseResultsWith $ \_ fields ->
+      maybe (fail $ "invalid fields: " ++ show fields) return $ do
+        a <- fields V.!? 0
+        b <- fields V.!? 1
+        c <- fields V.!? 2
+        d <- fields V.!? 3
+        e <- fields V.!? 4
+        f <- fields V.!? 5
+        g <- fields V.!? 6
+        h <- fields V.!? 6
+        return (a, b, c, d, e, f, g, h)
+
 parseKey :: Value -> Array -> Array -> A.Parser Key
 parseKey name columns fields = do
   case V.elemIndex name columns >>= V.indexM fields of
