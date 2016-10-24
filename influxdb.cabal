@@ -96,6 +96,8 @@ test-suite test-suite
   default-language: Haskell2010
 
 executable influx-random-points
+  if !flag(examples)
+    buildable: False
   hs-source-dirs: examples
   main-is: random-points.hs
   ghc-options: -Wall
@@ -116,6 +118,8 @@ executable influx-random-points
   default-language: Haskell2010
 
 executable influx-write-udp
+  if !flag(examples)
+    buildable: False
   hs-source-dirs: examples
   main-is: write-udp.hs
   ghc-options: -Wall
