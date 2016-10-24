@@ -29,7 +29,6 @@ import Control.Monad
 import Data.Maybe
 
 import Data.Aeson
-import Data.Time.Clock
 import Data.Time.Clock.POSIX
 import Data.Time.Format
 import Data.Vector (Vector)
@@ -146,7 +145,7 @@ parsePOSIXTime prec val = case prec of
 --
 -- Note that this parser is slow as it converts a 'T.Text' input to a 'String'
 -- before parsing.
-parseRFC3339 :: A.Value -> A.Parser UTCTime
+parseRFC3339 :: ParseTime time => A.Value -> A.Parser time
 parseRFC3339 val = A.withText err
   (\text -> maybe (A.typeMismatch err val) (return $!) $
     parseTimeM True defaultTimeLocale fmt $ T.unpack text)
