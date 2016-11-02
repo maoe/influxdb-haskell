@@ -82,7 +82,7 @@ data ShowQuery = ShowQuery
   } deriving Show
 
 instance QueryResults ShowQuery where
-  parseResults _ = parseResultsWith $ \columns fields _ ->
+  parseResults _ = parseResultsWith $ \_ _ columns fields ->
     maybe (fail "parseResults: parse error") return $ do
       Number (toBoundedInteger -> Just _qid) <-
         V.elemIndex "qid" columns >>= V.indexM fields
@@ -115,7 +115,7 @@ newtype ShowSeries = ShowSeries
   } deriving Show
 
 instance QueryResults ShowSeries where
-  parseResults _ = parseResultsWith $ \columns fields _ ->
+  parseResults _ = parseResultsWith $ \_ _ columns fields ->
     ShowSeries <$> parseKey "key" columns fields
 
 makeLensesWith (lensRules & generateSignatures .~ False) ''ShowQuery

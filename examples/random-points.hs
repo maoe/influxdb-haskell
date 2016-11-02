@@ -76,7 +76,7 @@ data Row = Row
   } deriving Show
 
 instance QueryResults Row where
-  parseResults prec = parseResultsWith $ \columns fields -> do
+  parseResults prec = parseResultsWith $ \_ _ columns fields -> do
     rowTime <- parseField "time" columns fields >>= parseTimestamp prec
     String name <- parseField "value" columns fields
     rowValue <- case name of
