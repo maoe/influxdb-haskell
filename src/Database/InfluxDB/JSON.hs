@@ -29,6 +29,7 @@ import Control.Monad
 import Data.Maybe
 
 import Data.Aeson
+import Data.Text (Text)
 import Data.Time.Clock.POSIX
 import Data.Time.Format
 import Data.Vector (Vector)
@@ -40,19 +41,28 @@ import qualified Data.Vector as V
 import Database.InfluxDB.Types
 
 parseResultsWith
-  :: (Array -> Array -> Maybe Array -> A.Parser a)
+  :: (Maybe Text -> Maybe Array -> Array -> Array -> A.Parser a)
+  -- ^ A parser that takes
+  --
+  -- 1. an optional name of the series
+  -- 2. an optional array of tags
+  -- 3. an array of field names
+  -- 4. an array of values
+  --
+  -- to construct a value.
   -> Value
   -> A.Parser (Vector a)
 parseResultsWith = parseResultsWithDecoder lenientDecoder
 
 parseResultsWithDecoder
   :: Decoder a
-  -> (Array -> Array -> Maybe Array -> A.Parser a)
+  -> (Maybe Text -> Maybe Array -> Array -> Array -> A.Parser a)
   -- ^ A parser that takes
   --
-  -- 1. an array of field names
-  -- 2. an array of values
-  -- 3. an optional array of tags
+  -- 1. an optional name of the series
+  -- 2. an optional array of tags
+  -- 3. an array of field names
+  -- 4. an array of values
   --
   -- to construct a value.
   -> Value
@@ -67,10 +77,10 @@ parseResultsWithDecoder Decoder {..} row val0 = success <|> errorObject val0
           (join -> series) <- V.forM results $ \val ->
             seriesObject val <|> errorObject val
           values <- V.forM series $ \val -> do
-            (columns, values, tags) <- columnsValuesObject val
+            (name, tags, columns, values) <- columnsValuesObject val
             decodeFold $ V.forM values $ A.withArray "values" $ \fields -> do
               assert (V.length columns == V.length fields) $ return ()
-              decodeEach $ row columns fields tags
+              decodeEach $ row name tags columns fields
           return $! join values
 
 data Decoder a = forall b. Decoder
@@ -114,12 +124,13 @@ seriesObject = A.withObject "series" $ \obj -> do
   Array series <- obj .: "series"
   return series
 
-columnsValuesObject :: Value -> A.Parser (Array, Array, Maybe Array)
+columnsValuesObject :: Value -> A.Parser (Maybe Text, Maybe Array, Array, Array)
 columnsValuesObject = A.withObject "columns/values" $ \obj -> do
+  name <- obj .:? "name"
   Array columns <- obj .: "columns"
   Array values <- obj .: "values"
   tags <- obj .:? "tags"
-  return (columns, values, tags)
+  return (name, tags, columns, values)
 
 errorObject :: A.Value -> A.Parser a
 errorObject = A.withObject "error" $ \obj -> do
