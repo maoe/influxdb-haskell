@@ -66,7 +66,7 @@ instance QueryResults () where
           guard $ obj == mempty
 
 instance (a ~ Value, b ~ Value) => QueryResults (a, b) where
-  parseResults _ = parseResultsWith $ \_ fields ->
+  parseResults _ = parseResultsWith $ \_ fields _ ->
     maybe (fail $ "invalid fields: " ++ show fields) return $ do
       a <- fields V.!? 0
       b <- fields V.!? 1
@@ -74,7 +74,7 @@ instance (a ~ Value, b ~ Value) => QueryResults (a, b) where
 
 instance (a ~ Value, b ~ Value, c ~ Value)
   => QueryResults (a, b, c) where
-    parseResults _ = parseResultsWith $ \_ fields ->
+    parseResults _ = parseResultsWith $ \_ fields _ ->
       maybe (fail $ "invalid fields: " ++ show fields) return $ do
         a <- fields V.!? 0
         b <- fields V.!? 1
@@ -83,7 +83,7 @@ instance (a ~ Value, b ~ Value, c ~ Value)
 
 instance (a ~ Value, b ~ Value, c ~ Value, d ~ Value)
   => QueryResults (a, b, c, d) where
-    parseResults _ = parseResultsWith $ \_ fields ->
+    parseResults _ = parseResultsWith $ \_ fields _ ->
       maybe (fail $ "invalid fields: " ++ show fields) return $ do
         a <- fields V.!? 0
         b <- fields V.!? 1
@@ -93,7 +93,7 @@ instance (a ~ Value, b ~ Value, c ~ Value, d ~ Value)
 
 instance (a ~ Value, b ~ Value, c ~ Value, d ~ Value, e ~ Value)
   => QueryResults (a, b, c, d, e) where
-    parseResults _ = parseResultsWith $ \_ fields ->
+    parseResults _ = parseResultsWith $ \_ fields _ ->
       maybe (fail $ "invalid fields: " ++ show fields) return $ do
         a <- fields V.!? 0
         b <- fields V.!? 1
@@ -104,7 +104,7 @@ instance (a ~ Value, b ~ Value, c ~ Value, d ~ Value, e ~ Value)
 
 instance (a ~ Value, b ~ Value, c ~ Value, d ~ Value, e ~ Value, f ~ Value)
   => QueryResults (a, b, c, d, e, f) where
-    parseResults _ = parseResultsWith $ \_ fields ->
+    parseResults _ = parseResultsWith $ \_ fields _ ->
       maybe (fail $ "invalid fields: " ++ show fields) return $ do
         a <- fields V.!? 0
         b <- fields V.!? 1
@@ -118,7 +118,7 @@ instance
   ( a ~ Value, b ~ Value, c ~ Value, d ~ Value, e ~ Value, f ~ Value
   , g ~ Value )
   => QueryResults (a, b, c, d, e, f, g) where
-    parseResults _ = parseResultsWith $ \_ fields ->
+    parseResults _ = parseResultsWith $ \_ fields _ ->
       maybe (fail $ "invalid fields: " ++ show fields) return $ do
         a <- fields V.!? 0
         b <- fields V.!? 1
@@ -133,7 +133,7 @@ instance
   ( a ~ Value, b ~ Value, c ~ Value, d ~ Value, e ~ Value, f ~ Value
   , g ~ Value, h ~ Value )
   => QueryResults (a, b, c, d, e, f, g, h) where
-    parseResults _ = parseResultsWith $ \_ fields ->
+    parseResults _ = parseResultsWith $ \_ fields _ ->
       maybe (fail $ "invalid fields: " ++ show fields) return $ do
         a <- fields V.!? 0
         b <- fields V.!? 1
