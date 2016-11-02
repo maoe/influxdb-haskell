@@ -40,16 +40,21 @@ import qualified Data.Vector as V
 import Database.InfluxDB.Types
 
 parseResultsWith
-  :: (Array -> Array -> A.Parser a)
+  :: (Array -> Array -> Maybe Array -> A.Parser a)
   -> Value
   -> A.Parser (Vector a)
 parseResultsWith = parseResultsWithDecoder lenientDecoder
 
 parseResultsWithDecoder
   :: Decoder a
-  -> (Array -> Array -> A.Parser a)
-  -- ^ A parser that constucts a value from an array of field names and field
-  -- values
+  -> (Array -> Array -> Maybe Array -> A.Parser a)
+  -- ^ A parser that takes
+  --
+  -- 1. an array of field names
+  -- 2. an array of values
+  -- 3. an optional array of tags
+  --
+  -- to construct a value.
   -> Value
   -> A.Parser (Vector a)
 parseResultsWithDecoder Decoder {..} row val0 = success <|> errorObject val0
@@ -62,10 +67,10 @@ parseResultsWithDecoder Decoder {..} row val0 = success <|> errorObject val0
           (join -> series) <- V.forM results $ \val ->
             seriesObject val <|> errorObject val
           values <- V.forM series $ \val -> do
-            (columns, values) <- columnsValuesObject val
+            (columns, values, tags) <- columnsValuesObject val
             decodeFold $ V.forM values $ A.withArray "values" $ \fields -> do
               assert (V.length columns == V.length fields) $ return ()
-              decodeEach $ row columns fields
+              decodeEach $ row columns fields tags
           return $! join values
 
 data Decoder a = forall b. Decoder
@@ -109,11 +114,12 @@ seriesObject = A.withObject "series" $ \obj -> do
   Array series <- obj .: "series"
   return series
 
-columnsValuesObject :: Value -> A.Parser (Array, Array)
+columnsValuesObject :: Value -> A.Parser (Array, Array, Maybe Array)
 columnsValuesObject = A.withObject "columns/values" $ \obj -> do
   Array columns <- obj .: "columns"
   Array values <- obj .: "values"
-  return (columns, values)
+  tags <- obj .:? "tags"
+  return (columns, values, tags)
 
 errorObject :: A.Value -> A.Parser a
 errorObject = A.withObject "error" $ \obj -> do
