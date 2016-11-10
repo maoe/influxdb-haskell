@@ -15,6 +15,8 @@ module Database.InfluxDB.JSON
   , lenientDecoder
 
   , getField
+  , getTag
+
   , parseTimestamp
   , parsePOSIXTime
   , parseRFC3339
@@ -116,6 +118,15 @@ getField (A.String -> column) columns fields = do
     Just idx -> case V.indexM fields idx of
       Nothing -> fail $ "getField: index out of bound for " ++ show column
       Just field -> return field
+
+getTag
+  :: T.Text -- ^ Tag name
+  -> Array -- ^ Tags
+  -> A.Parser T.Text
+getTag (A.String -> tag) tags =
+  case V.find (== tag) tags of
+    Nothing -> fail $ "getTag: no such tag " ++ show tag
+    Just val -> A.withText "tag" return val
 
 parseResultsObject :: Value -> A.Parser (Vector A.Value)
 parseResultsObject = A.withObject "results" $ \obj -> do
