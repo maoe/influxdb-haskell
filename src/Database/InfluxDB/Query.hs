@@ -58,7 +58,7 @@ class QueryResults a where
     -> A.Parser (Vector a)
 
 instance QueryResults () where
-  parseResults _ val = success <|> errorObject val
+  parseResults _ val = success <|> parseErrorObject val
     where
       success = do
         results <- parseResultsObject val
