@@ -61,7 +61,7 @@ instance QueryResults () where
   parseResults _ val = success <|> errorObject val
     where
       success = do
-        results <- resultsObject val
+        results <- parseResultsObject val
         V.forM results $ A.withObject "{}" $ \obj ->
           guard $ obj == mempty
 
