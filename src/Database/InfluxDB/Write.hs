@@ -107,7 +107,7 @@ writeByteString params payload = do
     else case A.eitherDecode' body of
       Left message ->
         throwIO $ IllformedJSON message body
-      Right val -> case A.parse errorObject val of
+      Right val -> case A.parse parseErrorObject val of
         A.Success _ ->
           fail $ "BUG: impossible code path in Database.InfluxDB.Write.writeByteString"
         A.Error message -> do

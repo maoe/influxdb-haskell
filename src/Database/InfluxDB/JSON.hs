@@ -23,7 +23,7 @@ module Database.InfluxDB.JSON
   , parseResultsObject
   , parseSeriesObject
   , parseSeriesBody
-  , errorObject
+  , parseErrorObject
   ) where
 import Control.Applicative
 import Control.Exception
@@ -69,7 +69,7 @@ parseResultsWithDecoder
   -- to construct a value.
   -> Value
   -> A.Parser (Vector a)
-parseResultsWithDecoder Decoder {..} row val0 = success <|> errorObject val0
+parseResultsWithDecoder Decoder {..} row val0 = success <|> parseErrorObject val0
   where
     success = do
       results <- parseResultsObject val0
@@ -77,7 +77,7 @@ parseResultsWithDecoder Decoder {..} row val0 = success <|> errorObject val0
         then return V.empty
         else do
           (join -> series) <- V.forM results $ \val ->
-            parseSeriesObject val <|> errorObject val
+            parseSeriesObject val <|> parseErrorObject val
           values <- V.forM series $ \val -> do
             (name, tags, columns, values) <- parseSeriesBody val
             decodeFold $ V.forM values $ A.withArray "values" $ \fields -> do
@@ -135,8 +135,8 @@ parseSeriesBody = A.withObject "columns/values" $ \obj -> do
   tags <- obj .:? "tags"
   return (name, tags, columns, values)
 
-errorObject :: A.Value -> A.Parser a
-errorObject = A.withObject "error" $ \obj -> do
+parseErrorObject :: A.Value -> A.Parser a
+parseErrorObject = A.withObject "error" $ \obj -> do
   String message <- obj .: "error"
   fail $ T.unpack message
 
