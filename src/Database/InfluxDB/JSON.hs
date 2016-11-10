@@ -13,15 +13,17 @@ module Database.InfluxDB.JSON
   , Decoder(..)
   , strictDecoder
   , lenientDecoder
-  , parseField
-  , resultsObject
-  , seriesObject
-  , columnsValuesObject
-  , errorObject
+
+  , getField
   , parseTimestamp
   , parsePOSIXTime
   , parseRFC3339
   , parseFieldValue
+
+  , parseResultsObject
+  , parseSeriesObject
+  , parseSeriesBody
+  , errorObject
   ) where
 import Control.Applicative
 import Control.Exception
@@ -70,14 +72,14 @@ parseResultsWithDecoder
 parseResultsWithDecoder Decoder {..} row val0 = success <|> errorObject val0
   where
     success = do
-      results <- resultsObject val0
+      results <- parseResultsObject val0
       if results == V.fromList [A.emptyObject]
         then return V.empty
         else do
           (join -> series) <- V.forM results $ \val ->
-            seriesObject val <|> errorObject val
+            parseSeriesObject val <|> errorObject val
           values <- V.forM series $ \val -> do
-            (name, tags, columns, values) <- columnsValuesObject val
+            (name, tags, columns, values) <- parseSeriesBody val
             decodeFold $ V.forM values $ A.withArray "values" $ \fields -> do
               assert (V.length columns == V.length fields) $ return ()
               decodeEach $ row name tags columns fields
@@ -102,30 +104,31 @@ lenientDecoder = Decoder
     return $! V.map fromJust $ V.filter isJust bs
   }
 
-parseField
+-- | Get a field value which corresponds to a given column name
+getField
   :: T.Text -- ^ Column name
   -> Array -- ^ Columns
   -> Array -- ^ Fields
   -> A.Parser Value
-parseField (A.String -> column) columns fields = do
+getField (A.String -> column) columns fields = do
   case V.elemIndex column columns of
-    Nothing -> fail $ "parseField: no such column " ++ show column
+    Nothing -> fail $ "getField: no such column " ++ show column
     Just idx -> case V.indexM fields idx of
-      Nothing -> fail $ "parseField: index out of bound for " ++ show column
+      Nothing -> fail $ "getField: index out of bound for " ++ show column
       Just field -> return field
 
-resultsObject :: Value -> A.Parser (Vector A.Value)
-resultsObject = A.withObject "results" $ \obj -> do
+parseResultsObject :: Value -> A.Parser (Vector A.Value)
+parseResultsObject = A.withObject "results" $ \obj -> do
   Array results <- obj .: "results"
   return results
 
-seriesObject :: Value -> A.Parser (Vector A.Value)
-seriesObject = A.withObject "series" $ \obj -> do
+parseSeriesObject :: Value -> A.Parser (Vector A.Value)
+parseSeriesObject = A.withObject "series" $ \obj -> do
   Array series <- obj .: "series"
   return series
 
-columnsValuesObject :: Value -> A.Parser (Maybe Text, Maybe Array, Array, Array)
-columnsValuesObject = A.withObject "columns/values" $ \obj -> do
+parseSeriesBody :: Value -> A.Parser (Maybe Text, Maybe Array, Array, Array)
+parseSeriesBody = A.withObject "columns/values" $ \obj -> do
   name <- obj .:? "name"
   Array columns <- obj .: "columns"
   Array values <- obj .: "values"
