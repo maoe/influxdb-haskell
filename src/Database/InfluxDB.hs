@@ -46,6 +46,7 @@ module Database.InfluxDB
   , QueryResults(..)
   , parseResultsWith
   , getField
+  , getTag
   , parseTimestamp
   , parseFieldValue
   , parseKey
