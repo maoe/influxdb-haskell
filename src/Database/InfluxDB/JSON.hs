@@ -112,7 +112,7 @@ getField
   -> Array -- ^ Columns
   -> Array -- ^ Fields
   -> A.Parser Value
-getField (A.String -> column) columns fields = do
+getField (A.String -> column) columns fields =
   case V.elemIndex column columns of
     Nothing -> fail $ "getField: no such column " ++ show column
     Just idx -> case V.indexM fields idx of
