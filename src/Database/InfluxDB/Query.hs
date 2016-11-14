@@ -149,7 +149,7 @@ instance
         e <- fields V.!? 4
         f <- fields V.!? 5
         g <- fields V.!? 6
-        h <- fields V.!? 6
+        h <- fields V.!? 7
         return (a, b, c, d, e, f, g, h)
 
 parseKey :: Value -> Array -> Array -> A.Parser Key
