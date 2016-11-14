@@ -35,7 +35,7 @@ import Control.Lens
 import Data.Aeson
 import Data.Optional (Optional(..), optional)
 import Data.Vector (Vector)
-import qualified Control.Foldl as Fold
+import qualified Control.Foldl as L
 import qualified Data.Aeson.Parser as A
 import qualified Data.Aeson.Types as A
 import qualified Data.Attoparsec.ByteString as AB
@@ -244,10 +244,10 @@ queryChunked
   -- points, whichever occurs first. If it set to a 'Specific' value, InfluxDB
   -- chunks responses by series or by that number of points.
   -> Query
-  -> Fold.FoldM IO (Vector a) r
+  -> L.FoldM IO (Vector a) r
   -> IO r
 queryChunked params chunkSize q
-  (Fold.FoldM step initialize extract) = do
+  (L.FoldM step initialize extract) = do
     manager' <- either HC.newManager return $ _manager params
     HC.withResponse request manager' $ \resp -> do
       x0 <- initialize
