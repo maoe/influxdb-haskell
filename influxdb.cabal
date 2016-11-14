@@ -42,13 +42,22 @@ library
   other-extensions:
     BangPatterns
     CPP
+    DataKinds
     DeriveDataTypeable
+    DeriveGeneric
+    ExistentialQuantification
     FlexibleInstances
+    FunctionalDependencies
+    GADTs
     GeneralizedNewtypeDeriving
+    KindSignatures
+    LambdaCase
+    MultiParamTypeClasses
     NamedFieldPuns
     OverloadedStrings
     RecordWildCards
     ScopedTypeVariables
+    StandaloneDeriving
     TemplateHaskell
     ViewPatterns
   ghc-options: -Wall
