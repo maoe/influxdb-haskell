@@ -10,7 +10,9 @@
 {-# LANGUAGE TemplateHaskell #-}
 {-# LANGUAGE ViewPatterns #-}
 module Database.InfluxDB.Query
-  ( Query
+  (
+  -- * Query interface
+    Query
   , query
   , queryChunked
 
@@ -23,9 +25,13 @@ module Database.InfluxDB.Query
   , authentication
   , Types.manager
 
+  -- * Parsing results
   , QueryResults(..)
   , parseResultsWith
   , parseKey
+
+  -- * Low-level functions
+  , withQueryResponse
   ) where
 import Control.Applicative hiding (optional)
 import Control.Exception
