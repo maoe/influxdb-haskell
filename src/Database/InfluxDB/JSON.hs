@@ -44,6 +44,7 @@ import qualified Data.Vector as V
 
 import Database.InfluxDB.Types
 
+-- | Parse a JSON response
 parseResultsWith
   :: (Maybe Text -> Vector Text -> Array -> Array -> A.Parser a)
   -- ^ A parser that takes
@@ -58,6 +59,7 @@ parseResultsWith
   -> A.Parser (Vector a)
 parseResultsWith = parseResultsWithDecoder lenientDecoder
 
+-- | Parse a JSON response with specified decoder settings.
 parseResultsWithDecoder
   :: Decoder a
   -> (Maybe Text -> Vector Text -> Array -> Array -> A.Parser a)
@@ -87,17 +89,23 @@ parseResultsWithDecoder Decoder {..} row val0 = success <|> parseErrorObject val
               decodeEach $ row name tags columns fields
           return $! join values
 
+-- | Decoder settings
 data Decoder a = forall b. Decoder
   { decodeEach :: A.Parser a -> A.Parser b
+  -- ^ How to turn a parser for each element into another. For example, a
+  -- failure can be turned into 'Nothing'.
   , decodeFold :: A.Parser (Vector b) -> A.Parser (Vector a)
+  -- ^ How to aggregate all results from 'decodeEach' into a vector of results.
   }
 
+-- | Fail immediately if there's any parse failure.
 strictDecoder :: Decoder a
 strictDecoder = Decoder
   { decodeEach = id
   , decodeFold = id
   }
 
+-- | Ignore parse failures and return successful results.
 lenientDecoder :: Decoder a
 lenientDecoder = Decoder
   { decodeEach = optional
@@ -106,7 +114,7 @@ lenientDecoder = Decoder
     return $! V.map fromJust $ V.filter isJust bs
   }
 
--- | Get a field value which corresponds to a given column name
+-- | Get a field value from a column name
 getField
   :: T.Text -- ^ Column name
   -> Array -- ^ Columns
@@ -119,6 +127,7 @@ getField (A.String -> column) columns fields =
       Nothing -> fail $ "getField: index out of bound for " ++ show column
       Just field -> return field
 
+-- | Get a tag value from a tag name
 getTag
   :: T.Text -- ^ Tag name
   -> Array -- ^ Tags
