@@ -270,9 +270,10 @@ withQueryResponse
   -> Maybe (Optional Int)
   -- ^ Chunk size
   --
-  -- By 'Default', InfluxDB chunks responses by series or by every 10,000
-  -- points, whichever occurs first. If it set to a 'Specific' value, InfluxDB
-  -- chunks responses by series or by that number of points.
+  -- By 'Nothing', InfluxDB returns all matching data points at once.
+  -- By @'Just' 'Default'@, InfluxDB chunks responses by series or by every
+  -- 10,000 points, whichever occurs first. If it set to a 'Specific' value,
+  -- InfluxDB chunks responses by series or by that number of points.
   -> Query
   -> (HC.Request -> HC.Response HC.BodyReader -> IO r)
   -> IO r
