@@ -45,11 +45,11 @@ import qualified Data.Vector as V
 import Database.InfluxDB.Types
 
 parseResultsWith
-  :: (Maybe Text -> Maybe Array -> Array -> Array -> A.Parser a)
+  :: (Maybe Text -> Vector Text -> Array -> Array -> A.Parser a)
   -- ^ A parser that takes
   --
   -- 1. an optional name of the series
-  -- 2. an optional array of tags
+  -- 2. an array of tags
   -- 3. an array of field names
   -- 4. an array of values
   --
@@ -60,11 +60,11 @@ parseResultsWith = parseResultsWithDecoder lenientDecoder
 
 parseResultsWithDecoder
   :: Decoder a
-  -> (Maybe Text -> Maybe Array -> Array -> Array -> A.Parser a)
+  -> (Maybe Text -> Vector Text -> Array -> Array -> A.Parser a)
   -- ^ A parser that takes
   --
   -- 1. an optional name of the series
-  -- 2. an optional array of tags
+  -- 2. an array of tags
   -- 3. an array of field names
   -- 4. an array of values
   --
@@ -138,12 +138,12 @@ parseSeriesObject = A.withObject "series" $ \obj -> do
   Array series <- obj .: "series"
   return series
 
-parseSeriesBody :: Value -> A.Parser (Maybe Text, Maybe Array, Array, Array)
+parseSeriesBody :: Value -> A.Parser (Maybe Text, Vector Text, Array, Array)
 parseSeriesBody = A.withObject "columns/values" $ \obj -> do
   name <- obj .:? "name"
   Array columns <- obj .: "columns"
   Array values <- obj .: "values"
-  tags <- obj .:? "tags"
+  tags <- obj .:? "tags" .!= empty
   return (name, tags, columns, values)
 
 parseErrorObject :: A.Value -> A.Parser a
