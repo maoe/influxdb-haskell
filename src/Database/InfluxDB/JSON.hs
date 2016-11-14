@@ -138,14 +138,10 @@ getTag (A.String -> tag) tags =
     Just val -> A.withText "tag" return val
 
 parseResultsObject :: Value -> A.Parser (Vector A.Value)
-parseResultsObject = A.withObject "results" $ \obj -> do
-  Array results <- obj .: "results"
-  return results
+parseResultsObject = A.withObject "results" $ \obj -> obj .: "results"
 
 parseSeriesObject :: Value -> A.Parser (Vector A.Value)
-parseSeriesObject = A.withObject "series" $ \obj -> do
-  Array series <- obj .: "series"
-  return series
+parseSeriesObject = A.withObject "series" $ \obj -> obj .: "series"
 
 parseSeriesBody :: Value -> A.Parser (Maybe Text, Vector Text, Array, Array)
 parseSeriesBody = A.withObject "columns/values" $ \obj -> do
@@ -157,7 +153,7 @@ parseSeriesBody = A.withObject "columns/values" $ \obj -> do
 
 parseErrorObject :: A.Value -> A.Parser a
 parseErrorObject = A.withObject "error" $ \obj -> do
-  String message <- obj .: "error"
+  message <- obj .: "error"
   fail $ T.unpack message
 
 -- | Parse either a POSIX timestamp or RFC3339 formatted timestamp.
