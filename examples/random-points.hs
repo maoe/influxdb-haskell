@@ -16,7 +16,7 @@ import Data.Aeson
 import Data.Optional (Optional(Default))
 import Data.Time.Clock.POSIX
 import System.Random.MWC (Variate(..))
-import qualified Control.Foldl as Fold
+import qualified Control.Foldl as L
 import qualified Data.Map.Strict as Map
 import qualified Data.Text as T
 import qualified Network.HTTP.Client as HC
@@ -62,7 +62,7 @@ main = do
         (Just time)
 
   queryChunked qparams Default (F.formatQuery ("SELECT * FROM "%F.key) ct1) $
-    Fold.mapM_ $ traverse_ $ \Row {..} ->
+    L.mapM_ $ traverse_ $ \Row {..} ->
       printf "%s:\t%s\n"
         (show $ posixSecondsToUTCTime rowTime)
         (show rowValue)
