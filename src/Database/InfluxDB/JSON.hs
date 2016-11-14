@@ -33,11 +33,13 @@ import Control.Monad
 import Data.Maybe
 
 import Data.Aeson
+import Data.HashMap.Strict (HashMap)
 import Data.Text (Text)
 import Data.Time.Clock.POSIX
 import Data.Time.Format
 import Data.Vector (Vector)
 import qualified Data.Aeson.Types as A
+import qualified Data.HashMap.Strict as HashMap
 import qualified Data.Scientific as Sci
 import qualified Data.Text as T
 import qualified Data.Vector as V
@@ -46,11 +48,11 @@ import Database.InfluxDB.Types
 
 -- | Parse a JSON response
 parseResultsWith
-  :: (Maybe Text -> Vector Text -> Array -> Array -> A.Parser a)
+  :: (Maybe Text -> HashMap Text Text -> Array -> Array -> A.Parser a)
   -- ^ A parser that takes
   --
   -- 1. an optional name of the series
-  -- 2. an array of tags
+  -- 2. a map of tags
   -- 3. an array of field names
   -- 4. an array of values
   --
@@ -62,7 +64,7 @@ parseResultsWith = parseResultsWithDecoder lenientDecoder
 -- | Parse a JSON response with specified decoder settings.
 parseResultsWithDecoder
   :: Decoder a
-  -> (Maybe Text -> Vector Text -> Array -> Array -> A.Parser a)
+  -> (Maybe Text -> HashMap Text Text -> Array -> Array -> A.Parser a)
   -- ^ A parser that takes
   --
   -- 1. an optional name of the series
@@ -129,13 +131,13 @@ getField (A.String -> column) columns fields =
 
 -- | Get a tag value from a tag name
 getTag
-  :: T.Text -- ^ Tag name
-  -> Array -- ^ Tags
-  -> A.Parser T.Text
-getTag (A.String -> tag) tags =
-  case V.find (== tag) tags of
-    Nothing -> fail $ "getTag: no such tag " ++ show tag
-    Just val -> A.withText "tag" return val
+  :: Monad m
+  => Text -- ^ Tag name
+  -> HashMap Text Text -- ^ Tags
+  -> m Text
+getTag tag tags = case HashMap.lookup tag tags of
+  Nothing -> fail $ "getTag: no such tag " ++ show tag
+  Just val -> return val
 
 parseResultsObject :: Value -> A.Parser (Vector A.Value)
 parseResultsObject = A.withObject "results" $ \obj -> obj .: "results"
@@ -143,12 +145,14 @@ parseResultsObject = A.withObject "results" $ \obj -> obj .: "results"
 parseSeriesObject :: Value -> A.Parser (Vector A.Value)
 parseSeriesObject = A.withObject "series" $ \obj -> obj .: "series"
 
-parseSeriesBody :: Value -> A.Parser (Maybe Text, Vector Text, Array, Array)
-parseSeriesBody = A.withObject "columns/values" $ \obj -> do
-  name <- obj .:? "name"
-  Array columns <- obj .: "columns"
-  Array values <- obj .: "values"
-  tags <- obj .:? "tags" .!= empty
+parseSeriesBody
+  :: Value
+  -> A.Parser (Maybe Text, HashMap Text Text, Array, Array)
+parseSeriesBody = A.withObject "series" $ \obj -> do
+  !name <- obj .:? "name"
+  !columns <- obj .: "columns"
+  !values <- obj .: "values"
+  !tags <- obj .:? "tags" .!= HashMap.empty
   return (name, tags, columns, values)
 
 parseErrorObject :: A.Value -> A.Parser a
