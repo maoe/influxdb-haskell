@@ -118,7 +118,7 @@ lenientDecoder = Decoder
 
 -- | Get a field value from a column name
 getField
-  :: T.Text -- ^ Column name
+  :: Text -- ^ Column name
   -> Array -- ^ Columns
   -> Array -- ^ Fields
   -> A.Parser Value
