@@ -1,3 +1,4 @@
+{-# LANGUAGE BangPatterns #-}
 {-# LANGUAGE DataKinds #-}
 {-# LANGUAGE FlexibleInstances #-}
 {-# LANGUAGE GADTs #-}
@@ -186,31 +187,17 @@ queryParams _database = QueryParams
 --
 -- It may throw 'InfluxException'.
 query :: QueryResults a => QueryParams -> Query -> IO (Vector a)
-query params q = do
-  manager' <- either HC.newManager return $ _manager params
-  response <- HC.httpLbs request manager'
-  let body = HC.responseBody response
-  case eitherDecode' body of
-    Left message ->
-      throwIO $ IllformedJSON message body
-    Right val -> case A.parse (parseResults (_precision params)) val of
-      A.Success vec -> return vec
-      A.Error message -> do
-        let status = HC.responseStatus response
-        when (HT.statusIsServerError status) $
-          throwIO $ ServerError message
-        when (HT.statusIsClientError status) $
-          throwIO $ BadRequest message request
-        fail $ "BUG: " ++ message ++ " in Database.InfluxDB.Query.query - "
-          ++ show body
+query params q = withQueryResponse params Nothing q go
   where
-    request =
-      HC.setQueryString (setPrecision (_precision params) qs) $
-        queryRequest params
-    qs =
-      [ ("q", Just $ F.fromQuery q)
-      , ("db", Just $ TE.encodeUtf8 $ databaseName $ _database params)
-      ]
+    go request response = do
+      chunks <- HC.brConsume $ HC.responseBody response
+      let body = BL.fromChunks chunks
+      case eitherDecode' body of
+        Left message -> throwIO $ IllformedJSON message body
+        Right val -> case A.parse (parseResults (_precision params)) val of
+          A.Success vec -> return vec
+          A.Error message ->
+            errorQuery request response message
 
 setPrecision
   :: Precision 'QueryRequest
@@ -246,47 +233,64 @@ queryChunked
   -> Query
   -> L.FoldM IO (Vector a) r
   -> IO r
-queryChunked params chunkSize q
-  (L.FoldM step initialize extract) = do
-    manager' <- either HC.newManager return $ _manager params
-    HC.withResponse request manager' $ \resp -> do
+queryChunked params chunkSize q (L.FoldM step initialize extract) =
+  withQueryResponse params (Just chunkSize) q go
+  where
+    go request response = do
       x0 <- initialize
-      chunk0 <- HC.responseBody resp
-      x <- loop resp x0 k0 chunk0
+      chunk0 <- HC.responseBody response
+      x <- loop x0 k0 chunk0
       extract x
+      where
+        k0 = AB.parse A.json
+        loop x k chunk
+          | B.null chunk = return x
+          | otherwise = case k chunk of
+            AB.Fail unconsumed _contexts message ->
+              throwIO $ IllformedJSON message $ BL.fromStrict unconsumed
+            AB.Partial k' -> do
+              chunk' <- HC.responseBody response
+              loop x k' chunk'
+            AB.Done leftover val ->
+              case A.parse (parseResults (_precision params)) val of
+                A.Success vec -> do
+                  x' <- step x vec
+                  loop x' k0 leftover
+                A.Error message ->
+                  errorQuery request response message
+
+withQueryResponse
+  :: QueryParams
+  -> Maybe (Optional Int)
+  -- ^ Chunk size
+  --
+  -- By 'Default', InfluxDB chunks responses by series or by every 10,000
+  -- points, whichever occurs first. If it set to a 'Specific' value, InfluxDB
+  -- chunks responses by series or by that number of points.
+  -> Query
+  -> (HC.Request -> HC.Response HC.BodyReader -> IO r)
+  -> IO r
+withQueryResponse params chunkSize q f = do
+    manager' <- either HC.newManager return $ _manager params
+    HC.withResponse request manager' (f request)
   where
     request =
-      HC.setQueryString (setPrecision (_precision params) qs) $
+      HC.setQueryString (setPrecision (_precision params) queryString) $
         queryRequest params
-    qs =
+    queryString = addChunkedParam
       [ ("q", Just $ F.fromQuery q)
-      , ("db", Just $ TE.encodeUtf8 $ databaseName $ _database params)
-      , ("chunked", Just $ optional "true" (decodeChunkSize . max 1) chunkSize)
+      , ("db", Just db)
       ]
       where
+        !db = TE.encodeUtf8 $ databaseName $ _database params
+    addChunkedParam ps = case chunkSize of
+      Nothing -> ps
+      Just size ->
+        let !chunked = optional "true" (decodeChunkSize . max 1) size
+        in ("chunked", Just chunked) : ps
+      where
         decodeChunkSize = BL.toStrict . BB.toLazyByteString . BB.intDec
-    k0 = AB.parse A.json
-    loop resp x k chunk
-      | B.null chunk = return x
-      | otherwise = case k chunk of
-        AB.Fail unconsumed _contexts message ->
-          throwIO $ IllformedJSON message (BL.fromStrict unconsumed)
-        AB.Partial k' -> do
-          chunk' <- HC.responseBody resp
-          loop resp x k' chunk'
-        AB.Done leftover val ->
-          case A.parse (parseResults (_precision params)) val of
-            A.Success vec -> do
-              x' <- step x vec
-              loop resp x' k0 leftover
-            A.Error message -> do
-              let status = HC.responseStatus resp
-              when (HT.statusIsServerError status) $
-                throwIO $ ServerError message
-              when (HT.statusIsClientError status) $
-                throwIO $ BadRequest message request
-              fail $ "BUG: " ++ message
-                ++ " in Database.InfluxDB.Query.queryChunked"
+
 
 queryRequest :: QueryParams -> HC.Request
 queryRequest QueryParams {..} = HC.defaultRequest
@@ -298,6 +302,16 @@ queryRequest QueryParams {..} = HC.defaultRequest
   }
   where
     Server {..} = _server
+
+errorQuery :: HC.Request -> HC.Response body -> String -> IO a
+errorQuery request response message = do
+  let status = HC.responseStatus response
+  when (HT.statusIsServerError status) $
+    throwIO $ ServerError message
+  when (HT.statusIsClientError status) $
+    throwIO $ BadRequest message request
+  fail $ "BUG: " ++ message ++ " in Database.InfluxDB.Query.query - "
+    ++ show request
 
 makeLensesWith (lensRules & generateSignatures .~ False) ''QueryParams
 
