@@ -48,7 +48,7 @@ import Database.InfluxDB.Types
 
 -- | Parse a JSON response
 parseResultsWith
-  :: (Maybe Text -> HashMap Text Text -> Array -> Array -> A.Parser a)
+  :: (Maybe Text -> HashMap Text Text -> Vector Text -> Array -> A.Parser a)
   -- ^ A parser that takes
   --
   -- 1. an optional name of the series
@@ -64,11 +64,11 @@ parseResultsWith = parseResultsWithDecoder lenientDecoder
 -- | Parse a JSON response with specified decoder settings.
 parseResultsWithDecoder
   :: Decoder a
-  -> (Maybe Text -> HashMap Text Text -> Array -> Array -> A.Parser a)
+  -> (Maybe Text -> HashMap Text Text -> Vector Text -> Array -> A.Parser a)
   -- ^ A parser that takes
   --
   -- 1. an optional name of the series
-  -- 2. an array of tags
+  -- 2. a map of tags
   -- 3. an array of field names
   -- 4. an array of values
   --
@@ -119,10 +119,10 @@ lenientDecoder = Decoder
 -- | Get a field value from a column name
 getField
   :: Text -- ^ Column name
-  -> Array -- ^ Columns
+  -> Vector Text -- ^ Columns
   -> Array -- ^ Fields
   -> A.Parser Value
-getField (A.String -> column) columns fields =
+getField column columns fields =
   case V.elemIndex column columns of
     Nothing -> fail $ "getField: no such column " ++ show column
     Just idx -> case V.indexM fields idx of
@@ -147,7 +147,7 @@ parseSeriesObject = A.withObject "series" $ \obj -> obj .: "series"
 
 parseSeriesBody
   :: Value
-  -> A.Parser (Maybe Text, HashMap Text Text, Array, Array)
+  -> A.Parser (Maybe Text, HashMap Text Text, Vector Text, Array)
 parseSeriesBody = A.withObject "series" $ \obj -> do
   !name <- obj .:? "name"
   !columns <- obj .: "columns"
