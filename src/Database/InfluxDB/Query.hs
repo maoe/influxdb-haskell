@@ -41,6 +41,7 @@ import Text.Printf
 import Control.Lens
 import Data.Aeson
 import Data.Optional (Optional(..), optional)
+import Data.Text (Text)
 import Data.Vector (Vector)
 import qualified Control.Foldl as L
 import qualified Data.Aeson.Parser as A
@@ -152,8 +153,8 @@ instance
         h <- fields V.!? 7
         return (a, b, c, d, e, f, g, h)
 
-parseKey :: Value -> Array -> Array -> A.Parser Key
-parseKey name columns fields = do
+parseKey :: Key -> Vector Text -> Array -> A.Parser Key
+parseKey (Key name) columns fields = do
   case V.elemIndex name columns >>= V.indexM fields of
     Just (String (F.formatKey F.text -> key)) -> return key
     _ -> fail $ printf "parseKey: %s not found in columns" $ show name
