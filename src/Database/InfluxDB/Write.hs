@@ -49,6 +49,8 @@ data WriteParams = WriteParams
   -- ^ Timestamp precision
   --
   -- In the HTTP API, timestamps are scaled by the given precision.
+  , _authentication  :: !(Maybe Credentials)
+  -- ^ No authentication by default
   , _manager :: !(Either HC.ManagerSettings HC.Manager)
   -- ^ HTTP connection manager
   }
@@ -66,6 +68,7 @@ writeParams _database = WriteParams
   { _server = localServer
   , _precision = Nanosecond
   , _retentionPolicy = Nothing
+  , _authentication = Nothing
   , _manager = Left HC.defaultManagerSettings
   , ..
   }
@@ -134,12 +137,16 @@ writeRequest WriteParams {..} =
     }
   where
     Server {..} = _server
-    qs = catMaybes
+    qs = catMaybes $
       [ Just ("db", Just $ TE.encodeUtf8 $ databaseName _database)
       , do
         Key name <- _retentionPolicy
         return ("rp", Just (TE.encodeUtf8 name))
-      ]
+      ] ++ fromJust (do
+        Credentials { _user = u, _password = p } <- _authentication
+        return [ Just ("u", Just (TE.encodeUtf8 u))
+               , Just ("p", Just (TE.encodeUtf8 p))
+               ])
 
 makeLensesWith (lensRules & generateSignatures .~ False) ''WriteParams
 
@@ -188,3 +195,13 @@ manager :: Lens' WriteParams (Either HC.ManagerSettings HC.Manager)
 -- >>> p & manager .~ Left HC.defaultManagerSettings
 instance HasManager WriteParams where
   manager = Database.InfluxDB.Write.manager
+
+-- | Authentication info for the write
+--
+-- >>> let p = writeParams "foo"
+-- >>> p ^. authentication
+-- Nothing
+authentication :: Lens' WriteParams (Maybe Credentials)
+
+instance HasCredentials WriteParams where
+  authentication = Database.InfluxDB.Write.authentication

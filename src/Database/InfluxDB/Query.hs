@@ -22,7 +22,6 @@ module Database.InfluxDB.Query
   , Types.server
   , Types.database
   , Types.precision
-  , authentication
   , Types.manager
 
   -- * Parsing results
@@ -366,3 +365,6 @@ instance HasManager QueryParams where
 -- >>> p ^. authentication
 -- Nothing
 authentication :: Lens' QueryParams (Maybe Credentials)
+
+instance HasCredentials QueryParams where
+  authentication = Database.InfluxDB.Query.authentication
