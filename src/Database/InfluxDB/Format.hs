@@ -15,6 +15,7 @@ module Database.InfluxDB.Format
 
   , database
   , key
+  , keys
   , fieldVal
   , decimal
   , realFloat
@@ -30,6 +31,7 @@ import Data.Time
 import qualified Data.ByteString as B
 import qualified Data.ByteString.Lazy as BL
 import qualified Data.ByteString.Lazy.Builder as BL
+import qualified Data.List as L
 import qualified Data.Text as T
 import qualified Data.Text.Encoding as T
 import qualified Data.Text.Lazy as TL
@@ -73,8 +75,14 @@ makeFormat build = Format $ \k a -> k $ build a
 database :: Format r (Database -> r)
 database = makeFormat $ \(Database name) -> "\"" <> TL.fromText name <> "\""
 
+keyBuilder :: Key -> TL.Builder
+keyBuilder (Key name) = "\"" <> TL.fromText name <> "\""
+
 key :: Format r (Key -> r)
-key = makeFormat $ \(Key name) -> "\"" <> TL.fromText name <> "\""
+key = makeFormat keyBuilder
+
+keys :: Format r ([Key] -> r)
+keys = makeFormat $ mconcat . L.intersperse "," . map keyBuilder
 
 fieldVal :: Format r (FieldValue -> r)
 fieldVal = makeFormat $ \case
