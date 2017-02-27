@@ -75,21 +75,19 @@ parseResultsWithDecoder
   -- to construct a value.
   -> Value
   -> A.Parser (Vector a)
-parseResultsWithDecoder Decoder {..} row val0 = success <|> parseErrorObject val0
+parseResultsWithDecoder Decoder {..} row val0 = success
   where
     success = do
       results <- parseResultsObject val0
-      if results == V.fromList [A.emptyObject]
-        then return V.empty
-        else do
-          (join -> series) <- V.forM results $ \val ->
-            parseSeriesObject val <|> parseErrorObject val
-          values <- V.forM series $ \val -> do
-            (name, tags, columns, values) <- parseSeriesBody val
-            decodeFold $ V.forM values $ A.withArray "values" $ \fields -> do
-              assert (V.length columns == V.length fields) $ return ()
-              decodeEach $ row name tags columns fields
-          return $! join values
+
+      (join -> series) <- V.forM results $ \val ->
+        parseSeriesObject val <|> parseErrorObject val
+      values <- V.forM series $ \val -> do
+        (name, tags, columns, values) <- parseSeriesBody val
+        decodeFold $ V.forM values $ A.withArray "values" $ \fields -> do
+          assert (V.length columns == V.length fields) $ return ()
+          decodeEach $ row name tags columns fields
+      return $! join values
 
 -- | Decoder settings
 data Decoder a = forall b. Decoder
@@ -143,7 +141,8 @@ parseResultsObject :: Value -> A.Parser (Vector A.Value)
 parseResultsObject = A.withObject "results" $ \obj -> obj .: "results"
 
 parseSeriesObject :: Value -> A.Parser (Vector A.Value)
-parseSeriesObject = A.withObject "series" $ \obj -> obj .: "series"
+parseSeriesObject = A.withObject "series" $ \obj ->
+  fromMaybe V.empty <$> obj .:? "series"
 
 parseSeriesBody
   :: Value
