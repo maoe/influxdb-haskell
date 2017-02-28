@@ -33,7 +33,6 @@ module Database.InfluxDB.Query
   -- * Low-level functions
   , withQueryResponse
   ) where
-import Control.Applicative hiding (optional)
 import Control.Exception
 import Control.Monad
 import Text.Printf
@@ -43,6 +42,7 @@ import Data.Aeson
 import Data.Optional (Optional(..), optional)
 import Data.Text (Text)
 import Data.Vector (Vector)
+import Data.Void
 import qualified Control.Foldl as L
 import qualified Data.Aeson.Parser as A
 import qualified Data.Aeson.Types as A
@@ -51,6 +51,7 @@ import qualified Data.ByteString as B
 import qualified Data.ByteString.Builder as BB
 import qualified Data.ByteString.Lazy as BL
 import qualified Data.Text.Encoding as TE
+import qualified Data.Text as T
 import qualified Data.Vector as V
 import qualified Network.HTTP.Types as HT
 
@@ -65,13 +66,9 @@ class QueryResults a where
     -> Value
     -> A.Parser (Vector a)
 
-instance QueryResults () where
-  parseResults _ val = success <|> parseErrorObject val
-    where
-      success = do
-        results <- parseResultsObject val
-        V.forM results $ A.withObject "{}" $ \obj ->
-          guard $ obj == mempty
+instance QueryResults Void where
+  parseResults _ = A.withObject "error" $ \obj -> obj .:? "error"
+    >>= maybe (pure V.empty) (withText "error" $ fail . T.unpack)
 
 instance (a ~ Value, b ~ Value) => QueryResults (a, b) where
   parseResults _ = parseResultsWith $ \_ _ _ fields ->

@@ -2,6 +2,7 @@
 {-# LANGUAGE TemplateHaskell #-}
 {-# LANGUAGE ViewPatterns #-}
 {-# LANGUAGE RecordWildCards #-}
+{-# LANGUAGE ScopedTypeVariables #-}
 module Database.InfluxDB.Manage
   ( manage
 
@@ -23,6 +24,7 @@ import Data.Aeson
 import Data.Scientific (toBoundedInteger)
 import Data.Text (Text)
 import Data.Time.Clock
+import Data.Void
 import qualified Data.Aeson.Types as A
 import qualified Data.Attoparsec.Combinator as AC
 import qualified Data.Attoparsec.Text as AT
@@ -45,11 +47,7 @@ manage params q = do
     Left message -> do
       throwIO $ IllformedJSON message body
     Right val -> case A.parse (parseResults (params^.precision)) val of
-      A.Success vec
-        | V.fromList [()] == vec -> return ()
-        | otherwise ->
-          fail $ "BUG: expected [{}] but got " ++ show val
-            ++ "in Databaes.InfluxDB.Manage.manage"
+      A.Success (_ :: V.Vector Void) -> return ()
       A.Error message -> do
         let status = HC.responseStatus response
         when (HT.statusIsServerError status) $
