@@ -220,3 +220,6 @@ class HasManager a where
   -- If it's set to 'ManagerSettings', the library will create a 'Manager' from
   -- the settings for you.
   manager :: Lens' a (Either ManagerSettings Manager)
+
+class HasCredentials a where
+  authentication :: Lens' a (Maybe Credentials)
