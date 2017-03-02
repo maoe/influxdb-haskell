@@ -137,16 +137,18 @@ writeRequest WriteParams {..} =
     }
   where
     Server {..} = _server
-    qs = catMaybes $
-      [ Just ("db", Just $ TE.encodeUtf8 $ databaseName _database)
-      , do
+    qs = concat
+      [ [("db", Just $ TE.encodeUtf8 $ databaseName _database)]
+      , fromMaybe [] $ do
         Key name <- _retentionPolicy
-        return ("rp", Just (TE.encodeUtf8 name))
-      ] ++ fromJust (do
+        return [("rp", Just (TE.encodeUtf8 name))]
+      , fromMaybe [] $ do
         Credentials { _user = u, _password = p } <- _authentication
-        return [ Just ("u", Just (TE.encodeUtf8 u))
-               , Just ("p", Just (TE.encodeUtf8 p))
-               ])
+        return
+          [ ("u", Just (TE.encodeUtf8 u))
+          , ("p", Just (TE.encodeUtf8 p))
+          ]
+      ]
 
 makeLensesWith (lensRules & generateSignatures .~ False) ''WriteParams
 
