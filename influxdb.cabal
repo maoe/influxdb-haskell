@@ -11,6 +11,7 @@ copyright: Copyright (C) 2014-2016 Mitsutoshi Aoe
 category: Database
 build-type: Simple
 cabal-version: >= 1.10
+tested-with: GHC >= 7.10 && < 8.1
 
 extra-source-files:
   README.md
@@ -21,80 +22,70 @@ flag examples
   default: False
   manual: True
 
-flag aeson-070
-  description: Use aeson >= 0.7.0
+flag http-client-05
   default: True
   manual: False
-
-flag network-uri
-   description: Get Network.URI from the network-uri package
-   default: True
 
 library
   exposed-modules:
     Database.InfluxDB
-    Database.InfluxDB.Decode
-    Database.InfluxDB.Encode
-    Database.InfluxDB.Http
-    Database.InfluxDB.Lens
-    -- Database.InfluxDB.Protobuf
-    -- Database.InfluxDB.Query
-    Database.InfluxDB.Stream
+    Database.InfluxDB.Format
+    Database.InfluxDB.JSON
+    Database.InfluxDB.Line
+    Database.InfluxDB.Manage
+    Database.InfluxDB.Ping
+    Database.InfluxDB.Query
     Database.InfluxDB.Types
-    Database.InfluxDB.TH
+    Database.InfluxDB.Write
+    Database.InfluxDB.Write.UDP
   other-modules:
-    Database.InfluxDB.Types.Internal
+    Network.HTTP.Client.Compat
   other-extensions:
     BangPatterns
     CPP
-    ConstraintKinds
+    DataKinds
     DeriveDataTypeable
+    DeriveGeneric
+    ExistentialQuantification
     FlexibleInstances
+    FunctionalDependencies
+    GADTs
     GeneralizedNewtypeDeriving
+    KindSignatures
+    LambdaCase
+    MultiParamTypeClasses
     NamedFieldPuns
     OverloadedStrings
-    RankNTypes
     RecordWildCards
     ScopedTypeVariables
+    StandaloneDeriving
     TemplateHaskell
-    TypeSynonymInstances
     ViewPatterns
   ghc-options: -Wall
   build-depends:
-      base >= 4 && < 5.0
+      base >= 4 && < 4.10
+    , aeson >= 0.7 && < 1.2
     , attoparsec < 0.14
-    , bytestring
-    , containers
-    , data-default-class
-    , dlist
-    , exceptions >= 0.5 && < 0.9
-    , http-client < 0.5
-    , mtl < 2.3
-    , retry >= 0.7 && < 0.8
-    , tagged
-    , template-haskell
+    , bytestring >= 0.10 && < 0.11
+    , clock >= 0.7 && < 0.8
+    , containers >= 0.5 && < 0.6
+    , foldl < 1.3
+    , http-types >= 0.8.6 && < 0.10
+    , lens >= 4.9 && < 4.16
+    , network >= 2.6 && < 2.7
+    , optional-args >= 1.0 && < 1.1
+    , scientific >= 0.3.3 && < 0.4
+    , template-haskell >= 2.9 && < 2.12
     , text < 1.3
-    , vector
-
-  if flag(aeson-070)
-    build-depends:
-        aeson >= 0.7.0 && < 0.12
-      , scientific >= 0.2
+    , time >= 1.5 && < 1.7
+    , unordered-containers < 0.3
+    , vector >= 0.10 && < 0.12
+  if flag(http-client-05)
+    build-depends: http-client >= 0.5 && < 0.6
   else
     build-depends:
-        aeson >= 0.6.1.0 && < 0.7.0
-
-  if flag(network-uri)
-    build-depends:
-      network-uri >= 2.6
-  else
-    build-depends:
-      network < 2.6
-
-  if impl(ghc < 7.6)
-    build-depends:
-      ghc-prim
-
+        data-default-class
+      , http-client >= 0.4.10 && < 0.5
   hs-source-dirs: src
   default-language: Haskell2010
 
@@ -117,21 +108,39 @@ test-suite test-suite
   default-language: Haskell2010
 
 executable influx-random-points
-  if flag(examples)
-    buildable: True
-  else
+  if !flag(examples)
     buildable: False
   hs-source-dirs: examples
   main-is: random-points.hs
   ghc-options: -Wall
   build-depends:
-      base
+      aeson
+    , base
     , bytestring
+    , containers
+    , foldl >= 1.1.3
     , http-client
     , influxdb
-    , mtl
+    , lens
     , mwc-random
+    , optional-args
     , text
+    , time
+    , vector
+  default-language: Haskell2010
+
+executable influx-write-udp
+  if !flag(examples)
+    buildable: False
+  hs-source-dirs: examples
+  main-is: write-udp.hs
+  ghc-options: -Wall
+  build-depends:
+      base
+    , containers
+    , influxdb
+    , lens
+    , network
     , time
   default-language: Haskell2010
 

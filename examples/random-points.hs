@@ -1,26 +1,30 @@
 {-# LANGUAGE BangPatterns #-}
 {-# LANGUAGE OverloadedStrings #-}
+{-# LANGUAGE RecordWildCards #-}
 {-# LANGUAGE ScopedTypeVariables #-}
+{-# LANGUAGE TemplateHaskell #-}
 {-# LANGUAGE TypeSynonymInstances #-}
 {-# LANGUAGE ViewPatterns #-}
-{-# LANGUAGE TemplateHaskell #-}
-import Control.Applicative
-import Control.Exception as E
-import Control.Monad
-import Control.Monad.Trans
-import Data.Function (fix)
-import Data.Time.Clock.POSIX
+import Data.Foldable
+import Data.Traversable
 import System.Environment
 import System.IO
-import qualified Data.Text as T
+import Text.Printf (printf)
 
+import Control.Lens
+import Data.Aeson
+import Data.Optional (Optional(Default))
+import Data.Time.Clock.POSIX
 import System.Random.MWC (Variate(..))
+import qualified Control.Foldl as L
+import qualified Data.Map.Strict as Map
+import qualified Data.Text as T
 import qualified Network.HTTP.Client as HC
 import qualified System.Random.MWC as MWC
 
 import Database.InfluxDB
-import Database.InfluxDB.TH
-import qualified Database.InfluxDB.Stream as S
+import qualified Database.InfluxDB.Format as F
+import qualified Database.InfluxDB.Manage as M
 
 oneWeekInSeconds :: Int
 oneWeekInSeconds = 7*24*60*60
@@ -29,74 +33,60 @@ main :: IO ()
 main = do
   [read -> (numPoints :: Int), read -> (batches :: Int)] <- getArgs
   hSetBuffering stdout NoBuffering
-  HC.withManager managerSettings $ \manager -> do
-    config <- newConfig manager
+  manager' <- HC.newManager managerSettings
 
-    let db = "ctx"
-    dropDatabase config db
-      `E.catch`
-        -- Ignore exceptions here
-        \(_ :: HC.HttpException) -> return ()
-    createDatabase config "ctx"
-    gen <- MWC.create
-    flip fix batches $ \outerLoop !m -> when (m > 0) $ do
-      postWithPrecision config db SecondsPrecision $ withSeries "ct1" $
-        flip fix numPoints $ \innerLoop !n -> when (n > 0) $ do
-          !timestamp <- liftIO $ (-)
-            <$> getPOSIXTime
-            <*> (fromIntegral <$> uniformR (0, oneWeekInSeconds) gen)
-          !value <- liftIO $ uniform gen
-          writePoints $ Point value (Time timestamp)
-          innerLoop $ n - 1
-      outerLoop $ m - 1
+  let
+    ctx = "ctx"
+    ct1 = "ct1"
+    qparams = queryParams ctx
+      & manager .~ Right manager'
+      & precision .~ RFC3339
 
-    result <- query config db "select count(value) from ct1;"
-    case result of
-      [] -> putStrLn "Empty series"
-      series:_ -> do
-        print $ seriesColumns series
-        print $ seriesPoints series
-    -- Streaming output
-    queryChunked config db "select * from ct1;" $ S.fold step ()
-  where
-    step _ series = do
-      case fromSeriesData series of
-        Left reason -> hPutStrLn stderr reason
-        Right points -> mapM_ print (points :: [Point])
-      putStrLn "--"
+  M.manage qparams $ F.formatQuery ("DROP DATABASE "%F.database) ctx
+  M.manage qparams $ F.formatQuery ("CREATE DATABASE "%F.database) ctx
 
-newConfig :: HC.Manager -> IO Config
-newConfig manager = do
-  pool <- newServerPool localServer []
-  return Config
-    { configCreds = rootCreds
-    , configServerPool = pool
-    , configHttpManager = manager
-    }
+  let wparams = writeParams ctx & manager .~ Right manager'
+
+  gen <- MWC.create
+  for_ [1..batches] $ \_ -> do
+    batch <- for [1..numPoints] $ \_ -> do
+      !time <- (-)
+        <$> getPOSIXTime
+        <*> (fromIntegral <$> uniformR (0, oneWeekInSeconds) gen)
+      !value <- uniform gen
+      return (time, value)
+    writeBatch wparams $ flip map batch $ \(time, value) ->
+      Line ct1
+        (Map.fromList [])
+        (Map.fromList [("value", nameToFVal value)])
+        (Just time)
+
+  queryChunked qparams Default (F.formatQuery ("SELECT * FROM "%F.key) ct1) $
+    L.mapM_ $ traverse_ $ \Row {..} ->
+      printf "%s:\t%s\n"
+        (show $ posixSecondsToUTCTime rowTime)
+        (show rowValue)
 
 managerSettings :: HC.ManagerSettings
 managerSettings = HC.defaultManagerSettings
-  { HC.managerResponseTimeout = Just $ 60*(10 :: Int)^(6 :: Int)
-  }
 
-data Point = Point
-  { pointValue :: !Name
-  , pointTime :: !Time
+data Row = Row
+  { rowTime :: POSIXTime
+  , rowValue :: Name
   } deriving Show
 
-newtype Time = Time POSIXTime
-  deriving Show
-
-instance ToValue Time where
-  toValue (Time epoch) = toValue $ epochInSeconds epoch
-    where
-      epochInSeconds :: POSIXTime -> Value
-      epochInSeconds = Int . floor
-
-instance FromValue Time where
-  parseValue (Int n) = return $ Time $ fromIntegral n
-  parseValue (Float d) = return $ Time $ realToFrac d
-  parseValue v = typeMismatch "Int or Float" v
+instance QueryResults Row where
+  parseResults prec = parseResultsWith $ \_ _ columns fields -> do
+    rowTime <- getField "time" columns fields >>= parseTimestamp prec
+    String name <- getField "value" columns fields
+    rowValue <- case name of
+      "foo" -> return Foo
+      "bar" -> return Bar
+      "baz" -> return Baz
+      "quu" -> return Quu
+      "qux" -> return Qux
+      _ -> fail $ "unknown name: " ++ show name
+    return Row {..}
 
 data Name
   = Foo
@@ -106,31 +96,11 @@ data Name
   | Qux
   deriving (Enum, Bounded, Show)
 
-instance ToValue Name where
-  toValue Foo = String "foo"
-  toValue Bar = String "bar"
-  toValue Baz = String "baz"
-  toValue Quu = String "quu"
-  toValue Qux = String "qux"
-
-instance FromValue Name where
-  parseValue (String name) = case name of
-    "foo" -> return Foo
-    "bar" -> return Bar
-    "baz" -> return Baz
-    "quu" -> return Quu
-    "qux" -> return Qux
-    _ -> fail $ "Incorrect string: " ++ T.unpack name
-  parseValue v = typeMismatch "String" v
+nameToFVal :: Name -> FieldValue
+nameToFVal = FieldString . T.toLower . T.pack . show
 
 instance Variate Name where
   uniform = uniformR (minBound, maxBound)
   uniformR (lower, upper) g = do
     name <- uniformR (fromEnum lower, fromEnum upper) g
     return $! toEnum name
-
--- Instance deriving
-
-deriveSeriesData defaultOptions
-  { fieldLabelModifier = stripPrefixLower "point" }
-  ''Point

@@ -1,302 +1,225 @@
-{-# LANGUAGE CPP #-}
+{-# LANGUAGE DataKinds #-}
 {-# LANGUAGE DeriveDataTypeable #-}
 {-# LANGUAGE DeriveGeneric #-}
-{-# LANGUAGE NamedFieldPuns #-}
+{-# LANGUAGE FlexibleInstances #-}
+{-# LANGUAGE FunctionalDependencies #-}
+{-# LANGUAGE GADTs #-}
+{-# LANGUAGE GeneralizedNewtypeDeriving #-}
+{-# LANGUAGE KindSignatures #-}
+{-# LANGUAGE LambdaCase #-}
+{-# LANGUAGE MultiParamTypeClasses #-}
 {-# LANGUAGE OverloadedStrings #-}
-{-# LANGUAGE RankNTypes #-}
-{-# LANGUAGE RecordWildCards #-}
+{-# LANGUAGE StandaloneDeriving #-}
 {-# LANGUAGE TemplateHaskell #-}
-module Database.InfluxDB.Types
-  ( -- * Series, columns and data points
-    Series(..)
-  , seriesColumns
-  , seriesPoints
-  , SeriesData(..)
-  , Column
-  , Value(..)
-
-  -- * Data types for HTTP API
-  , Credentials(..)
-  , Server(..)
-  , Database(..)
-  , User(..)
-  , Admin(..)
-  , Ping(..)
-  , Interface
-  , ShardSpace(..)
-
-  -- * Server pool
-  , ServerPool
-  , serverRetryPolicy
-  , newServerPool
-  , newServerPoolWithRetryPolicy
-  , activeServer
-  , failover
-
-  -- * Exceptions
-  , InfluxException(..)
-  , jsonDecodeError
-  , seriesDecodeError
-  ) where
-
-import Control.Applicative (empty)
-import Control.Exception (Exception, throwIO)
+module Database.InfluxDB.Types where
+import Control.Exception
 import Data.Data (Data)
-import Data.IORef
 import Data.Int (Int64)
-import Data.Monoid ((<>))
-import Data.Sequence (Seq, ViewL(..), (|>))
-import Data.Text (Text)
+import Data.String
 import Data.Typeable (Typeable)
-import Data.Vector (Vector)
-import Data.Word (Word32)
 import GHC.Generics (Generic)
-import qualified Data.Sequence as Seq
 
-import Control.Retry (RetryPolicy, limitRetries, exponentialBackoff)
-import Data.Aeson ((.=), (.:))
-import Data.Aeson.TH
-import qualified Data.Aeson as A
+import Control.Lens
+import Data.Text (Text)
+import Data.Time.Clock
+import Data.Time.Clock.POSIX
+import Network.HTTP.Client (Manager, ManagerSettings, Request)
+import qualified Data.ByteString.Lazy as BL
+import qualified Data.Text as T
 
-import Database.InfluxDB.Types.Internal (stripPrefixOptions)
+newtype Query = Query T.Text deriving IsString
 
-#if MIN_VERSION_aeson(0, 7, 0)
-import Data.Scientific
-#else
-import Data.Attoparsec.Number
-#endif
+instance Show Query where
+  show (Query q) = show q
 
------------------------------------------------------------
--- Compatibility for older GHC
-
-#if __GLASGOW_HASKELL__ < 706
-import Control.Exception (evaluate)
-
-atomicModifyIORef' :: IORef a -> (a -> (a, b)) -> IO b
-atomicModifyIORef' ref f = do
-    b <- atomicModifyIORef ref $ \x ->
-      let (a, b) = f x
-      in (a, a `seq` b)
-    evaluate b
-#endif
------------------------------------------------------------
-
--- | A series consists of name, columns and points. The columns and points are
--- expressed in a separate type 'SeriesData'.
-data Series = Series
-  { seriesName :: {-# UNPACK #-} !Text
-  -- ^ Series name
-  , seriesData :: {-# UNPACK #-} !SeriesData
-  -- ^ Columns and data points in the series
-  } deriving (Typeable, Generic)
-
--- | Convenient accessor for columns.
-seriesColumns :: Series -> Vector Column
-seriesColumns = seriesDataColumns . seriesData
-
--- | Convenient accessor for points.
-seriesPoints :: Series -> [Vector Value]
-seriesPoints = seriesDataPoints . seriesData
-
-instance A.ToJSON Series where
-  toJSON Series {..} = A.object
-    [ "name" .= seriesName
-    , "columns" .= seriesDataColumns
-    , "points" .= seriesDataPoints
-    ]
-    where
-      SeriesData {..} = seriesData
-
-instance A.FromJSON Series where
-  parseJSON (A.Object v) = do
-    name <- v .: "name"
-    columns <- v .: "columns"
-    points <- v .: "points"
-    return Series
-      { seriesName = name
-      , seriesData = SeriesData
-          { seriesDataColumns = columns
-          , seriesDataPoints = points
-          }
-      }
-  parseJSON _ = empty
-
--- | 'SeriesData' consists of columns and points.
-data SeriesData = SeriesData
-  { seriesDataColumns :: Vector Column
-  , seriesDataPoints :: [Vector Value]
-  } deriving (Eq, Show, Typeable, Generic)
-
-type Column = Text
-
--- | An InfluxDB value represented as a Haskell value.
-data Value
-  = Int !Int64
-  | Float !Double
-  | String !Text
-  | Bool !Bool
-  | Null
-  deriving (Eq, Show, Data, Typeable, Generic)
-
-instance A.ToJSON Value where
-  toJSON (Int n) = A.toJSON n
-  toJSON (Float d) = A.toJSON d
-  toJSON (String xs) = A.toJSON xs
-  toJSON (Bool b) = A.toJSON b
-  toJSON Null = A.Null
-
-instance A.FromJSON Value where
-  parseJSON (A.Object o) = fail $ "Unexpected object: " ++ show o
-  parseJSON (A.Array a) = fail $ "Unexpected array: " ++ show a
-  parseJSON (A.String xs) = return $ String xs
-  parseJSON (A.Bool b) = return $ Bool b
-  parseJSON A.Null = return Null
-  parseJSON (A.Number n) = return $! numberToValue
-    where
-#if MIN_VERSION_aeson(0, 7, 0)
-      numberToValue
-        -- If the number is larger than Int64, it must be
-        -- a float64 (Double in Haskell).
-        | n > maxInt = Float $ toRealFloat n
-        | e < 0 = Float $ realToFrac n
-        | otherwise = Int $ fromIntegral $ coefficient n * 10 ^ e
-        where
-          e = base10Exponent n
-#if !MIN_VERSION_scientific(0, 3, 0)
-          toRealFloat = realToFrac
--- scientific
-#endif
-#else
-      numberToValue = case n of
-        I i
-          -- If the number is larger than Int64, it must be
-          -- a float64 (Double in Haskell).
-          | i > maxInt -> Float $ fromIntegral i
-          | otherwise -> Int $ fromIntegral i
-        D d -> Float d
--- aeson
-#endif
-      maxInt = fromIntegral (maxBound :: Int64)
-
------------------------------------------------------------
-
--- | User credentials.
-data Credentials = Credentials
-  { credsUser :: !Text
-  , credsPassword :: !Text
-  } deriving (Show, Typeable, Generic)
-
--- | Server location.
 data Server = Server
-  { serverHost :: !Text
-  -- ^ Hostname or IP address
-  , serverPort :: !Int
-  , serverSsl :: !Bool
-  -- ^ SSL is enabled or not in the server side
-  } deriving (Show, Typeable, Generic)
+  { _host :: !Text
+  , _port :: !Int
+  , _ssl :: !Bool
+  } deriving (Show, Generic, Eq)
 
--- | Non-empty set of server locations. The active server will always be used
--- until any HTTP communications fail.
-data ServerPool = ServerPool
-  { serverActive :: !Server
-  -- ^ Current active server
-  , serverBackup :: !(Seq Server)
-  -- ^ The rest of the servers in the pool.
-  , serverRetryPolicy :: !RetryPolicy
+-- | Default server settings.
+--
+-- Default parameters:
+--
+--  * 'host': @"localhost"@
+--  * 'port': @8086@
+--  * 'ssl': 'False'
+localServer :: Server
+localServer = Server
+  { _host = "localhost"
+  , _port = 8086
+  , _ssl = False
   }
 
-newtype Database = Database
-  { databaseName :: Text
-  } deriving (Show, Typeable, Generic)
+makeLensesWith (lensRules & generateSignatures .~ False) ''Server
 
--- | User
-data User = User
-  { userName :: Text
-  , userIsAdmin :: Bool
-  } deriving (Show, Typeable, Generic)
+-- | Host name of the server
+host :: Lens' Server Text
 
--- | Administrator
-newtype Admin = Admin
-  { adminName :: Text
-  } deriving (Show, Typeable, Generic)
+-- | Port number of the server
+port :: Lens' Server Int
 
-newtype Ping = Ping
-  { pingStatus :: Text
-  } deriving (Show, Typeable, Generic)
+-- | If SSL is enabled
+ssl :: Lens' Server Bool
 
-type Interface = Text
+-- | User credentials
+data Credentials = Credentials
+  { _user :: !Text
+  , _password :: !Text
+  }
 
-data ShardSpace = ShardSpace
-  { shardSpaceDatabase :: Maybe Text
-  , shardSpaceName :: Text
-  , shardSpaceRegex :: Text
-  , shardSpaceRetentionPolicy :: Text
-  , shardSpaceShardDuration :: Text
-  , shardSpaceReplicationFactor :: Word32
-  , shardSpaceSplit :: Word32
-  } deriving (Show, Typeable, Generic)
+makeLensesWith (lensRules & generateSignatures .~ False) ''Credentials
 
------------------------------------------------------------
--- Server pool manipulation
+-- | User name to access InfluxDB
+user :: Lens' Credentials Text
 
--- | Create a non-empty server pool. You must specify at least one server
--- location to create a pool.
-newServerPool :: Server -> [Server] -> IO (IORef ServerPool)
-newServerPool = newServerPoolWithRetryPolicy defaultRetryPolicy
-  where
-    defaultRetryPolicy :: RetryPolicy
-    defaultRetryPolicy = limitRetries 5 <> exponentialBackoff 50
+-- | Password to access InfluxDB
+password :: Lens' Credentials Text
 
-newServerPoolWithRetryPolicy
-  :: RetryPolicy -> Server -> [Server] -> IO (IORef ServerPool)
-newServerPoolWithRetryPolicy retryPolicy active backups =
-  newIORef ServerPool
-    { serverActive = active
-    , serverBackup = Seq.fromList backups
-    , serverRetryPolicy = retryPolicy
-    }
+-- | Database name
+newtype Database = Database { databaseName :: Text } deriving (Eq, Ord)
 
--- | Get a server from the pool.
-activeServer :: IORef ServerPool -> IO Server
-activeServer ref = do
-  ServerPool { serverActive } <- readIORef ref
-  return serverActive
+-- | String type that is used for measurements, tag keys and field keys.
+newtype Key = Key Text deriving (Eq, Ord)
 
--- | Move the current server to the backup pool and pick one of the backup
--- server as the new active server. Currently the scheduler works in
--- round-robin fashion.
-failover :: IORef ServerPool -> IO ()
-failover ref = atomicModifyIORef' ref $ \pool@ServerPool {..} ->
-  case Seq.viewl serverBackup of
-    EmptyL -> (pool, ())
-    active :< rest -> (newPool, ())
-      where
-        newPool = pool
-          { serverActive = active
-          , serverBackup = rest |> serverActive
-          }
+instance IsString Database where
+  fromString xs = Database $ fromNonEmptyString "Database" xs
 
------------------------------------------------------------
--- Exceptions
+instance IsString Key where
+  fromString xs = Key $ fromNonEmptyString "Key" xs
 
+fromNonEmptyString :: String -> String -> Text
+fromNonEmptyString ty xs
+  | null xs = error $ ty ++ " should never be empty"
+  | otherwise = fromString xs
+
+instance Show Database where
+  show (Database name) = show name
+
+instance Show Key where
+  show (Key name) = show name
+
+data FieldValue
+  = FieldInt !Int64
+  | FieldFloat !Double
+  | FieldString !Text
+  | FieldBool !Bool
+  | FieldNull
+  deriving (Eq, Show, Data, Typeable, Generic)
+
+instance IsString FieldValue where
+  fromString = FieldString . T.pack
+
+-- | Type of a request
+data RequestType
+  = QueryRequest
+  -- ^ Request for @/query@
+  | WriteRequest
+  -- ^ Request for @/write@
+  deriving Show
+
+-- | Predefined set of time precision.
+--
+-- 'RFC3339' is only available for 'QueryRequest's.
+data Precision (ty :: RequestType) where
+  -- | POSIX time in ns
+  Nanosecond :: Precision ty
+  -- | POSIX time in μs
+  Microsecond :: Precision ty
+  -- | POSIX time in ms
+  Millisecond :: Precision ty
+  -- | POSIX time in s
+  Second :: Precision ty
+  -- | POSIX time in minutes
+  Minute :: Precision ty
+  -- | POSIX time in hours
+  Hour :: Precision ty
+  -- | Nanosecond precision time in a human readable format, like
+  -- @2016-01-04T00:00:23.135623Z@. This is the default format for @/query@.
+  RFC3339 :: Precision 'QueryRequest
+
+deriving instance Show (Precision a)
+
+precisionName :: Precision ty -> Text
+precisionName = \case
+  Nanosecond -> "n"
+  Microsecond -> "u"
+  Millisecond -> "ms"
+  Second -> "s"
+  Minute -> "m"
+  Hour -> "h"
+  RFC3339 -> "rfc3339"
+
+-- | A 'Timestamp' is something that can be converted to a valid
+-- InfluxDB timestamp, which is represented as a 64-bit integer.
+class Timestamp time where
+  -- | Round a time to the given precision and scale it to nanoseconds
+  roundTo :: Precision 'WriteRequest -> time -> Int64
+  -- | Scale a time to the given precision
+  scaleTo :: Precision 'WriteRequest -> time -> Int64
+
+roundAt :: RealFrac a => a -> a -> a
+roundAt scale x = fromIntegral (round (x / scale) :: Int) * scale
+
+precisionScale :: Fractional a => Precision ty -> a
+precisionScale = \case
+  RFC3339 ->     10^^(-9 :: Int)
+  Nanosecond ->  10^^(-9 :: Int)
+  Microsecond -> 10^^(-6 :: Int)
+  Millisecond -> 10^^(-3 :: Int)
+  Second -> 1
+  Minute -> 60
+  Hour ->   60 * 60
+
+instance Timestamp UTCTime where
+  roundTo prec = roundTo prec . utcTimeToPOSIXSeconds
+  scaleTo prec = scaleTo prec . utcTimeToPOSIXSeconds
+
+instance Timestamp NominalDiffTime where
+  roundTo prec time =
+    round $ 10^(9 :: Int) * roundAt (precisionScale prec) time
+  scaleTo prec time = round $ time / precisionScale prec
+
+-- | Exceptions used in this library.
+--
+-- In general, the library tries to convert exceptions from the dependent
+-- libraries to the following types of errors.
 data InfluxException
-  = JsonDecodeError String
-  | SeriesDecodeError String
+  = ServerError String
+  -- ^ Server side error.
+  --
+  -- You can expect to get a successful response once the issue is resolved on
+  -- the server side.
+  | BadRequest String Request
+  -- ^ Client side error.
+  --
+  -- You need to fix your query to get a successful response.
+  | IllformedJSON String BL.ByteString
+  -- ^ Unexpected JSON response.
+  --
+  -- This can happen e.g. when the response from InfluxDB is incompatible with
+  -- what this library expects due to an upstream format change etc.
   deriving (Show, Typeable)
 
 instance Exception InfluxException
 
-jsonDecodeError :: String -> IO a
-jsonDecodeError = throwIO . JsonDecodeError
+class HasServer a where
+  server :: Lens' a Server
 
-seriesDecodeError :: String -> IO a
-seriesDecodeError = throwIO . SeriesDecodeError
+class HasDatabase a where
+  database :: Lens' a Database
 
------------------------------------------------------------
--- Aeson instances
+class HasPrecision (ty :: RequestType) a | a -> ty where
+  -- Time precision parameter
+  precision :: Lens' a (Precision ty)
 
-deriveFromJSON (stripPrefixOptions "database") ''Database
-deriveFromJSON (stripPrefixOptions "admin") ''Admin
-deriveFromJSON (stripPrefixOptions "user") ''User
-deriveFromJSON (stripPrefixOptions "ping") ''Ping
-deriveFromJSON (stripPrefixOptions "shardSpace") ''ShardSpace
+class HasManager a where
+  -- | HTTP manager settings or a manager itself.
+  --
+  -- If it's set to 'ManagerSettings', the library will create a 'Manager' from
+  -- the settings for you.
+  manager :: Lens' a (Either ManagerSettings Manager)
+
+class HasCredentials a where
+  authentication :: Lens' a (Maybe Credentials)
