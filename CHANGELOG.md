@@ -1,3 +1,11 @@
+## TBD
+
+## v1.0.0 - 2017-03-03
+
+The library was completely rewritten and support for older InfluxDB has been dropped.
+
+* Support for InfluxDB 1.2
+
 ## v0.10.0 - 2016-05-17
 
 * Fix a typo in a Haddock comment (#28)
