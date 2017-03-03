@@ -1,94 +1,97 @@
+{- |
+stability: experimental
+portability: GHC
+-}
 module Database.InfluxDB
-  (
-  -- * Series data types
-    Series(..), seriesColumns, seriesPoints
-  , SeriesData(..)
-  , Value(..)
+  ( -- $intro
 
-  -- ** Encoding
-  , ToSeriesData(..)
-  , ToValue(..)
+  -- * Writing data
+  -- $write
+    write
+  , writeBatch
+  , writeByteString
 
-  -- ** Decoding
-  , FromSeries(..), fromSeries
-  , FromSeriesData(..), fromSeriesData
-  , FromValue(..), fromValue
+  -- ** Write parameters
+  , WriteParams
+  , writeParams
+  , retentionPolicy
 
-  , withValues, (.:), (.:?), (.!=)
-  , typeMismatch
+  -- ** The Line protocol
+  , Line(Line)
+  , measurement
+  , tagSet
+  , fieldSet
+  , timestamp
 
-  -- * HTTP API
-  -- ** Data types
-  , Config(..)
-  , Credentials(..), rootCreds
-  , TimePrecision(..)
-  , Server(..), localServer
-  , ServerPool, newServerPool
-  , newServerPoolWithRetryPolicy
-  , Database(..)
-  , User(..)
-  , Admin(..)
-  , Ping(..)
-  , ShardSpace(..)
+  , FieldValue(..)
+  , Timestamp(..)
+  , precisionScale
+  , precisionName
 
-  -- *** Exception
-  , InfluxException(..)
-
-  -- ** Writing Data
-
-  -- *** Updating Points
-  , post, postWithPrecision
-  , SeriesT, PointT
-  , writeSeries
-  , writeSeriesData
-  , withSeries
-  , writePoints
-
-  -- *** Deleting Points
-  , deleteSeries
-
-  -- ** Querying Data
+  -- * Querying data
+  , Query
   , query
-  , Stream(..)
   , queryChunked
 
-  -- ** Administration & Security
-  -- *** Creating and Dropping Databases
-  , listDatabases
-  , createDatabase
-  , dropDatabase
+  -- * Query constructor
+  , formatQuery
+  , (%)
 
-  , DatabaseRequest(..)
-  , configureDatabase
+  -- ** Query parameters
+  , QueryParams
+  , queryParams
+  , authentication
 
-  -- *** Security
-  -- **** Shard spaces
-  , ShardSpaceRequest(..)
-  , listShardSpaces
-  , createShardSpace
-  , dropShardSpace
+  -- ** Parsing results
+  , QueryResults(..)
+  , parseResultsWith
+  , getField
+  , getTag
+  , parseTimestamp
+  , parseFieldValue
+  , parseKey
 
-  -- **** Cluster admin
-  , listClusterAdmins
-  , authenticateClusterAdmin
-  , addClusterAdmin
-  , updateClusterAdminPassword
-  , deleteClusterAdmin
-  -- **** Database user
-  , listDatabaseUsers
-  , authenticateDatabaseUser
-  , addDatabaseUser
-  , updateDatabaseUserPassword
-  , deleteDatabaseUser
-  , grantAdminPrivilegeTo
-  , revokeAdminPrivilegeFrom
+  -- * Database management
+  , manage
 
-  -- *** Other API
-  , ping
-  , isInSync
+  -- * Common data types and classes
+  , Precision(..)
+  , Database
+  , Key
+
+  , Server
+  , host
+  , port
+  , ssl
+  , localServer
+
+  , Credentials
+  , user
+  , password
+
+  -- * Exception
+  , InfluxException(..)
+
+  , HasServer(..)
+  , HasDatabase(..)
+  , HasPrecision(..)
+  , HasManager(..)
   ) where
 
-import Database.InfluxDB.Decode
-import Database.InfluxDB.Encode
-import Database.InfluxDB.Http
+import Database.InfluxDB.Format ((%), formatQuery)
+import Database.InfluxDB.JSON
+import Database.InfluxDB.Line
+import Database.InfluxDB.Manage (manage)
+import Database.InfluxDB.Query
 import Database.InfluxDB.Types
+import Database.InfluxDB.Write
+
+{- $write
+InfluxDB has two ways to write data into it, via HTTP and UDP. This module
+only exports functions for the HTTP API. For UDP, you can use a qualified
+import:
+
+@
+import qualified "Database.InfluxDB.Write.UDP" as UDP
+@
+-}
