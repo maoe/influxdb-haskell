@@ -75,7 +75,6 @@ library
     , network >= 2.6 && < 2.7
     , optional-args >= 1.0 && < 1.1
     , scientific >= 0.3.3 && < 0.4
-    , template-haskell >= 2.9 && < 2.12
     , text < 1.3
     , time >= 1.5 && < 1.7
     , unordered-containers < 0.3
