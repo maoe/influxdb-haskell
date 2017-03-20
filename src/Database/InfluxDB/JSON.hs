@@ -150,7 +150,7 @@ parseSeriesBody
 parseSeriesBody = A.withObject "series" $ \obj -> do
   !name <- obj .:? "name"
   !columns <- obj .: "columns"
-  !values <- obj .: "values"
+  !values <- obj .:? "values" .!= V.empty
   !tags <- obj .:? "tags" .!= HashMap.empty
   return (name, tags, columns, values)
 
