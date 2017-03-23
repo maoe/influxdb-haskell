@@ -1,5 +1,9 @@
 ## TBD
 
+## v1.1.0 - 2017-03-23
+
+* Handle empty "values" in parseSeriesBody
+
 ## v1.0.0 - 2017-03-03
 
 The library was completely rewritten and support for older InfluxDB has been dropped.
