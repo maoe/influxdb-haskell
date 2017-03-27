@@ -23,7 +23,7 @@ module Database.InfluxDB.Ping
 import Control.Lens
 import qualified Data.ByteString as BS
 import qualified Data.Text.Encoding as TE
-import qualified Network.HTTP.Client.Compat as HC
+import qualified Network.HTTP.Client as HC
 import System.Clock
 
 import Database.InfluxDB.Types as Types

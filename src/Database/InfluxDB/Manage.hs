@@ -30,12 +30,12 @@ import qualified Data.Attoparsec.Combinator as AC
 import qualified Data.Attoparsec.Text as AT
 import qualified Data.Text.Encoding as TE
 import qualified Data.Vector as V
+import qualified Network.HTTP.Client as HC
 import qualified Network.HTTP.Types as HT
 
 import Database.InfluxDB.Types as Types
 import Database.InfluxDB.Query hiding (query)
 import qualified Database.InfluxDB.Format as F
-import qualified Network.HTTP.Client.Compat as HC
 
 -- | Send a database management query to InfluxDB.
 manage :: QueryParams -> Query -> IO ()

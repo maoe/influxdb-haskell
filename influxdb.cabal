@@ -38,8 +38,6 @@ library
     Database.InfluxDB.Types
     Database.InfluxDB.Write
     Database.InfluxDB.Write.UDP
-  other-modules:
-    Network.HTTP.Client.Compat
   other-extensions:
     BangPatterns
     CPP

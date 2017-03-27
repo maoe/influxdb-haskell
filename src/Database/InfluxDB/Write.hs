@@ -31,12 +31,12 @@ import qualified Data.Aeson.Types as A
 import qualified Data.ByteString.Char8 as B8
 import qualified Data.ByteString.Lazy as BL
 import qualified Data.Text.Encoding as TE
+import qualified Network.HTTP.Client as HC
 import qualified Network.HTTP.Types as HT
 
 import Database.InfluxDB.Line
 import Database.InfluxDB.Types as Types
 import Database.InfluxDB.JSON
-import qualified Network.HTTP.Client.Compat as HC
 
 -- | The full set of parameters for the HTTP writer.
 data WriteParams = WriteParams
