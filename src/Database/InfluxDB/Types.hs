@@ -202,7 +202,7 @@ data InfluxException
   --
   -- You can expect to get a successful response once the issue is resolved on
   -- the server side.
-  | BadRequest String Request
+  | ClientError String Request
   -- ^ Client side error.
   --
   -- You need to fix your query to get a successful response.

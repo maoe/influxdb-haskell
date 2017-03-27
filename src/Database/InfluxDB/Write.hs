@@ -106,7 +106,7 @@ writeByteString params payload = do
       when (HT.statusIsServerError status) $
         throwIO $ ServerError message
       when (HT.statusIsClientError status) $
-        throwIO $ BadRequest message request
+        throwIO $ ClientError message request
     else case A.eitherDecode' body of
       Left message ->
         throwIO $ IllformedJSON message body
@@ -117,7 +117,7 @@ writeByteString params payload = do
           when (HT.statusIsServerError status) $
             throwIO $ ServerError message
           when (HT.statusIsClientError status) $
-            throwIO $ BadRequest message request
+            throwIO $ ClientError message request
           fail $ "BUG: " ++ message
             ++ " in Database.InfluxDB.Write.writeByteString"
 
