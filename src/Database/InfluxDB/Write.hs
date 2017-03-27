@@ -97,7 +97,7 @@ writeBatch p@WriteParams {_precision} =
 writeByteString :: WriteParams -> BL.ByteString -> IO ()
 writeByteString params payload = do
   manager' <- either HC.newManager return $ _manager params
-  response <- HC.httpLbs request manager'
+  response <- HC.httpLbs request manager' `catch` (throwIO . HTTPException)
   let body = HC.responseBody response
       status = HC.responseStatus response
   if BL.null body

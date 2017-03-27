@@ -277,6 +277,7 @@ withQueryResponse
 withQueryResponse params chunkSize q f = do
     manager' <- either HC.newManager return $ _manager params
     HC.withResponse request manager' (f request)
+      `catch` (throwIO . HTTPException)
   where
     request =
       HC.setQueryString (setPrecision (_precision params) queryString) $

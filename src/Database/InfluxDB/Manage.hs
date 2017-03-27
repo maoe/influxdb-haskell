@@ -41,7 +41,7 @@ import qualified Database.InfluxDB.Format as F
 manage :: QueryParams -> Query -> IO ()
 manage params q = do
   manager' <- either HC.newManager return $ params^.manager
-  response <- HC.httpLbs request manager'
+  response <- HC.httpLbs request manager' `catch` (throwIO . HTTPException)
   let body = HC.responseBody response
   case eitherDecode' body of
     Left message -> do

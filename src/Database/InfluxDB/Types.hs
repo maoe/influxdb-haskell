@@ -25,6 +25,7 @@ import Data.Time.Clock.POSIX
 import Network.HTTP.Client (Manager, ManagerSettings, Request)
 import qualified Data.ByteString.Lazy as BL
 import qualified Data.Text as T
+import qualified Network.HTTP.Client as HC
 
 newtype Query = Query T.Text deriving IsString
 
@@ -211,6 +212,8 @@ data InfluxException
   --
   -- This can happen e.g. when the response from InfluxDB is incompatible with
   -- what this library expects due to an upstream format change etc.
+  | HTTPException HC.HttpException
+  -- ^ HTTP communication error.
   deriving (Show, Typeable)
 
 instance Exception InfluxException
