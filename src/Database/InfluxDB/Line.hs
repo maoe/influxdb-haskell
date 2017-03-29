@@ -56,7 +56,7 @@ encodeLine
 encodeLine toTimestamp = B.toLazyByteString . buildLine toTimestamp
 
 encodeLines
-  :: Traversable f
+  :: Foldable f
   => (time -> Int64)
   -> f (Line time)
   -> L.ByteString
@@ -100,7 +100,7 @@ buildFieldValue = \case
   FieldNull -> "null"
 
 buildLines
-  :: Traversable f
+  :: Foldable f
   => (time -> Int64)
   -> f (Line time)
   -> B.Builder
