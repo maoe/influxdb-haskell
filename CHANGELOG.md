@@ -1,5 +1,9 @@
 ## TBD
 
+## v1.1.1 - 2017-03-29
+
+* Relax unnecessary Traversable constraints to Foldable
+
 ## v1.1.0 - 2017-03-23
 
 * Handle empty "values" in parseSeriesBody
