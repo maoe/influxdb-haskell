@@ -56,7 +56,7 @@ write p@WriteParams {_precision} =
 --
 -- This is more efficient than 'write'.
 writeBatch
-  :: (Timestamp time, Traversable f)
+  :: (Timestamp time, Foldable f)
   => WriteParams
   -> f (Line time)
   -> IO ()
