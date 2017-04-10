@@ -37,6 +37,11 @@ import Database.InfluxDB.Query hiding (query)
 import qualified Database.InfluxDB.Format as F
 import qualified Network.HTTP.Client.Compat as HC
 
+{- $setup
+>>> :set -XOverloadedStrings
+>>> import qualified Database.InfluxDB.Query as Q
+-}
+
 -- | Send a database management query to InfluxDB.
 manage :: QueryParams -> Query -> IO ()
 manage params q = do
@@ -120,7 +125,7 @@ makeLensesWith (lensRules & generateSignatures .~ False) ''ShowQuery
 
 -- | Query ID
 --
--- >>> v <- query (queryParams "_internal") "SHOW QUERIES" :: IO (V.Vector ShowQuery)
+-- >>> v <- Q.query (queryParams "_internal") "SHOW QUERIES" :: IO (V.Vector ShowQuery)
 -- >>> v ^.. each.qid
 -- [149250]
 qid :: Lens' ShowQuery Int

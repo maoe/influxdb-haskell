@@ -72,6 +72,10 @@ formatKey fmt = runFormat fmt (Key . TL.toStrict . TL.toLazyText)
 makeFormat :: (a -> TL.Builder) -> Format r (a -> r)
 makeFormat build = Format $ \k a -> k $ build a
 
+-- |
+--
+-- >>> formatDatabase ("foo"%database) "bar"
+-- "fooar"
 database :: Format r (Database -> r)
 database = makeFormat $ \(Database name) -> "\"" <> TL.fromText name <> "\""
 
