@@ -1,5 +1,5 @@
 name: influxdb
-version: 1.1.1
+version: 1.1.2
 synopsis: Haskell client library for InfluxDB
 description: Haskell client library for InfluxDB
 homepage: https://github.com/maoe/influxdb-haskell
@@ -63,7 +63,7 @@ library
     ViewPatterns
   ghc-options: -Wall
   build-depends:
-      base >= 4 && < 4.10
+      base >= 4.8 && < 4.10
     , aeson >= 0.7 && < 1.2
     , attoparsec < 0.14
     , bytestring >= 0.10 && < 0.11
@@ -150,5 +150,5 @@ source-repository head
 
 source-repository this
   type: git
-  tag: v1.1.1
+  tag: v1.1.2
   location: https://github.com/maoe/influxdb-haskell.git

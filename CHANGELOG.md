@@ -1,4 +1,7 @@
-## TBD
+## v1.1.2 - 2017-04-10
+
+* Tighten lower version bound for base [#43](https://github.com/maoe/influxdb-haskell/issues/43)
+* Add `Database.InfluxDB.Format.{string,byteString8}`
 
 ## v1.1.1 - 2017-03-29
 

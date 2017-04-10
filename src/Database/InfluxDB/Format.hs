@@ -20,6 +20,8 @@ module Database.InfluxDB.Format
   , decimal
   , realFloat
   , text
+  , string
+  , byteString8
   , time
   ) where
 import Control.Category
@@ -100,6 +102,12 @@ realFloat = makeFormat TL.realFloat
 
 text :: Format r (T.Text -> r)
 text = makeFormat TL.fromText
+
+string :: Format r (String -> r)
+string = makeFormat TL.fromString
+
+byteString8 :: Format r (B.ByteString -> r)
+byteString8 = makeFormat $ TL.fromText . T.decodeUtf8
 
 time :: FormatTime time => Format r (time -> r)
 time = makeFormat $ \t ->
