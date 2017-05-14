@@ -1,4 +1,6 @@
 {-# LANGUAGE DataKinds #-}
+{-# LANGUAGE DeriveAnyClass #-}
+{-# LANGUAGE DeriveGeneric #-}
 {-# LANGUAGE KindSignatures #-}
 {-# LANGUAGE LambdaCase #-}
 {-# LANGUAGE OverloadedStrings #-}
@@ -21,6 +23,7 @@ import Data.List (intersperse)
 import Data.Int (Int64)
 import Data.Monoid
 
+import Control.DeepSeq
 import Control.Lens
 import Data.Map (Map)
 import Data.Text (Text)
@@ -29,6 +32,7 @@ import qualified Data.ByteString.Lazy as L
 import qualified Data.Map.Strict as Map
 import qualified Data.Text as T
 import qualified Data.Text.Encoding as TE
+import GHC.Generics
 
 import Database.InfluxDB.Types
 
@@ -47,7 +51,7 @@ data Line time = Line
   -- It shouldn't be empty.
   , _timestamp :: !(Maybe time)
   -- ^ Timestamp (optional)
-  }
+  } deriving (Generic, NFData)
 
 encodeLine
   :: (time -> Int64)

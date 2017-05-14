@@ -1,4 +1,5 @@
 {-# LANGUAGE DataKinds #-}
+{-# LANGUAGE DeriveAnyClass #-}
 {-# LANGUAGE DeriveDataTypeable #-}
 {-# LANGUAGE DeriveGeneric #-}
 {-# LANGUAGE FlexibleInstances #-}
@@ -19,6 +20,7 @@ import Data.String
 import Data.Typeable (Typeable)
 import GHC.Generics (Generic)
 
+import Control.DeepSeq
 import Control.Lens
 import Data.Text (Text)
 import Data.Time.Clock
@@ -81,7 +83,7 @@ password :: Lens' Credentials Text
 newtype Database = Database { databaseName :: Text } deriving (Eq, Ord)
 
 -- | String type that is used for measurements, tag keys and field keys.
-newtype Key = Key Text deriving (Eq, Ord)
+newtype Key = Key Text deriving (Eq, Generic, NFData, Ord)
 
 instance IsString Database where
   fromString xs = Database $ fromNonEmptyString "Database" xs
@@ -106,7 +108,7 @@ data FieldValue
   | FieldString !Text
   | FieldBool !Bool
   | FieldNull
-  deriving (Eq, Show, Data, Typeable, Generic)
+  deriving (Eq, Show, Data, NFData, Typeable, Generic)
 
 instance IsString FieldValue where
   fromString = FieldString . T.pack
