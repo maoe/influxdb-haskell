@@ -1,3 +1,11 @@
+## v1.1.2.2 - 2017-05-31
+
+* Relax upper version bound for foldl
+
+## v1.1.2.1 - 2017-05-02
+
+* Relax version bounds for base and aeson
+
 ## v1.1.2 - 2017-04-10
 
 * Tighten lower version bound for base [#43](https://github.com/maoe/influxdb-haskell/issues/43)
