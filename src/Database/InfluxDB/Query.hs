@@ -175,7 +175,7 @@ data QueryParams = QueryParams
 --
 --   ['L.server'] 'localServer'
 --   ['L.precision'] 'RFC3339'
---   ['authentication'] 'Nothing'
+--   ['L.authentication'] 'Nothing'
 --   ['L.manager'] @'Left' 'HC.defaultManagerSettings'@
 queryParams :: Database -> QueryParams
 queryParams _database = QueryParams
