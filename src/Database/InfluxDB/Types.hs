@@ -13,7 +13,6 @@
 {-# LANGUAGE TemplateHaskell #-}
 module Database.InfluxDB.Types where
 import Control.Exception
-import Data.Data (Data)
 import Data.Int (Int64)
 import Data.String
 import Data.Typeable (Typeable)
@@ -100,15 +99,27 @@ instance Show Database where
 instance Show Key where
   show (Key name) = show name
 
-data FieldValue
-  = FieldInt !Int64
-  | FieldFloat !Double
-  | FieldString !Text
-  | FieldBool !Bool
-  | FieldNull
-  deriving (Eq, Show, Data, Typeable, Generic)
+data Nullability = Nullable | NonNullable deriving Typeable
 
-instance IsString FieldValue where
+-- | Field type for queries. Queries can contain null values.
+type QueryField = Field 'Nullable
+
+-- | Field type for the line protocol. The line protocol doesn't accept null
+-- values.
+type LineField = Field 'NonNullable
+
+data Field (n :: Nullability) where
+  FieldInt :: !Int64 -> Field n
+  FieldFloat :: !Double -> Field n
+  FieldString :: !Text -> Field n
+  FieldBool :: !Bool -> Field n
+  FieldNull :: Field 'Nullable
+  deriving Typeable
+
+deriving instance Eq (Field n)
+deriving instance Show (Field n)
+
+instance IsString (Field n) where
   fromString = FieldString . T.pack
 
 -- | Type of a request
