@@ -69,6 +69,12 @@ data Credentials = Credentials
   , _password :: !Text
   }
 
+credentials
+    :: Text -- ^ User name
+    -> Text -- ^ Password
+    -> Credentials
+credentials = Credentials
+
 makeLensesWith (lensRules & generateSignatures .~ False) ''Credentials
 
 -- | User name to access InfluxDB

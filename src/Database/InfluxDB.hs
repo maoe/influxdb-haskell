@@ -68,6 +68,7 @@ module Database.InfluxDB
   , localServer
 
   , Credentials
+  , credentials
   , user
   , password
 
