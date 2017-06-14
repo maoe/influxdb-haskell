@@ -96,7 +96,7 @@ data Name
   | Qux
   deriving (Enum, Bounded, Show)
 
-nameToFVal :: Name -> FieldValue
+nameToFVal :: Name -> LineField
 nameToFVal = FieldString . T.toLower . T.pack . show
 
 instance Variate Name where

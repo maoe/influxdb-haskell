@@ -1,4 +1,3 @@
-{-# LANGUAGE DataKinds #-}
 {-# LANGUAGE KindSignatures #-}
 {-# LANGUAGE LambdaCase #-}
 {-# LANGUAGE OverloadedStrings #-}
@@ -41,7 +40,7 @@ data Line time = Line
   -- ^ Measurement name
   , _tagSet :: !(Map Key Text)
   -- ^ Set of tags (optional)
-  , _fieldSet :: !(Map Key FieldValue)
+  , _fieldSet :: !(Map Key LineField)
   -- ^ Set of fields
   --
   -- It shouldn't be empty.
@@ -91,13 +90,12 @@ buildKey = TE.encodeUtf8Builder . escapeKey
 escapeKey :: Key -> Text
 escapeKey (Key text) = T.replace " " "\\ " $ T.replace "," "\\," text
 
-buildFieldValue :: FieldValue -> B.Builder
+buildFieldValue :: LineField -> B.Builder
 buildFieldValue = \case
   FieldInt i -> B.int64Dec i <> "i"
   FieldFloat d -> B.doubleDec d
   FieldString t -> "\"" <> TE.encodeUtf8Builder t <> "\""
   FieldBool b -> if b then "true" else "false"
-  FieldNull -> "null"
 
 buildLines
   :: Foldable f
@@ -117,7 +115,7 @@ tagSet :: Lens' (Line time) (Map Key Text)
 
 -- | Field(s) for your data point. Every data point requires at least one field
 -- in the Line Protocol, so it shouldn't be 'empty'.
-fieldSet :: Lens' (Line time) (Map Key FieldValue)
+fieldSet :: Lens' (Line time) (Map Key LineField)
 
 -- | Timestamp for your data point. You can put whatever type of timestamp that
 -- is an instance of the 'Timestamp' class.

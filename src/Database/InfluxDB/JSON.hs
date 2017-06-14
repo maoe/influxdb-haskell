@@ -2,10 +2,8 @@
 {-# LANGUAGE ExistentialQuantification #-}
 {-# LANGUAGE FlexibleInstances #-}
 {-# LANGUAGE GADTs #-}
-{-# LANGUAGE GeneralizedNewtypeDeriving #-}
 {-# LANGUAGE OverloadedStrings #-}
 {-# LANGUAGE RecordWildCards #-}
-{-# LANGUAGE TemplateHaskell #-}
 {-# LANGUAGE ViewPatterns #-}
 module Database.InfluxDB.JSON
   ( parseResultsWith
@@ -194,7 +192,7 @@ parseRFC3339 val = A.withText err
     fmt = "%FT%X%QZ"
     err = "RFC3339-formatted timestamp"
 
-parseFieldValue :: A.Value -> A.Parser FieldValue
+parseFieldValue :: A.Value -> A.Parser QueryField
 parseFieldValue val = case val of
   A.Number sci ->
     return $! either FieldFloat FieldInt $ Sci.floatingOrInteger sci

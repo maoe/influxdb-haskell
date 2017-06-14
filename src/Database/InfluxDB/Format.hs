@@ -1,5 +1,4 @@
 {-# LANGUAGE GADTs #-}
-{-# LANGUAGE GeneralizedNewtypeDeriving #-}
 {-# LANGUAGE LambdaCase #-}
 {-# LANGUAGE OverloadedStrings #-}
 module Database.InfluxDB.Format
@@ -86,7 +85,7 @@ key = makeFormat keyBuilder
 keys :: Format r ([Key] -> r)
 keys = makeFormat $ mconcat . L.intersperse "," . map keyBuilder
 
-fieldVal :: Format r (FieldValue -> r)
+fieldVal :: Format r (QueryField -> r)
 fieldVal = makeFormat $ \case
   FieldInt n -> TL.decimal n
   FieldFloat d -> TL.realFloat d

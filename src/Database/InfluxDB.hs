@@ -23,7 +23,9 @@ module Database.InfluxDB
   , fieldSet
   , timestamp
 
-  , FieldValue(..)
+  , Field(..)
+  , LineField
+  , QueryField
   , Timestamp(..)
   , precisionScale
   , precisionName
