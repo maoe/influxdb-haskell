@@ -22,10 +22,6 @@ flag examples
   default: False
   manual: True
 
-flag http-client-05
-  default: True
-  manual: False
-
 library
   exposed-modules:
     Database.InfluxDB
