@@ -52,12 +52,12 @@ import qualified Data.ByteString.Lazy as BL
 import qualified Data.Text.Encoding as TE
 import qualified Data.Text as T
 import qualified Data.Vector as V
+import qualified Network.HTTP.Client as HC
 import qualified Network.HTTP.Types as HT
 
 import Database.InfluxDB.JSON
 import Database.InfluxDB.Types as Types
 import qualified Database.InfluxDB.Format as F
-import qualified Network.HTTP.Client.Compat as HC
 
 class QueryResults a where
   parseResults
@@ -277,6 +277,7 @@ withQueryResponse
 withQueryResponse params chunkSize q f = do
     manager' <- either HC.newManager return $ _manager params
     HC.withResponse request manager' (f request)
+      `catch` (throwIO . HTTPException)
   where
     request =
       HC.setQueryString (setPrecision (_precision params) queryString) $
@@ -313,7 +314,7 @@ errorQuery request response message = do
   when (HT.statusIsServerError status) $
     throwIO $ ServerError message
   when (HT.statusIsClientError status) $
-    throwIO $ BadRequest message request
+    throwIO $ ClientError message request
   fail $ "BUG: " ++ message ++ " in Database.InfluxDB.Query.query - "
     ++ show request
 

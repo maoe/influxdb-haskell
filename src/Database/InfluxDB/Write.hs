@@ -31,12 +31,12 @@ import qualified Data.Aeson.Types as A
 import qualified Data.ByteString.Char8 as B8
 import qualified Data.ByteString.Lazy as BL
 import qualified Data.Text.Encoding as TE
+import qualified Network.HTTP.Client as HC
 import qualified Network.HTTP.Types as HT
 
 import Database.InfluxDB.Line
 import Database.InfluxDB.Types as Types
 import Database.InfluxDB.JSON
-import qualified Network.HTTP.Client.Compat as HC
 
 -- | The full set of parameters for the HTTP writer.
 data WriteParams = WriteParams
@@ -97,7 +97,7 @@ writeBatch p@WriteParams {_precision} =
 writeByteString :: WriteParams -> BL.ByteString -> IO ()
 writeByteString params payload = do
   manager' <- either HC.newManager return $ _manager params
-  response <- HC.httpLbs request manager'
+  response <- HC.httpLbs request manager' `catch` (throwIO . HTTPException)
   let body = HC.responseBody response
       status = HC.responseStatus response
   if BL.null body
@@ -106,7 +106,7 @@ writeByteString params payload = do
       when (HT.statusIsServerError status) $
         throwIO $ ServerError message
       when (HT.statusIsClientError status) $
-        throwIO $ BadRequest message request
+        throwIO $ ClientError message request
     else case A.eitherDecode' body of
       Left message ->
         throwIO $ IllformedJSON message body
@@ -117,7 +117,7 @@ writeByteString params payload = do
           when (HT.statusIsServerError status) $
             throwIO $ ServerError message
           when (HT.statusIsClientError status) $
-            throwIO $ BadRequest message request
+            throwIO $ ClientError message request
           fail $ "BUG: " ++ message
             ++ " in Database.InfluxDB.Write.writeByteString"
 

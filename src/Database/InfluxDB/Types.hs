@@ -25,6 +25,7 @@ import Data.Time.Clock.POSIX
 import Network.HTTP.Client (Manager, ManagerSettings, Request)
 import qualified Data.ByteString.Lazy as BL
 import qualified Data.Text as T
+import qualified Network.HTTP.Client as HC
 
 newtype Query = Query T.Text deriving IsString
 
@@ -202,7 +203,7 @@ data InfluxException
   --
   -- You can expect to get a successful response once the issue is resolved on
   -- the server side.
-  | BadRequest String Request
+  | ClientError String Request
   -- ^ Client side error.
   --
   -- You need to fix your query to get a successful response.
@@ -211,6 +212,14 @@ data InfluxException
   --
   -- This can happen e.g. when the response from InfluxDB is incompatible with
   -- what this library expects due to an upstream format change etc.
+  | HTTPException HC.HttpException
+  -- ^ HTTP communication error.
+  --
+  -- Typical HTTP errors (4xx and 5xx) are covered by 'ClientError' and
+  -- 'ServerError'. So this exception means something unusual happened. Note
+  -- that if 'HC.checkResponse' is overridden to throw an 'HC.HttpException' on
+  -- an unsuccessful HTTP code, this exception is thrown instead of
+  -- 'ClientError' or 'ServerError'.
   deriving (Show, Typeable)
 
 instance Exception InfluxException

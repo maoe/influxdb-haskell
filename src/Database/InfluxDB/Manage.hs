@@ -30,18 +30,18 @@ import qualified Data.Attoparsec.Combinator as AC
 import qualified Data.Attoparsec.Text as AT
 import qualified Data.Text.Encoding as TE
 import qualified Data.Vector as V
+import qualified Network.HTTP.Client as HC
 import qualified Network.HTTP.Types as HT
 
 import Database.InfluxDB.Types as Types
 import Database.InfluxDB.Query hiding (query)
 import qualified Database.InfluxDB.Format as F
-import qualified Network.HTTP.Client.Compat as HC
 
 -- | Send a database management query to InfluxDB.
 manage :: QueryParams -> Query -> IO ()
 manage params q = do
   manager' <- either HC.newManager return $ params^.manager
-  response <- HC.httpLbs request manager'
+  response <- HC.httpLbs request manager' `catch` (throwIO . HTTPException)
   let body = HC.responseBody response
   case eitherDecode' body of
     Left message -> do
@@ -53,7 +53,7 @@ manage params q = do
         when (HT.statusIsServerError status) $
           throwIO $ ServerError message
         when (HT.statusIsClientError status) $
-          throwIO $ BadRequest message request
+          throwIO $ ClientError message request
         fail $ "BUG: " ++ message ++ " in Database.InfluxDB.Manage.manage"
   where
     request = HC.setQueryString qs $ manageRequest params

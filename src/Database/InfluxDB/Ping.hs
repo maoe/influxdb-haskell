@@ -19,12 +19,13 @@ module Database.InfluxDB.Ping
   , roundtripTime
   , influxdbVersion
   ) where
+import Control.Exception
 
 import Control.Lens
+import System.Clock
 import qualified Data.ByteString as BS
 import qualified Data.Text.Encoding as TE
-import qualified Network.HTTP.Client.Compat as HC
-import System.Clock
+import qualified Network.HTTP.Client as HC
 
 import Database.InfluxDB.Types as Types
 
@@ -90,12 +91,14 @@ ping :: PingParams -> IO PingResult
 ping params = do
   manager' <- either HC.newManager return $ _manager params
   startTime <- getTime'
-  HC.withResponse request manager' (\response -> do
+  HC.withResponse request manager' $ \response -> do
     endTime <- getTime'
     let headers = HC.responseHeaders response
     case lookup "X-Influxdb-Version" headers of
-      Just version -> pure (PingResult (diffTimeSpec endTime startTime) version)
-      Nothing -> error "A response by influxdb should always contain a version header.")
+      Just version -> pure $ PingResult (diffTimeSpec endTime startTime) version
+      Nothing -> error "A response by influxdb should always contain a version header."
+    `catch` (throwIO . HTTPException)
+
   where
     request = pingRequest params
     getTime' = getTime Monotonic

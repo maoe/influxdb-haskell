@@ -38,8 +38,6 @@ library
     Database.InfluxDB.Types
     Database.InfluxDB.Write
     Database.InfluxDB.Write.UDP
-  other-modules:
-    Network.HTTP.Client.Compat
   other-extensions:
     BangPatterns
     CPP
@@ -70,6 +68,7 @@ library
     , clock >= 0.7 && < 0.8
     , containers >= 0.5 && < 0.6
     , foldl < 1.4
+    , http-client >= 0.5 && < 0.6
     , http-types >= 0.8.6 && < 0.10
     , lens >= 4.9 && < 4.16
     , network >= 2.6 && < 2.7
@@ -79,12 +78,6 @@ library
     , time >= 1.5 && < 1.9
     , unordered-containers < 0.3
     , vector >= 0.10 && < 0.13
-  if flag(http-client-05)
-    build-depends: http-client >= 0.5 && < 0.6
-  else
-    build-depends:
-        data-default-class
-      , http-client >= 0.4.10 && < 0.5
   hs-source-dirs: src
   default-language: Haskell2010
 
