@@ -1,27 +1,32 @@
+{-# LANGUAGE CPP #-}
 {-# LANGUAGE OverloadedStrings #-}
 {-# LANGUAGE RecordWildCards #-}
 {-# LANGUAGE TemplateHaskell #-}
-
+#if __GLASGOW_HASKELL__ >= 800
+{-# OPTIONS_GHC -Wno-missing-signatures #-}
+#else
+{-# OPTIONS_GHC -fno-warn-missing-signatures #-}
+#endif
 module Database.InfluxDB.Ping
-  (
-  -- * Ping interface
+  ( -- * Ping interface
     ping
 
   -- * Ping parameters
-  , PingParams(..)
+  , PingParams
   , pingParams
-  , Types.server
-  , Types.manager
-  , waitForLeader
+  , server
+  , manager
+  , timeout
 
-  -- * Ping result
-  , PingResult(..)
+  -- * Pong
+  , Pong
   , roundtripTime
   , influxdbVersion
   ) where
 import Control.Exception
 
 import Control.Lens
+import Data.Time.Clock (NominalDiffTime)
 import System.Clock
 import qualified Data.ByteString as BS
 import qualified Data.Text.Encoding as TE
@@ -29,39 +34,58 @@ import qualified Network.HTTP.Client as HC
 
 import Database.InfluxDB.Types as Types
 
-
 -- Ping requests do not require authentication
 -- | The full set of parameters for the ping API
 data PingParams = PingParams
-  { _server :: !Server
-  , _manager :: !(Either HC.ManagerSettings HC.Manager)
+  { pingServer :: !Server
+  , pingManager :: !(Either HC.ManagerSettings HC.Manager)
   -- ^ HTTP connection manager
-  , _waitForLeader :: !(Maybe Int)
-  -- ^ the number of seconds to wait
+  , pingTimeout :: !(Maybe NominalDiffTime)
+  -- ^ Timeout
   }
 
-makeLensesWith (lensRules & generateSignatures .~ False) ''PingParams
+-- | Smart constructor for 'PingParams'
+--
+-- Default parameters:
+--
+--   ['L.server'] 'defaultServer'
+--   ['L.manager'] @'Left' 'HC.defaultManagerSettings'@
+--   ['L.timeout'] 'Nothing'
+pingParams :: PingParams
+pingParams = PingParams
+  { pingServer = defaultServer
+  , pingManager = Left HC.defaultManagerSettings
+  , pingTimeout = Nothing
+  }
 
-server :: Lens' PingParams Server
+makeLensesWith
+  ( lensRules
+    & generateSignatures .~ False
+    & lensField .~ lookingupNamer
+      [ ("pingServer", "_server")
+      , ("pingManager", "_manager")
+      , ("pingTimeout", "timeout")
+      ]
+    )
+  ''PingParams
 
+-- |
+-- >>> pingParams ^. server.host
+-- "localhost"
 instance HasServer PingParams where
-  server = Database.InfluxDB.Ping.server
+  server = _server
 
-manager :: Lens' PingParams (Either HC.ManagerSettings HC.Manager)
-
+-- |
+-- >>> let p = pingParams & manager .~ Left HC.defaultManagerSettings
 instance HasManager PingParams where
-  manager = Database.InfluxDB.Ping.manager
+  manager = _manager
 
 -- | The number of seconds to wait before returning a response
-waitForLeader :: Lens' PingParams (Maybe Int)
-
-pingParams :: PingParams
-pingParams =
-  PingParams
-  { _server = localServer
-  , _manager = Left HC.defaultManagerSettings
-  , _waitForLeader = Nothing
-  }
+--
+-- >>> pingParams ^. timeout
+-- Nothing
+-- >>> let p = pingParams & timeout ?~ 1
+timeout :: Lens' PingParams (Maybe NominalDiffTime)
 
 pingRequest :: PingParams -> HC.Request
 pingRequest PingParams {..} = HC.defaultRequest
@@ -72,33 +96,36 @@ pingRequest PingParams {..} = HC.defaultRequest
   , HC.path = "/ping"
   }
   where
-    Server {..} = _server
+    Server {..} = pingServer
 
-data PingResult = PingResult
+-- | Response of a ping request
+data Pong = Pong
   { _roundtripTime :: !TimeSpec
+  -- ^ Round-trip time of the ping
   , _influxdbVersion :: !BS.ByteString
+  -- ^ Version string returned by InfluxDB
   } deriving (Show, Eq, Ord)
 
-makeLensesWith (lensRules & generateSignatures .~ False) ''PingResult
+makeLensesWith (lensRules & generateSignatures .~ False) ''Pong
 
--- | Roundtrip time of the ping
-roundtripTime :: Lens' PingResult TimeSpec
+-- | Round-trip time of the ping
+roundtripTime :: Lens' Pong TimeSpec
 
--- | Version string returned by the InfluxDB header
-influxdbVersion :: Lens' PingResult BS.ByteString
+-- | Version string returned by InfluxDB
+influxdbVersion :: Lens' Pong BS.ByteString
 
-ping :: PingParams -> IO PingResult
+ping :: PingParams -> IO Pong
 ping params = do
-  manager' <- either HC.newManager return $ _manager params
-  startTime <- getTime'
+  manager' <- either HC.newManager return $ pingManager params
+  startTime <- getTimeMonotonic
   HC.withResponse request manager' $ \response -> do
-    endTime <- getTime'
-    let headers = HC.responseHeaders response
-    case lookup "X-Influxdb-Version" headers of
-      Just version -> pure $ PingResult (diffTimeSpec endTime startTime) version
-      Nothing -> error "A response by influxdb should always contain a version header."
+    endTime <- getTimeMonotonic
+    case lookup "X-Influxdb-Version" (HC.responseHeaders response) of
+      Just version ->
+        return $! Pong (diffTimeSpec endTime startTime) version
+      Nothing ->
+        fail "A response by influxdb should always contain a version header."
     `catch` (throwIO . HTTPException)
-
   where
     request = pingRequest params
-    getTime' = getTime Monotonic
+    getTimeMonotonic = getTime Monotonic

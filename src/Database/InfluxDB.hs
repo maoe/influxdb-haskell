@@ -31,11 +31,13 @@ module Database.InfluxDB
   , precisionName
 
   -- * Querying data
+  -- $query
   , Query
   , query
   , queryChunked
 
-  -- * Query constructor
+  -- ** Query construction
+  -- $query-construction
   , formatQuery
   , (%)
 
@@ -45,13 +47,14 @@ module Database.InfluxDB
   , authentication
 
   -- ** Parsing results
+  -- $parsing-results
   , QueryResults(..)
   , parseResultsWith
   , getField
   , getTag
-  , parseTimestamp
-  , parseFieldValue
-  , parseKey
+  , parseUTCTime
+  , parsePOSIXTime
+  , parseQueryField
 
   -- * Database management
   , manage
@@ -65,7 +68,7 @@ module Database.InfluxDB
   , host
   , port
   , ssl
-  , localServer
+  , defaultServer
 
   , Credentials
   , credentials
@@ -96,5 +99,21 @@ import:
 
 @
 import qualified "Database.InfluxDB.Write.UDP" as UDP
+@
+-}
+
+{- $query
+'query' and 'queryChunked' can be used to query data. If your dataset fits your
+memory, 'query' is easier to use. If it doesn't, use 'queryChunked' to stream
+data.
+-}
+
+{- $query-construction
+There are various utility functions available in "Database.InfluxDB.Format".
+This module is designed to be imported as qualified:
+
+@
+import "Database.InfluxDB"
+import qualified "Database.InfluxDB.Format" as F
 @
 -}

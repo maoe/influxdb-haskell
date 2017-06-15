@@ -33,7 +33,7 @@ import Database.InfluxDB.Types
 
 -- | Placeholder for the Line Protocol
 --
--- See https://docs.influxdata.com/influxdb/v1.0/write_protocols/line_protocol_tutorial/ for the
+-- See https://docs.influxdata.com/influxdb/v1.2/write_protocols/line_protocol_tutorial/ for the
 -- concrete syntax.
 data Line time = Line
   { _measurement :: !Key
