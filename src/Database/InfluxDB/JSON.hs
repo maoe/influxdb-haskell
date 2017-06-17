@@ -6,20 +6,25 @@
 {-# LANGUAGE RecordWildCards #-}
 {-# LANGUAGE ViewPatterns #-}
 module Database.InfluxDB.JSON
-  ( parseResultsWith
+  ( -- * Result parsers
+    parseResultsWith
   , parseResultsWithDecoder
+
+  -- ** Decoder settings
   , Decoder(..)
   , strictDecoder
   , lenientDecoder
 
+  -- * Getting fields and tags
   , getField
   , getTag
 
-  , parseTimestamp
+  -- * Common JSON object parsers
+  , parseUTCTime
   , parsePOSIXTime
   , parseRFC3339
-  , parseFieldValue
-
+  , parseQueryField
+  -- ** Utility functions
   , parseResultsObject
   , parseSeriesObject
   , parseSeriesBody
@@ -33,6 +38,7 @@ import Data.Maybe
 import Data.Aeson
 import Data.HashMap.Strict (HashMap)
 import Data.Text (Text)
+import Data.Time.Clock
 import Data.Time.Clock.POSIX
 import Data.Time.Format
 import Data.Vector (Vector)
@@ -44,7 +50,8 @@ import qualified Data.Vector as V
 
 import Database.InfluxDB.Types
 
--- | Parse a JSON response
+-- | A helper function to parse a JSON response in
+-- 'Database.InfluxDB.Query.parseResults'.
 parseResultsWith
   :: (Maybe Text -> HashMap Text Text -> Vector Text -> Array -> A.Parser a)
   -- ^ A parser that takes
@@ -114,10 +121,11 @@ lenientDecoder = Decoder
 
 -- | Get a field value from a column name
 getField
-  :: Text -- ^ Column name
+  :: Monad m
+  => Text -- ^ Column name
   -> Vector Text -- ^ Columns
-  -> Array -- ^ Fields
-  -> A.Parser Value
+  -> Vector Value -- ^ Field values
+  -> m Value
 getField column columns fields =
   case V.elemIndex column columns of
     Nothing -> fail $ "getField: no such column " ++ show column
@@ -129,19 +137,22 @@ getField column columns fields =
 getTag
   :: Monad m
   => Text -- ^ Tag name
-  -> HashMap Text Text -- ^ Tags
-  -> m Text
+  -> HashMap Text Value -- ^ Tags
+  -> m Value
 getTag tag tags = case HashMap.lookup tag tags of
   Nothing -> fail $ "getTag: no such tag " ++ show tag
   Just val -> return val
 
+-- | Parse a result response.
 parseResultsObject :: Value -> A.Parser (Vector A.Value)
 parseResultsObject = A.withObject "results" $ \obj -> obj .: "results"
 
+-- | Parse a series response.
 parseSeriesObject :: Value -> A.Parser (Vector A.Value)
 parseSeriesObject = A.withObject "series" $ \obj ->
   fromMaybe V.empty <$> obj .:? "series"
 
+-- | Parse the common JSON structure used in query responses.
 parseSeriesBody
   :: Value
   -> A.Parser (Maybe Text, HashMap Text Text, Vector Text, Array)
@@ -152,21 +163,23 @@ parseSeriesBody = A.withObject "series" $ \obj -> do
   !tags <- obj .:? "tags" .!= HashMap.empty
   return (name, tags, columns, values)
 
+-- | Parse the common JSON structure used in failure response.
 parseErrorObject :: A.Value -> A.Parser a
 parseErrorObject = A.withObject "error" $ \obj -> do
   message <- obj .: "error"
   fail $ T.unpack message
 
--- | Parse either a POSIX timestamp or RFC3339 formatted timestamp.
-parseTimestamp :: Precision ty -> A.Value -> A.Parser POSIXTime
-parseTimestamp prec val = case prec of
-  RFC3339 -> utcTimeToPOSIXSeconds <$!> parseRFC3339 val
-  _ -> parsePOSIXTime prec val
+-- | Parse either a POSIX timestamp or RFC3339 formatted timestamp as 'UTCTime'.
+parseUTCTime :: Precision ty -> A.Value -> A.Parser UTCTime
+parseUTCTime prec val = case prec of
+  RFC3339 -> parseRFC3339 val
+  _ -> posixSecondsToUTCTime <$!> parsePOSIXTime prec val
 
--- | Parse an integer POSIX timestamp in given time precision.
+-- | Parse either a POSIX timestamp or RFC3339 formatted timestamp as
+-- 'POSIXTime'.
 parsePOSIXTime :: Precision ty -> A.Value -> A.Parser POSIXTime
 parsePOSIXTime prec val = case prec of
-  RFC3339 -> A.typeMismatch err val
+  RFC3339 -> utcTimeToPOSIXSeconds <$!> parseRFC3339 val
   _ -> A.withScientific err
     (\s -> case timestampToUTC s of
       Nothing -> A.typeMismatch err val
@@ -184,16 +197,18 @@ parsePOSIXTime prec val = case prec of
 -- before parsing.
 parseRFC3339 :: ParseTime time => A.Value -> A.Parser time
 parseRFC3339 val = A.withText err
-  (\text -> maybe (A.typeMismatch err val) (return $!) $
-    parseTimeM True defaultTimeLocale fmt $ T.unpack text)
+  (maybe (A.typeMismatch err val) (return $!)
+    . parseTimeM True defaultTimeLocale fmt
+    . T.unpack)
   val
   where
     fmt, err :: String
     fmt = "%FT%X%QZ"
     err = "RFC3339-formatted timestamp"
 
-parseFieldValue :: A.Value -> A.Parser QueryField
-parseFieldValue val = case val of
+-- | Parse a 'QueryField'.
+parseQueryField :: A.Value -> A.Parser QueryField
+parseQueryField val = case val of
   A.Number sci ->
     return $! either FieldFloat FieldInt $ Sci.floatingOrInteger sci
   A.String txt ->
@@ -202,4 +217,5 @@ parseFieldValue val = case val of
     return $! FieldBool b
   A.Null ->
     return FieldNull
-  _ -> fail "parseFieldValue: expected a flat data structure"
+  _ -> fail $ "parseQueryField: expected a flat data structure, but got "
+    ++ show val
