@@ -143,7 +143,7 @@ writeByteString params payload = do
         throwIO $ ClientError message request
     else case A.eitherDecode' body of
       Left message ->
-        throwIO $ IllformedJSON message body
+        throwIO $ UnexpectedResponse message body
       Right val -> case A.parse parseErrorObject val of
         A.Success _ ->
           fail $ "BUG: impossible code path in "

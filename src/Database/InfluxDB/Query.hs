@@ -217,7 +217,7 @@ query params q = withQueryResponse params Nothing q go
       chunks <- HC.brConsume $ HC.responseBody response
       let body = BL.fromChunks chunks
       case eitherDecode' body of
-        Left message -> throwIO $ IllformedJSON message body
+        Left message -> throwIO $ UnexpectedResponse message body
         Right val -> case A.parse (parseResults (queryPrecision params)) val of
           A.Success vec -> return vec
           A.Error message ->
@@ -271,7 +271,7 @@ queryChunked params chunkSize q (L.FoldM step initialize extract) =
           | B.null chunk = return x
           | otherwise = case k chunk of
             AB.Fail unconsumed _contexts message ->
-              throwIO $ IllformedJSON message $ BL.fromStrict unconsumed
+              throwIO $ UnexpectedResponse message $ BL.fromStrict unconsumed
             AB.Partial k' -> do
               chunk' <- HC.responseBody response
               loop x k' chunk'

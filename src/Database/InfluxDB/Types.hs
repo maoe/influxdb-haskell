@@ -249,8 +249,9 @@ data InfluxException
   -- ^ Client side error.
   --
   -- You need to fix your query to get a successful response.
-  | IllformedJSON String BL.ByteString
-  -- ^ Unexpected JSON response.
+  | UnexpectedResponse String BL.ByteString
+  -- ^ Received an unexpected response. The 'String' field is a message and the
+  -- 'BL.ByteString' field is a possibly-empty relevant payload.
   --
   -- This can happen e.g. when the response from InfluxDB is incompatible with
   -- what this library expects due to an upstream format change etc.

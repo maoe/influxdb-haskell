@@ -114,6 +114,9 @@ roundtripTime :: Lens' Pong TimeSpec
 -- | Version string returned by InfluxDB
 influxdbVersion :: Lens' Pong BS.ByteString
 
+-- | Send a ping to InfluxDB.
+--
+-- It may throw an 'InfluxException'.
 ping :: PingParams -> IO Pong
 ping params = do
   manager' <- either HC.newManager return $ pingManager params
@@ -124,8 +127,10 @@ ping params = do
       Just version ->
         return $! Pong (diffTimeSpec endTime startTime) version
       Nothing ->
-        fail "A response by influxdb should always contain a version header."
-    `catch` (throwIO . HTTPException)
+        throwIO $ UnexpectedResponse
+          "The X-Influxdb-Version header was missing in the response."
+          ""
+  `catch` (throwIO . HTTPException)
   where
     request = (pingRequest params)
       { HC.responseTimeout = case pingTimeout params of

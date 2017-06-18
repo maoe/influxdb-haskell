@@ -73,7 +73,7 @@ manage params q = do
   let body = HC.responseBody response
   case eitherDecode' body of
     Left message ->
-      throwIO $ IllformedJSON message body
+      throwIO $ UnexpectedResponse message body
     Right val -> case A.parse (parseResults (params^.precision)) val of
       A.Success (_ :: V.Vector Void) -> return ()
       A.Error message -> do
