@@ -127,5 +127,10 @@ ping params = do
         fail "A response by influxdb should always contain a version header."
     `catch` (throwIO . HTTPException)
   where
-    request = pingRequest params
+    request = (pingRequest params)
+      { HC.responseTimeout = case pingTimeout params of
+        Nothing -> HC.responseTimeoutNone
+        Just sec -> HC.responseTimeoutMicro $
+          round $ realToFrac sec / (10**(-6) :: Double)
+      }
     getTimeMonotonic = getTime Monotonic
