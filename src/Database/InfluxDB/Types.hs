@@ -109,10 +109,15 @@ user :: Lens' Credentials Text
 -- | Password to access InfluxDB
 password :: Lens' Credentials Text
 
--- | Database name
+-- | Database name.
+--
+-- 'Database.InfluxDB.formatDatabase' can be used to construct a
+-- 'Database'.
 newtype Database = Database { databaseName :: Text } deriving (Eq, Ord)
 
 -- | String type that is used for measurements, tag keys and field keys.
+--
+-- 'Database.InfluxDB.formatkey' can be used to construct a 'Key'.
 newtype Key = Key Text deriving (Eq, Ord)
 
 instance IsString Database where

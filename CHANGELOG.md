@@ -1,3 +1,7 @@
+## v1.2.1 - 2017-06-19
+
+* Export `formatDatabase` and `formatKey` from `Database.InfluxDB` for convenience
+
 ## v1.2.0 - 2017-06-19
 
 There are a lot of breaking changes in this release. The API has been cleaned up
