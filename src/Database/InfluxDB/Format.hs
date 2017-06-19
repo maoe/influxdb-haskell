@@ -16,7 +16,7 @@ module Database.InfluxDB.Format
   , database
   , key
   , keys
-  , fieldVal
+  , field
   , decimal
   , realFloat
   , text
@@ -150,10 +150,10 @@ keys = makeFormat $ mconcat . L.intersperse "," . map keyBuilder
 
 -- | Format 'QueryField'.
 --
--- >>> formatQuery ("SELECT * FROM series WHERE "%key%" = "%fieldVal) "location" "tokyo"
+-- >>> formatQuery ("SELECT * FROM series WHERE "%key%" = "%field) "location" "tokyo"
 -- "SELECT * FROM series WHERE \"location\" = 'tokyo'"
-fieldVal :: Format r (QueryField -> r)
-fieldVal = makeFormat $ \case
+field :: Format r (QueryField -> r)
+field = makeFormat $ \case
   FieldInt n -> TL.decimal n
   FieldFloat d -> TL.realFloat d
   FieldString s -> "'" <> TL.fromText s <> "'"
