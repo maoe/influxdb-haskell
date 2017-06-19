@@ -144,6 +144,7 @@ writeBatch wp
       ])
     (Nothing :: Maybe UTCTime)
   ]
+:}
 
 Note that the type signature of the timestamp is necessary. Otherwise it doesn't
 type check.
