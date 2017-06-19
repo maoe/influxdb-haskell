@@ -119,7 +119,7 @@ package in some APIs. Here we use 'Control.Lens.?~' to set the authentication
 parameters of type @Maybe 'Credentials'@.
 
 Also note that in order to construct a 'Query', we use 'formatQuery' with the
-'F.database' formatter. There are many other formatter defined in
+'F.database' formatter. There are many other formatters defined in
 "Database.InfluxDB.Format".
 
 >>> let db = "square_holes"
