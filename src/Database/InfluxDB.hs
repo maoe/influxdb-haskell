@@ -38,8 +38,8 @@ module Database.InfluxDB
 
   -- ** Query construction
   -- $query-construction
-  , formatQuery
-  , (%)
+  , F.formatQuery
+  , (F.%)
 
   -- ** Query parameters
   , QueryParams
@@ -62,13 +62,15 @@ module Database.InfluxDB
   -- * Common data types and classes
   , Precision(..)
   , Database
+  , F.formatDatabase
   , Key
+  , F.formatKey
 
   , Server
+  , defaultServer
   , host
   , port
   , ssl
-  , defaultServer
 
   , Credentials
   , credentials
@@ -84,13 +86,13 @@ module Database.InfluxDB
   , HasManager(..)
   ) where
 
-import Database.InfluxDB.Format ((%), formatQuery)
 import Database.InfluxDB.JSON
 import Database.InfluxDB.Line
 import Database.InfluxDB.Manage (manage)
 import Database.InfluxDB.Query
 import Database.InfluxDB.Types
 import Database.InfluxDB.Write
+import qualified Database.InfluxDB.Format as F
 
 {- $intro
 = Getting started
