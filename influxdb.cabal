@@ -1,7 +1,10 @@
 name: influxdb
-version: 1.1.2.2
+version: 1.2.0
 synopsis: Haskell client library for InfluxDB
-description: Haskell client library for InfluxDB
+description:
+  @influxdb@ is a Haskell client library for InfluxDB.
+  .
+  Read "Database.InfluxDB" for a quick start guide.
 homepage: https://github.com/maoe/influxdb-haskell
 license: BSD3
 license-file: LICENSE
@@ -22,10 +25,6 @@ flag examples
   default: False
   manual: True
 
-flag http-client-05
-  default: True
-  manual: False
-
 library
   exposed-modules:
     Database.InfluxDB
@@ -38,8 +37,6 @@ library
     Database.InfluxDB.Types
     Database.InfluxDB.Write
     Database.InfluxDB.Write.UDP
-  other-modules:
-    Network.HTTP.Client.Compat
   other-extensions:
     BangPatterns
     CPP
@@ -70,6 +67,7 @@ library
     , clock >= 0.7 && < 0.8
     , containers >= 0.5 && < 0.6
     , foldl < 1.4
+    , http-client >= 0.5 && < 0.6
     , http-types >= 0.8.6 && < 0.10
     , lens >= 4.9 && < 4.16
     , network >= 2.6 && < 2.7
@@ -79,12 +77,6 @@ library
     , time >= 1.5 && < 1.9
     , unordered-containers < 0.3
     , vector >= 0.10 && < 0.13
-  if flag(http-client-05)
-    build-depends: http-client >= 0.5 && < 0.6
-  else
-    build-depends:
-        data-default-class
-      , http-client >= 0.4.10 && < 0.5
   hs-source-dirs: src
   default-language: Haskell2010
 
@@ -150,5 +142,5 @@ source-repository head
 
 source-repository this
   type: git
-  tag: v1.1.2.2
+  tag: v1.2.0
   location: https://github.com/maoe/influxdb-haskell.git

@@ -1,3 +1,22 @@
+## v1.2.0 - 2017-06-19
+
+There are a lot of breaking changes in this release. The API has been cleaned up
+and a lot of Haddock comments are added extensively.
+
+* The `FieldVal` has been renamed to `Field` which takes `Nullability` as a type parameter.
+* `localServer` has been renamed to `defaultServer`
+* Some constructors in `InfluxException` have been renamed
+    * `BadRequest` to `ClientError`
+    * `IllformedJSON` to `UnexpectedResponse`
+* Added a smart constructor `credentials` for `Credentials`
+* Dropped `parseTimestamp` and added `parseUTCTime`
+* `ping` handles timeout proerply and throws `InfluxException` on failure
+* `PingResult` has been renamed to `Pong` and is now an abstract data type.
+* `PingParams` has been turned into an abstract data type.
+* `waitForLeader` has been renamed to `timeout`.
+* `parsekey` has been removed. `getField` and `parseQueryField` can be used instead.
+* Drop support for `http-client < 0.5`
+
 ## v1.1.2.2 - 2017-05-31
 
 * Relax upper version bound for foldl

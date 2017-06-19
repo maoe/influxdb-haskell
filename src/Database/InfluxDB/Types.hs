@@ -13,7 +13,6 @@
 {-# LANGUAGE TemplateHaskell #-}
 module Database.InfluxDB.Types where
 import Control.Exception
-import Data.Data (Data)
 import Data.Int (Int64)
 import Data.String
 import Data.Typeable (Typeable)
@@ -26,7 +25,30 @@ import Data.Time.Clock.POSIX
 import Network.HTTP.Client (Manager, ManagerSettings, Request)
 import qualified Data.ByteString.Lazy as BL
 import qualified Data.Text as T
+import qualified Network.HTTP.Client as HC
 
+-- $setup
+-- >>> :set -XOverloadedStrings
+-- >>> import Database.InfluxDB
+
+-- | An InfluxDB query.
+--
+-- A spec of the format is available at
+-- <https://docs.influxdata.com/influxdb/v1.2/query_language/spec/>.
+--
+-- A 'Query' can be constructed using either
+--
+--   * the 'IsString' instance with @-XOverloadedStrings@
+--   * or 'Database.InfluxDB.Format.formatQuery'.
+--
+-- >>> :set -XOverloadedStrings
+-- >>> "SELECT * FROM series" :: Query
+-- "SELECT * FROM series"
+-- >>> import qualified Database.InfluxDB.Format as F
+-- >>> formatQuery ("SELECT * FROM "%F.key) "series"
+-- "SELECT * FROM \"series\""
+--
+-- NOTE: Currently this library doesn't support type-safe query construction.
 newtype Query = Query T.Text deriving IsString
 
 instance Show Query where
@@ -45,8 +67,8 @@ data Server = Server
 --  * 'host': @"localhost"@
 --  * 'port': @8086@
 --  * 'ssl': 'False'
-localServer :: Server
-localServer = Server
+defaultServer :: Server
+defaultServer = Server
   { _host = "localhost"
   , _port = 8086
   , _ssl = False
@@ -67,11 +89,21 @@ ssl :: Lens' Server Bool
 data Credentials = Credentials
   { _user :: !Text
   , _password :: !Text
-  }
+  } deriving Show
+
+credentials
+    :: Text -- ^ User name
+    -> Text -- ^ Password
+    -> Credentials
+credentials = Credentials
 
 makeLensesWith (lensRules & generateSignatures .~ False) ''Credentials
 
--- | User name to access InfluxDB
+-- | User name to access InfluxDB.
+--
+-- >>> let creds = credentials "john" "passw0rd"
+-- >>> creds ^. user
+-- "john"
 user :: Lens' Credentials Text
 
 -- | Password to access InfluxDB
@@ -100,15 +132,27 @@ instance Show Database where
 instance Show Key where
   show (Key name) = show name
 
-data FieldValue
-  = FieldInt !Int64
-  | FieldFloat !Double
-  | FieldString !Text
-  | FieldBool !Bool
-  | FieldNull
-  deriving (Eq, Show, Data, Typeable, Generic)
+data Nullability = Nullable | NonNullable deriving Typeable
 
-instance IsString FieldValue where
+-- | Field type for queries. Queries can contain null values.
+type QueryField = Field 'Nullable
+
+-- | Field type for the line protocol. The line protocol doesn't accept null
+-- values.
+type LineField = Field 'NonNullable
+
+data Field (n :: Nullability) where
+  FieldInt :: !Int64 -> Field n
+  FieldFloat :: !Double -> Field n
+  FieldString :: !Text -> Field n
+  FieldBool :: !Bool -> Field n
+  FieldNull :: Field 'Nullable
+  deriving Typeable
+
+deriving instance Eq (Field n)
+deriving instance Show (Field n)
+
+instance IsString (Field n) where
   fromString = FieldString . T.pack
 
 -- | Type of a request
@@ -141,6 +185,10 @@ data Precision (ty :: RequestType) where
 
 deriving instance Show (Precision a)
 
+-- | Name of the time precision.
+--
+-- >>> precisionName Nanosecond
+-- "n"
 precisionName :: Precision ty -> Text
 precisionName = \case
   Nanosecond -> "n"
@@ -162,6 +210,12 @@ class Timestamp time where
 roundAt :: RealFrac a => a -> a -> a
 roundAt scale x = fromIntegral (round (x / scale) :: Int) * scale
 
+-- | Scale of the type precision.
+--
+-- >>> precisionScale RFC3339
+-- 1.0e-9
+-- >>> precisionScale Microsecond
+-- 1.0e-6
 precisionScale :: Fractional a => Precision ty -> a
 precisionScale = \case
   RFC3339 ->     10^^(-9 :: Int)
@@ -191,27 +245,38 @@ data InfluxException
   --
   -- You can expect to get a successful response once the issue is resolved on
   -- the server side.
-  | BadRequest String Request
+  | ClientError String Request
   -- ^ Client side error.
   --
   -- You need to fix your query to get a successful response.
-  | IllformedJSON String BL.ByteString
-  -- ^ Unexpected JSON response.
+  | UnexpectedResponse String BL.ByteString
+  -- ^ Received an unexpected response. The 'String' field is a message and the
+  -- 'BL.ByteString' field is a possibly-empty relevant payload.
   --
   -- This can happen e.g. when the response from InfluxDB is incompatible with
   -- what this library expects due to an upstream format change etc.
+  | HTTPException HC.HttpException
+  -- ^ HTTP communication error.
+  --
+  -- Typical HTTP errors (4xx and 5xx) are covered by 'ClientError' and
+  -- 'ServerError'. So this exception means something unusual happened. Note
+  -- that if 'HC.checkResponse' is overridden to throw an 'HC.HttpException' on
+  -- an unsuccessful HTTP code, this exception is thrown instead of
+  -- 'ClientError' or 'ServerError'.
   deriving (Show, Typeable)
 
 instance Exception InfluxException
 
 class HasServer a where
+  -- | InfluxDB server address and port that to interact with.
   server :: Lens' a Server
 
 class HasDatabase a where
+  -- | Database name to work on.
   database :: Lens' a Database
 
 class HasPrecision (ty :: RequestType) a | a -> ty where
-  -- Time precision parameter
+  -- | Time precision parameter.
   precision :: Lens' a (Precision ty)
 
 class HasManager a where
@@ -222,4 +287,5 @@ class HasManager a where
   manager :: Lens' a (Either ManagerSettings Manager)
 
 class HasCredentials a where
+  -- | User name and password to be used when sending requests to InfluxDB.
   authentication :: Lens' a (Maybe Credentials)

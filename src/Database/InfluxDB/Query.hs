@@ -19,27 +19,26 @@ module Database.InfluxDB.Query
   -- * Query parameters
   , QueryParams
   , queryParams
-  , Types.server
-  , Types.database
-  , Types.precision
-  , Types.manager
+  , server
+  , database
+  , precision
+  , manager
 
   -- * Parsing results
   , QueryResults(..)
   , parseResultsWith
-  , parseKey
 
   -- * Low-level functions
   , withQueryResponse
   ) where
 import Control.Exception
 import Control.Monad
-import Text.Printf
+import Data.Char
+import Data.List
 
 import Control.Lens
 import Data.Aeson
 import Data.Optional (Optional(..), optional)
-import Data.Text (Text)
 import Data.Vector (Vector)
 import Data.Void
 import qualified Control.Foldl as L
@@ -52,14 +51,42 @@ import qualified Data.ByteString.Lazy as BL
 import qualified Data.Text.Encoding as TE
 import qualified Data.Text as T
 import qualified Data.Vector as V
+import qualified Network.HTTP.Client as HC
 import qualified Network.HTTP.Types as HT
 
 import Database.InfluxDB.JSON
 import Database.InfluxDB.Types as Types
 import qualified Database.InfluxDB.Format as F
-import qualified Network.HTTP.Client.Compat as HC
 
+-- $setup
+-- >>> :set -XOverloadedStrings
+-- >>> :set -XRecordWildCards
+-- >>> import Data.Time (UTCTime)
+
+-- | Types that can be converted from an JSON object returned by InfluxDB.
+--
+-- For example the @h2o_feet@ series in
+-- [the official document](https://docs.influxdata.com/influxdb/v1.2/query_language/data_exploration/)
+-- can be encoded as follows:
+--
+-- >>> :{
+-- data H2OFeet = H2OFeet
+--   { time :: UTCTime
+--   , levelDesc :: T.Text
+--   , location :: T.Text
+--   , waterLevel :: Double
+--   }
+-- instance QueryResults H2OFeet where
+--   parseResults prec = parseResultsWith $ \_ _ columns fields -> do
+--     time <- getField "time" columns fields >>= parseUTCTime prec
+--     String levelDesc <- getField "level_description" columns fields
+--     String location <- getField "location" columns fields
+--     FieldFloat waterLevel <-
+--       getField "water_level" columns fields >>= parseQueryField
+--     return H2OFeet {..}
+-- :}
 class QueryResults a where
+  -- | Parse a JSON object as an array of values of expected type.
   parseResults
     :: Precision 'QueryRequest
     -> Value
@@ -149,23 +176,17 @@ instance
         h <- fields V.!? 7
         return (a, b, c, d, e, f, g, h)
 
-parseKey :: Key -> Vector Text -> Array -> A.Parser Key
-parseKey (Key name) columns fields = do
-  case V.elemIndex name columns >>= V.indexM fields of
-    Just (String (F.formatKey F.text -> key)) -> return key
-    _ -> fail $ printf "parseKey: %s not found in columns" $ show name
-
 -- | The full set of parameters for the query API
 data QueryParams = QueryParams
-  { _server :: !Server
-  , _database :: !Database
-  , _precision :: !(Precision 'QueryRequest)
+  { queryServer :: !Server
+  , queryDatabase :: !Database
+  , queryPrecision :: !(Precision 'QueryRequest)
   -- ^ Timestamp precision
   --
   -- InfluxDB uses nanosecond precision if nothing is specified.
-  , _authentication :: !(Maybe Credentials)
+  , queryAuthentication :: !(Maybe Credentials)
   -- ^ No authentication by default
-  , _manager :: !(Either HC.ManagerSettings HC.Manager)
+  , queryManager :: !(Either HC.ManagerSettings HC.Manager)
   -- ^ HTTP connection manager
   }
 
@@ -173,16 +194,16 @@ data QueryParams = QueryParams
 --
 -- Default parameters:
 --
---   ['L.server'] 'localServer'
+--   ['L.server'] 'defaultServer'
 --   ['L.precision'] 'RFC3339'
---   ['authentication'] 'Nothing'
+--   ['L.authentication'] 'Nothing'
 --   ['L.manager'] @'Left' 'HC.defaultManagerSettings'@
 queryParams :: Database -> QueryParams
-queryParams _database = QueryParams
-  { _server = localServer
-  , _precision = RFC3339
-  , _authentication = Nothing
-  , _manager = Left HC.defaultManagerSettings
+queryParams queryDatabase = QueryParams
+  { queryServer = defaultServer
+  , queryPrecision = RFC3339
+  , queryAuthentication = Nothing
+  , queryManager = Left HC.defaultManagerSettings
   , ..
   }
 
@@ -196,8 +217,8 @@ query params q = withQueryResponse params Nothing q go
       chunks <- HC.brConsume $ HC.responseBody response
       let body = BL.fromChunks chunks
       case eitherDecode' body of
-        Left message -> throwIO $ IllformedJSON message body
-        Right val -> case A.parse (parseResults (_precision params)) val of
+        Left message -> throwIO $ UnexpectedResponse message body
+        Right val -> case A.parse (parseResults (queryPrecision params)) val of
           A.Success vec -> return vec
           A.Error message ->
             errorQuery request response message
@@ -250,12 +271,12 @@ queryChunked params chunkSize q (L.FoldM step initialize extract) =
           | B.null chunk = return x
           | otherwise = case k chunk of
             AB.Fail unconsumed _contexts message ->
-              throwIO $ IllformedJSON message $ BL.fromStrict unconsumed
+              throwIO $ UnexpectedResponse message $ BL.fromStrict unconsumed
             AB.Partial k' -> do
               chunk' <- HC.responseBody response
               loop x k' chunk'
             AB.Done leftover val ->
-              case A.parse (parseResults (_precision params)) val of
+              case A.parse (parseResults (queryPrecision params)) val of
                 A.Success vec -> do
                   x' <- step x vec
                   loop x' k0 leftover
@@ -275,18 +296,19 @@ withQueryResponse
   -> (HC.Request -> HC.Response HC.BodyReader -> IO r)
   -> IO r
 withQueryResponse params chunkSize q f = do
-    manager' <- either HC.newManager return $ _manager params
+    manager' <- either HC.newManager return $ queryManager params
     HC.withResponse request manager' (f request)
+      `catch` (throwIO . HTTPException)
   where
     request =
-      HC.setQueryString (setPrecision (_precision params) queryString) $
+      HC.setQueryString (setPrecision (queryPrecision params) queryString) $
         queryRequest params
     queryString = addChunkedParam
       [ ("q", Just $ F.fromQuery q)
       , ("db", Just db)
       ]
       where
-        !db = TE.encodeUtf8 $ databaseName $ _database params
+        !db = TE.encodeUtf8 $ databaseName $ queryDatabase params
     addChunkedParam ps = case chunkSize of
       Nothing -> ps
       Just size ->
@@ -305,7 +327,7 @@ queryRequest QueryParams {..} = HC.defaultRequest
   , HC.path = "/query"
   }
   where
-    Server {..} = _server
+    Server {..} = queryServer
 
 errorQuery :: HC.Request -> HC.Response body -> String -> IO a
 errorQuery request response message = do
@@ -313,55 +335,54 @@ errorQuery request response message = do
   when (HT.statusIsServerError status) $
     throwIO $ ServerError message
   when (HT.statusIsClientError status) $
-    throwIO $ BadRequest message request
+    throwIO $ ClientError message request
   fail $ "BUG: " ++ message ++ " in Database.InfluxDB.Query.query - "
     ++ show request
 
-makeLensesWith (lensRules & generateSignatures .~ False) ''QueryParams
-
-server :: Lens' QueryParams Server
+makeLensesWith
+  ( lensRules
+    & lensField .~ mappingNamer
+      (\name -> case stripPrefix "query" name of
+        Just (c:cs) -> ['_':toLower c:cs]
+        _ -> [])
+    )
+  ''QueryParams
 
 -- |
 -- >>> let p = queryParams "foo"
 -- >>> p ^. server.host
 -- "localhost"
 instance HasServer QueryParams where
-  server = Database.InfluxDB.Query.server
-
-database :: Lens' QueryParams Database
+  server = _server
 
 -- |
 -- >>> let p = queryParams "foo"
 -- >>> p ^. database
 -- "foo"
 instance HasDatabase QueryParams where
-  database = Database.InfluxDB.Query.database
-
-precision :: Lens' QueryParams (Precision 'QueryRequest)
+  database = _database
 
 -- | Returning JSON responses contain timestamps in the specified
 -- precision/format.
 --
 -- >>> let p = queryParams "foo"
 -- >>> p ^. precision
--- Nanosecond
+-- RFC3339
 instance HasPrecision 'QueryRequest QueryParams where
-  precision = Database.InfluxDB.Query.precision
-
-manager :: Lens' QueryParams (Either HC.ManagerSettings HC.Manager)
+  precision = _precision
 
 -- |
--- >>> let p = queryParams "foo"
--- >>> p & manager .~ Left HC.defaultManagerSettings
+-- >>> let p = queryParams "foo" & manager .~ Left HC.defaultManagerSettings
 instance HasManager QueryParams where
-  manager = Database.InfluxDB.Query.manager
+  manager = _manager
 
 -- | Authentication info for the query
 --
 -- >>> let p = queryParams "foo"
 -- >>> p ^. authentication
 -- Nothing
-authentication :: Lens' QueryParams (Maybe Credentials)
-
+-- >>> let p' = p & authentication ?~ credentials "john" "passw0rd"
+-- >>> p' ^. authentication.traverse.user
+-- "john"
 instance HasCredentials QueryParams where
-  authentication = Database.InfluxDB.Query.authentication
+  authentication = _authentication

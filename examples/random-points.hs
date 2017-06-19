@@ -77,7 +77,7 @@ data Row = Row
 
 instance QueryResults Row where
   parseResults prec = parseResultsWith $ \_ _ columns fields -> do
-    rowTime <- getField "time" columns fields >>= parseTimestamp prec
+    rowTime <- getField "time" columns fields >>= parsePOSIXTime prec
     String name <- getField "value" columns fields
     rowValue <- case name of
       "foo" -> return Foo
@@ -96,7 +96,7 @@ data Name
   | Qux
   deriving (Enum, Bounded, Show)
 
-nameToFVal :: Name -> FieldValue
+nameToFVal :: Name -> LineField
 nameToFVal = FieldString . T.toLower . T.pack . show
 
 instance Variate Name where
