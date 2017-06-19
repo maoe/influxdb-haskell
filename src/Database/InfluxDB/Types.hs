@@ -117,7 +117,7 @@ newtype Database = Database { databaseName :: Text } deriving (Eq, Ord)
 
 -- | String type that is used for measurements, tag keys and field keys.
 --
--- 'Database.InfluxDB.formatkey' can be used to construct a 'Key'.
+-- 'Database.InfluxDB.formatKey' can be used to construct a 'Key'.
 newtype Key = Key Text deriving (Eq, Ord)
 
 instance IsString Database where
