@@ -58,7 +58,7 @@ data Server = Server
   { _host :: !Text
   , _port :: !Int
   , _ssl :: !Bool
-  } deriving (Show, Generic, Eq)
+  } deriving (Show, Generic, Eq, Ord)
 
 -- | Default server settings.
 --
