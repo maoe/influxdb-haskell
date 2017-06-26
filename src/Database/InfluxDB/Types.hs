@@ -58,7 +58,7 @@ data Server = Server
   { _host :: !Text
   , _port :: !Int
   , _ssl :: !Bool
-  } deriving (Show, Generic, Eq)
+  } deriving (Show, Generic, Eq, Ord)
 
 -- | Default server settings.
 --
@@ -117,7 +117,7 @@ newtype Database = Database { databaseName :: Text } deriving (Eq, Ord)
 
 -- | String type that is used for measurements, tag keys and field keys.
 --
--- 'Database.InfluxDB.formatkey' can be used to construct a 'Key'.
+-- 'Database.InfluxDB.formatKey' can be used to construct a 'Key'.
 newtype Key = Key Text deriving (Eq, Ord)
 
 instance IsString Database where
