@@ -15,6 +15,10 @@ module Database.InfluxDB.Line
   , buildLines
   , encodeLine
   , encodeLines
+
+  , LineField
+  , Field(..)
+  , Precision(..)
   ) where
 import Data.List (intersperse)
 import Data.Int (Int64)
