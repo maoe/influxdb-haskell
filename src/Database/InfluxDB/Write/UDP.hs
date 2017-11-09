@@ -17,7 +17,8 @@ module Database.InfluxDB.Write.UDP
   , Types.precision
   ) where
 
-import Control.Lens
+import Lens.Micro
+import Lens.Micro.TH
 import Network.Socket (SockAddr, Socket)
 import Network.Socket.ByteString (sendManyTo)
 import qualified Data.ByteString.Lazy as BL

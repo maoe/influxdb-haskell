@@ -32,7 +32,8 @@ import Control.Exception
 import Control.Monad
 import Data.Maybe
 
-import Control.Lens
+import Lens.Micro
+import Lens.Micro.TH
 import qualified Data.Aeson as A
 import qualified Data.Aeson.Types as A
 import qualified Data.ByteString.Char8 as B8
@@ -186,16 +187,15 @@ writeRequest WriteParams {..} =
       ]
 
 makeLensesWith
-  ( lensRules
+  ( lensRulesFor
+    [ ("writeServer", "_server")
+    , ("writeDatabase", "_database")
+    , ("writeRetentionPolicy", "retentionPolicy")
+    , ("writePrecision", "_precision")
+    , ("writeManager", "_manager")
+    , ("writeAuthentication", "_authentication")
+    ]
     & generateSignatures .~ False
-    & lensField .~ lookingupNamer
-      [ ("writeServer", "_server")
-      , ("writeDatabase", "_database")
-      , ("writeRetentionPolicy", "retentionPolicy")
-      , ("writePrecision", "_precision")
-      , ("writeManager", "_manager")
-      , ("writeAuthentication", "_authentication")
-      ]
     )
   ''WriteParams
 
