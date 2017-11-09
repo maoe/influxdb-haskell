@@ -36,7 +36,9 @@ import Control.Monad
 import Data.Char
 import Data.List
 
-import Control.Lens
+import Lens.Micro
+import Lens.Micro.TH
+import Language.Haskell.TH
 import Data.Aeson
 import Data.Optional (Optional(..), optional)
 import Data.Vector (Vector)
@@ -341,10 +343,9 @@ errorQuery request response message = do
 
 makeLensesWith
   ( lensRules
-    & lensField .~ mappingNamer
-      (\name -> case stripPrefix "query" name of
-        Just (c:cs) -> ['_':toLower c:cs]
-        _ -> [])
+    & lensField .~ (\_ _ name -> case stripPrefix "query" (nameBase name) of
+      Just (c:cs) -> [TopName (mkName ('_':toLower c:cs))]
+      _ -> [])
     )
   ''QueryParams
 

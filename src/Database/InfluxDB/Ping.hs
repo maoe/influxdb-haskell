@@ -25,7 +25,8 @@ module Database.InfluxDB.Ping
   ) where
 import Control.Exception
 
-import Control.Lens
+import Lens.Micro
+import Lens.Micro.TH
 import Data.Time.Clock (NominalDiffTime)
 import System.Clock
 import qualified Data.ByteString as BS
@@ -59,13 +60,12 @@ pingParams = PingParams
   }
 
 makeLensesWith
-  ( lensRules
+  ( lensRulesFor
+    [ ("pingServer", "_server")
+    , ("pingManager", "_manager")
+    , ("pingTimeout", "timeout")
+    ]
     & generateSignatures .~ False
-    & lensField .~ lookingupNamer
-      [ ("pingServer", "_server")
-      , ("pingManager", "_manager")
-      , ("pingTimeout", "timeout")
-      ]
     )
   ''PingParams
 

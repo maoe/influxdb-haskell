@@ -37,7 +37,8 @@ import Control.Applicative
 import Control.Exception
 import Control.Monad
 
-import Control.Lens
+import Lens.Micro
+import Lens.Micro.TH
 import Data.Aeson
 import Data.Scientific (toBoundedInteger)
 import Data.Text (Text)
@@ -148,14 +149,13 @@ instance QueryResults ShowSeries where
     return $ ShowSeries $ F.formatKey F.text name
 
 makeLensesWith
-  ( lensRules
+  ( lensRulesFor
+    [ ("showQueryQid", "qid")
+    , ("showQueryText", "queryText")
+    , ("showQueryDatabase", "_database")
+    , ("showQueryDuration", "duration")
+    ]
     & generateSignatures .~ False
-    & lensField .~ lookingupNamer
-      [ ("showQueryQid", "qid")
-      , ("showQueryText", "queryText")
-      , ("showQueryDatabase", "_database")
-      , ("showQueryDuration", "duration")
-      ]
   ) ''ShowQuery
 
 -- | Query ID

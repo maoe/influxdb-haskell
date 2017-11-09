@@ -24,7 +24,8 @@ import Data.List (intersperse)
 import Data.Int (Int64)
 import Data.Monoid
 
-import Control.Lens
+import Lens.Micro
+import Lens.Micro.TH
 import Data.Map (Map)
 import Data.Text (Text)
 import qualified Data.ByteString.Builder as B

@@ -18,7 +18,8 @@ import Data.String
 import Data.Typeable (Typeable)
 import GHC.Generics (Generic)
 
-import Control.Lens
+import Lens.Micro
+import Lens.Micro.TH
 import Data.Text (Text)
 import Data.Time.Clock
 import Data.Time.Clock.POSIX
