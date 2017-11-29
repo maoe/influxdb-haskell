@@ -1,3 +1,7 @@
+## v1.2.2.1 - 2017-11-30
+
+* Relax upper version bound for http-types
+
 ## v1.2.2 - 2017-06-26
 
 * A couple of documentation fixes
