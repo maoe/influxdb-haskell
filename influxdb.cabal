@@ -68,7 +68,7 @@ library
     , containers >= 0.5 && < 0.6
     , foldl < 1.4
     , http-client >= 0.5 && < 0.6
-    , http-types >= 0.8.6 && < 0.10
+    , http-types >= 0.8.6 && < 0.11
     , lens >= 4.9 && < 4.16
     , network >= 2.6 && < 2.7
     , optional-args >= 1.0 && < 1.1
