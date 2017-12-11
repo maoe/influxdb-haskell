@@ -1,3 +1,7 @@
+## v1.2.2.2 - 2017-11-30
+
+* Relax upper version bounds for http-types and tasty-hunit
+
 ## v1.2.2.1 - 2017-11-30
 
 * Relax upper version bound for http-types
