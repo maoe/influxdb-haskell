@@ -1,5 +1,5 @@
 name: influxdb
-version: 1.2.2.1
+version: 1.2.2.2
 synopsis: Haskell client library for InfluxDB
 description:
   @influxdb@ is a Haskell client library for InfluxDB.
@@ -68,7 +68,7 @@ library
     , containers >= 0.5 && < 0.6
     , foldl < 1.4
     , http-client >= 0.5 && < 0.6
-    , http-types >= 0.8.6 && < 0.11
+    , http-types >= 0.8.6 && < 0.12
     , lens >= 4.9 && < 4.16
     , network >= 2.6 && < 2.7
     , optional-args >= 1.0 && < 1.1
@@ -90,7 +90,7 @@ test-suite test-suite
     , influxdb
     , mtl
     , tasty
-    , tasty-hunit == 0.9.*
+    , tasty-hunit <= 0.11
     , tasty-quickcheck
     , tasty-th
     , text
