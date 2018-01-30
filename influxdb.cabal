@@ -139,8 +139,3 @@ source-repository head
   type: git
   branch: develop
   location: https://github.com/maoe/influxdb-haskell.git
-
-source-repository this
-  type: git
-  tag: v1.2.2
-  location: https://github.com/maoe/influxdb-haskell.git
