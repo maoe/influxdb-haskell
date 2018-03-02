@@ -153,7 +153,7 @@ database = makeFormat $ \(Database name) -> doubleQuote name
 -- | Format a key (e.g. field names, tag names, tag values etc).
 --
 -- >>> formatQuery ("SELECT "%key%" FROM series") "field"
--- "SELECT field FROM \"test-series\""
+-- "SELECT \"field\" FROM series"
 key :: Format r (Key -> r)
 key = makeFormat keyBuilder
 
