@@ -14,7 +14,11 @@ copyright: Copyright (C) 2014-2018 Mitsutoshi Aoe
 category: Database
 build-type: Simple
 cabal-version: >= 1.10
-tested-with: GHC >= 7.10 && < 8.1
+tested-with:
+  GHC == 7.10.3
+  GHC == 8.0.2
+  GHC == 8.2.2
+  GHC == 8.4.1
 
 extra-source-files:
   README.md
