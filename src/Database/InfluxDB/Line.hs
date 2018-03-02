@@ -73,7 +73,7 @@ buildLine toTimestamp Line {..} =
   key <> " " <> fields <> maybe "" (" " <>) timestamp
   where
     measurement = buildKey _measurement
-    tags = buildMap TE.encodeUtf8Builder _tagSet
+    tags = buildMap (TE.encodeUtf8Builder . escape) _tagSet
     key = if Map.null _tagSet
       then measurement
       else measurement <> "," <> tags
@@ -89,10 +89,10 @@ buildLine toTimestamp Line {..} =
           ]
 
 buildKey :: Key -> B.Builder
-buildKey = TE.encodeUtf8Builder . escapeKey
+buildKey (Key t) = TE.encodeUtf8Builder $ escape t
 
-escapeKey :: Key -> Text
-escapeKey (Key text) = T.replace " " "\\ " $ T.replace "," "\\," text
+escape :: Text -> Text
+escape = T.replace " " "\\ " . T.replace "," "\\,"
 
 buildFieldValue :: LineField -> B.Builder
 buildFieldValue = \case
