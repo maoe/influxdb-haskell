@@ -127,6 +127,7 @@ Also note that in order to construct a 'Query', we use 'formatQuery' with the
 >>> let db = "square_holes"
 >>> let bubba = credentials "bubba" "bumblebeetuna"
 >>> let p = queryParams db & authentication ?~ bubba
+>>> manage p $ formatQuery ("DROP DATABASE "%F.database) db
 >>> manage p $ formatQuery ("CREATE DATABASE "%F.database) db
 
 == Writing data
