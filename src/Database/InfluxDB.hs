@@ -63,6 +63,8 @@ module Database.InfluxDB
   , Precision(..)
   , Database
   , F.formatDatabase
+  , Measurement
+  , F.formatMeasurement
   , Key
   , F.formatKey
 
