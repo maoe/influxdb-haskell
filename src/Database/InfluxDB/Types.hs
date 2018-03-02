@@ -115,27 +115,39 @@ password :: Lens' Credentials Text
 -- 'Database'.
 newtype Database = Database { databaseName :: Text } deriving (Eq, Ord)
 
--- | String type that is used for measurements, tag keys and field keys.
+instance IsString Database where
+  fromString xs = Database $ fromNonEmptyString "Database" xs
+
+instance Show Database where
+  show (Database name) = show name
+
+-- | String name that is used for measurements.
+--
+-- 'Database.InfluxDB.formatMeasurement' can be used to construct a
+-- 'Measurement'.
+newtype Measurement = Measurement Text deriving (Eq, Ord)
+
+instance IsString Measurement where
+  fromString xs = Measurement $ fromNonEmptyString "Measurement" xs
+
+instance Show Measurement where
+  show (Measurement name) = show name
+
+-- | String type that is used for tag keys/values and field keys.
 --
 -- 'Database.InfluxDB.formatKey' can be used to construct a 'Key'.
 newtype Key = Key Text deriving (Eq, Ord)
 
-instance IsString Database where
-  fromString xs = Database $ fromNonEmptyString "Database" xs
-
 instance IsString Key where
   fromString xs = Key $ fromNonEmptyString "Key" xs
+
+instance Show Key where
+  show (Key name) = show name
 
 fromNonEmptyString :: String -> String -> Text
 fromNonEmptyString ty xs
   | null xs = error $ ty ++ " should never be empty"
   | otherwise = fromString xs
-
-instance Show Database where
-  show (Database name) = show name
-
-instance Show Key where
-  show (Key name) = show name
 
 data Nullability = Nullable | NonNullable deriving Typeable
 

@@ -40,9 +40,9 @@ import Database.InfluxDB.Types
 -- See https://docs.influxdata.com/influxdb/v1.2/write_protocols/line_protocol_tutorial/ for the
 -- concrete syntax.
 data Line time = Line
-  { _measurement :: !Key
+  { _measurement :: !Measurement
   -- ^ Measurement name
-  , _tagSet :: !(Map Key Text)
+  , _tagSet :: !(Map Key Key)
   -- ^ Set of tags (optional)
   , _fieldSet :: !(Map Key LineField)
   -- ^ Set of fields
@@ -72,8 +72,8 @@ buildLine
 buildLine toTimestamp Line {..} =
   key <> " " <> fields <> maybe "" (" " <>) timestamp
   where
-    measurement = buildKey _measurement
-    tags = buildMap (TE.encodeUtf8Builder . escape) _tagSet
+    measurement = TE.encodeUtf8Builder $ escapeMeasurement _measurement
+    tags = buildMap (TE.encodeUtf8Builder . escapeKey) _tagSet
     key = if Map.null _tagSet
       then measurement
       else measurement <> "," <> tags
@@ -83,22 +83,31 @@ buildLine toTimestamp Line {..} =
       mconcat . intersperse "," . map encodeKeyVal . Map.toList
       where
         encodeKeyVal (name, val) = mconcat
-          [ buildKey name
+          [ TE.encodeUtf8Builder $ escapeKey name
           , "="
           , encodeVal val
           ]
 
-buildKey :: Key -> B.Builder
-buildKey (Key t) = TE.encodeUtf8Builder $ escape t
+escapeKey :: Key -> Text
+escapeKey (Key text) = escapeCommas $ escapeEqualSigns $ escapeSpaces text
 
-escape :: Text -> Text
-escape = T.replace " " "\\ " . T.replace "," "\\,"
+escapeMeasurement :: Measurement -> Text
+escapeMeasurement (Measurement text) = escapeCommas $ escapeSpaces text
+
+escapeStringField :: Text -> Text
+escapeStringField = escapeDoubleQuotes
+
+escapeCommas, escapeEqualSigns, escapeSpaces, escapeDoubleQuotes :: Text -> Text
+escapeCommas = T.replace "," "\\,"
+escapeEqualSigns = T.replace "=" "\\="
+escapeSpaces = T.replace " " "\\ "
+escapeDoubleQuotes = T.replace "\"" "\\\""
 
 buildFieldValue :: LineField -> B.Builder
 buildFieldValue = \case
   FieldInt i -> B.int64Dec i <> "i"
   FieldFloat d -> B.doubleDec d
-  FieldString t -> "\"" <> TE.encodeUtf8Builder t <> "\""
+  FieldString t -> "\"" <> TE.encodeUtf8Builder (escapeStringField t) <> "\""
   FieldBool b -> if b then "true" else "false"
 
 buildLines
@@ -111,11 +120,11 @@ buildLines toTimestamp = foldMap ((<> "\n") . buildLine toTimestamp)
 makeLensesWith (lensRules & generateSignatures .~ False) ''Line
 
 -- | Name of the measurement that you want to write your data to.
-measurement :: Lens' (Line time) Key
+measurement :: Lens' (Line time) Measurement
 
 -- | Tag(s) that you want to include with your data point. Tags are optional in
 -- the Line Protocol, so you can set it 'empty'.
-tagSet :: Lens' (Line time) (Map Key Text)
+tagSet :: Lens' (Line time) (Map Key Key)
 
 -- | Field(s) for your data point. Every data point requires at least one field
 -- in the Line Protocol, so it shouldn't be 'empty'.
