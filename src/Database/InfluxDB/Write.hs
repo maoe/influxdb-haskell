@@ -173,7 +173,9 @@ writeRequest WriteParams {..} =
   where
     Server {..} = writeServer
     qs = concat
-      [ [("db", Just $ TE.encodeUtf8 $ databaseName writeDatabase)]
+      [ [ ("db", Just $ TE.encodeUtf8 $ databaseName writeDatabase)
+        , ("precision", Just $ TE.encodeUtf8 $ precisionName writePrecision)
+        ]
       , fromMaybe [] $ do
         Key name <- writeRetentionPolicy
         return [("rp", Just (TE.encodeUtf8 name))]
