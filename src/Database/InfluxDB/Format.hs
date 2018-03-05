@@ -10,12 +10,15 @@ module Database.InfluxDB.Format
   -- * Formatting functions
   , formatQuery
   , formatDatabase
+  , formatMeasurement
   , formatKey
 
   -- * Formatters for various types
   , database
   , key
   , keys
+  , measurement
+  , measurements
   , field
   , decimal
   , realFloat
@@ -97,6 +100,9 @@ instance a ~ r => IsString (Format a r) where
 (%) :: Format b c -> Format a b -> Format a c
 (%) = (.)
 
+runFormatWith :: (T.Text -> a) -> Format a r -> r
+runFormatWith f fmt = runFormat fmt (f . TL.toStrict . TL.toLazyText)
+
 -- | Format a 'Query'.
 --
 -- >>> formatQuery "SELECT * FROM series"
@@ -104,14 +110,21 @@ instance a ~ r => IsString (Format a r) where
 -- >>> formatQuery ("SELECT * FROM "%key) "series"
 -- "SELECT * FROM \"series\""
 formatQuery :: Format Query r -> r
-formatQuery fmt = runFormat fmt (Query . TL.toStrict . TL.toLazyText)
+formatQuery = runFormatWith Query
 
 -- | Format a 'Database'.
 --
 -- >>> formatDatabase "test-db"
 -- "test-db"
 formatDatabase :: Format Database r -> r
-formatDatabase fmt = runFormat fmt (Database . TL.toStrict . TL.toLazyText)
+formatDatabase = runFormatWith Database
+
+-- | Format a 'Measurement'.
+--
+-- >>> formatMeasurement "test-series"
+-- "test-series"
+formatMeasurement :: Format Measurement r -> r
+formatMeasurement = runFormatWith Measurement
 
 -- | Format a 'Key'.
 --
@@ -124,20 +137,23 @@ formatKey fmt = runFormat fmt (Key . TL.toStrict . TL.toLazyText)
 makeFormat :: (a -> TL.Builder) -> Format r (a -> r)
 makeFormat build = Format $ \k a -> k $ build a
 
+doubleQuote :: T.Text -> TL.Builder
+doubleQuote name = "\"" <> TL.fromText name <> "\""
+
+singleQuote :: T.Text -> TL.Builder
+singleQuote name = "'" <> TL.fromText name <> "'"
+
 -- | Format a database name.
 --
 -- >>> formatQuery ("CREATE DATABASE "%database) "test-db"
 -- "CREATE DATABASE \"test-db\""
 database :: Format r (Database -> r)
-database = makeFormat $ \(Database name) -> "\"" <> TL.fromText name <> "\""
+database = makeFormat $ \(Database name) -> doubleQuote name
 
-keyBuilder :: Key -> TL.Builder
-keyBuilder (Key name) = "\"" <> TL.fromText name <> "\""
-
--- | Format a key (e.g. series names, field names etc).
+-- | Format a key (e.g. field names, tag names, tag values etc).
 --
--- >>> formatQuery ("SELECT * FROM "%key) "test-series"
--- "SELECT * FROM \"test-series\""
+-- >>> formatQuery ("SELECT "%key%" FROM series") "field"
+-- "SELECT \"field\" FROM series"
 key :: Format r (Key -> r)
 key = makeFormat keyBuilder
 
@@ -148,6 +164,26 @@ key = makeFormat keyBuilder
 keys :: Format r ([Key] -> r)
 keys = makeFormat $ mconcat . L.intersperse "," . map keyBuilder
 
+keyBuilder :: Key -> TL.Builder
+keyBuilder (Key name) = doubleQuote name
+
+-- | Format a measurement.
+--
+-- >>> formatQuery ("SELECT * FROM "%measurement) "test-series"
+-- "SELECT * FROM \"test-series\""
+measurement :: Format r (Measurement -> r)
+measurement = makeFormat measurementBuilder
+
+-- | Format a measurement.
+--
+-- >>> formatQuery ("SELECT * FROM "%measurements) ["series1", "series2"]
+-- "SELECT * FROM \"series1\",\"series2\""
+measurements :: Format r ([Measurement] -> r)
+measurements = makeFormat $ mconcat . L.intersperse "," . map measurementBuilder
+
+measurementBuilder :: Measurement -> TL.Builder
+measurementBuilder (Measurement name) = doubleQuote name
+
 -- | Format 'QueryField'.
 --
 -- >>> formatQuery ("SELECT * FROM series WHERE "%key%" = "%field) "location" "tokyo"
@@ -156,7 +192,7 @@ field :: Format r (QueryField -> r)
 field = makeFormat $ \case
   FieldInt n -> TL.decimal n
   FieldFloat d -> TL.realFloat d
-  FieldString s -> "'" <> TL.fromText s <> "'"
+  FieldString s -> singleQuote s
   FieldBool b -> if b then "true" else "false"
   FieldNull -> "null"
 

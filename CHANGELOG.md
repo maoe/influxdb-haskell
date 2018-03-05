@@ -1,6 +1,16 @@
+# Revision history for influxdb
+
+## v1.3.0 - 2018-03-05
+
+* Relax upper version bound for base ([#51](https://github.com/maoe/influxdb-haskell/pull/51))
+* Implement proper escaping and quoting for special characters ([#51](https://github.com/maoe/influxdb-haskell/pull/51), [#52](https://github.com/maoe/influxdb-haskell/pull/52))
+    * Introduce the Measurement type and accompanying functions
+* Fix a bug in the HTTP writer where the precision parameter is ignored when constructing requests
+* Some minor doctest fixes
+
 ## v1.2.2.3 - 2018-01-30
 
-* Relax upper version bounds for http-types and tasty-hunit
+* Relax upper version bounds for http-types, lens and time
 
 ## v1.2.2.2 - 2017-11-30
 

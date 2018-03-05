@@ -63,6 +63,8 @@ module Database.InfluxDB
   , Precision(..)
   , Database
   , F.formatDatabase
+  , Measurement
+  , F.formatMeasurement
   , Key
   , F.formatKey
 
@@ -125,6 +127,7 @@ Also note that in order to construct a 'Query', we use 'formatQuery' with the
 >>> let db = "square_holes"
 >>> let bubba = credentials "bubba" "bumblebeetuna"
 >>> let p = queryParams db & authentication ?~ bubba
+>>> manage p $ formatQuery ("DROP DATABASE "%F.database) db
 >>> manage p $ formatQuery ("CREATE DATABASE "%F.database) db
 
 == Writing data
@@ -142,7 +145,9 @@ writeBatch wp
       , ("system", FieldFloat 53.3)
       , ("user",   FieldFloat 46.6)
       ])
-    (Nothing :: Maybe UTCTime)
+    (Just $ parseTimeOrError False defaultTimeLocale
+      "%F %T%Q %Z"
+      "2017-06-17 15:41:40.42659044 UTC") :: Line UTCTime
   ]
 :}
 
@@ -168,8 +173,9 @@ instance QueryResults CPUUsage where
     FieldFloat cpuUser <- getField "user" columns fields >>= parseQueryField
     return CPUUsage {..}
 :}
->>> query p $ formatQuery ("SELECT * FROM "%F.key) cpuUsage :: IO (V.Vector CPUUsage)
-[CPUUsage {time = 2017-06-17 15:41:40.52659044 UTC, cpuIdle = 10.1, cpuSystem = 53.3, cpuUser = 46.6}]
+
+>>> query p $ formatQuery ("SELECT * FROM "%F.measurement) cpuUsage :: IO (V.Vector CPUUsage)
+[CPUUsage {time = 2017-06-17 15:41:40 UTC, cpuIdle = 10.1, cpuSystem = 53.3, cpuUser = 46.6}]
 
 Note that the type signature on query here is also necessary to type check.
 -}

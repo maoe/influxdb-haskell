@@ -61,7 +61,7 @@ main = do
         (Map.fromList [("value", nameToFVal value)])
         (Just time)
 
-  queryChunked qparams Default (F.formatQuery ("SELECT * FROM "%F.key) ct1) $
+  queryChunked qparams Default (F.formatQuery ("SELECT * FROM "%F.measurement) ct1) $
     L.mapM_ $ traverse_ $ \Row {..} ->
       printf "%s:\t%s\n"
         (show $ posixSecondsToUTCTime rowTime)

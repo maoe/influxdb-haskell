@@ -1,8 +1,10 @@
 *.sublime-*
+*~
 .DS_Store
 .cabal-sandbox
+.ghc.*
 /.stack-work/
-/dist/
 /dist-newstyle/
-cabal.sandbox.config
+/dist/
 cabal.project.local
+cabal.sandbox.config
