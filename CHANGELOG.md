@@ -1,5 +1,9 @@
 # Revision history for influxdb
 
+## v1.3.0.1 - 2018-03-06
+
+* Relax upper version bounds for doctest and QuickCheck
+
 ## v1.3.0 - 2018-03-05
 
 * Relax upper version bound for base ([#51](https://github.com/maoe/influxdb-haskell/pull/51))
