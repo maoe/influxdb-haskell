@@ -1,5 +1,4 @@
-Haskell client library for InfluxDB
-==========
+# Haskell client library for InfluxDB
 [![Build Status](https://travis-ci.org/maoe/influxdb-haskell.svg?branch=master)](https://travis-ci.org/maoe/influxdb-haskell)
 [![Hackage](https://img.shields.io/hackage/v/influxdb.svg)](https://hackage.haskell.org/package/influxdb)
 [![Hackage-Deps](https://img.shields.io/hackage-deps/v/influxdb.svg)](http://packdeps.haskellers.com/feed?needle=influxdb)
@@ -7,8 +6,15 @@ Haskell client library for InfluxDB
 
 Currently this library is tested against InfluxDB 1.4.
 
-Contact information
-----------
+## Getting started
+
+There is [a quick start guide](https://hackage.haskell.org/package/influxdb/docs/Database-InfluxDB.html) on Hackage.
+
+## Running tests
+
+Either `cabal new-test` or `stack test` runs the doctests in Haddock comments. Note that they need a local running InfluxDB server.
+
+## Contact information
 
 Contributions and bug reports are welcome!
 
