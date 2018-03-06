@@ -47,6 +47,7 @@ import qualified Data.Text.Lazy.Builder as TL
 import qualified Data.Text.Lazy.Builder.Int as TL
 import qualified Data.Text.Lazy.Builder.RealFloat as TL
 
+import Database.InfluxDB.Internal.Text
 import Database.InfluxDB.Types hiding (database)
 
 -- $setup
@@ -143,46 +144,51 @@ doubleQuote name = "\"" <> TL.fromText name <> "\""
 singleQuote :: T.Text -> TL.Builder
 singleQuote name = "'" <> TL.fromText name <> "'"
 
+identifierBuilder :: T.Text -> TL.Builder
+identifierBuilder = doubleQuote . escapeDoubleQuotes
+
+stringBuilder :: T.Text -> TL.Builder
+stringBuilder = singleQuote . escapeSingleQuotes
+
 -- | Format a database name.
 --
 -- >>> formatQuery ("CREATE DATABASE "%database) "test-db"
 -- "CREATE DATABASE \"test-db\""
 database :: Format r (Database -> r)
-database = makeFormat $ \(Database name) -> doubleQuote name
+database = makeFormat $ \(Database name) -> identifierBuilder name
 
 -- | Format a key (e.g. field names, tag names, tag values etc).
 --
 -- >>> formatQuery ("SELECT "%key%" FROM series") "field"
 -- "SELECT \"field\" FROM series"
+-- >>> formatQuery ("SELECT "%key%" FROM series") "foo\"bar"
+-- "SELECT \"foo\\\"bar\" FROM series"
 key :: Format r (Key -> r)
-key = makeFormat keyBuilder
+key = makeFormat $ \(Key name) -> identifierBuilder name
 
 -- | Format multiple keys.
 --
 -- >>> formatQuery ("SELECT "%keys%" FROM series") ["field1", "field2"]
 -- "SELECT \"field1\",\"field2\" FROM series"
 keys :: Format r ([Key] -> r)
-keys = makeFormat $ mconcat . L.intersperse "," . map keyBuilder
-
-keyBuilder :: Key -> TL.Builder
-keyBuilder (Key name) = doubleQuote name
+keys = makeFormat $
+  mconcat . L.intersperse "," . map (\(Key name) -> identifierBuilder name)
 
 -- | Format a measurement.
 --
 -- >>> formatQuery ("SELECT * FROM "%measurement) "test-series"
 -- "SELECT * FROM \"test-series\""
 measurement :: Format r (Measurement -> r)
-measurement = makeFormat measurementBuilder
+measurement = makeFormat $ \(Measurement name) -> identifierBuilder name
 
 -- | Format a measurement.
 --
 -- >>> formatQuery ("SELECT * FROM "%measurements) ["series1", "series2"]
 -- "SELECT * FROM \"series1\",\"series2\""
 measurements :: Format r ([Measurement] -> r)
-measurements = makeFormat $ mconcat . L.intersperse "," . map measurementBuilder
-
-measurementBuilder :: Measurement -> TL.Builder
-measurementBuilder (Measurement name) = doubleQuote name
+measurements = makeFormat $
+  mconcat . L.intersperse ","
+    . map (\(Measurement name) -> identifierBuilder name)
 
 -- | Format 'QueryField'.
 --
@@ -192,7 +198,7 @@ field :: Format r (QueryField -> r)
 field = makeFormat $ \case
   FieldInt n -> TL.decimal n
   FieldFloat d -> TL.realFloat d
-  FieldString s -> singleQuote s
+  FieldString s -> stringBuilder s
   FieldBool b -> if b then "true" else "false"
   FieldNull -> "null"
 
