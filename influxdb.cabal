@@ -114,8 +114,8 @@ test-suite doctests
   main-is:             doctests.hs
   build-depends:
       base
-    , doctest >= 0.11.3 && < 0.14
-    , QuickCheck ==2.10.*
+    , doctest >= 0.11.3 && < 0.15
+    , QuickCheck >= 2.10 && < 2.12
     , influxdb
     , template-haskell
   ghc-options: -Wall -threaded
