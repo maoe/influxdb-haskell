@@ -48,6 +48,8 @@ library
     Database.InfluxDB.Types
     Database.InfluxDB.Write
     Database.InfluxDB.Write.UDP
+  other-modules:
+    Database.InfluxDB.Internal.Text
   other-extensions:
     BangPatterns
     CPP
