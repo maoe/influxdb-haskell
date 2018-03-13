@@ -30,9 +30,9 @@ import Data.Text (Text)
 import qualified Data.ByteString.Builder as B
 import qualified Data.ByteString.Lazy as L
 import qualified Data.Map.Strict as Map
-import qualified Data.Text as T
 import qualified Data.Text.Encoding as TE
 
+import Database.InfluxDB.Internal.Text
 import Database.InfluxDB.Types
 
 -- | Placeholder for the Line Protocol
@@ -96,12 +96,6 @@ escapeMeasurement (Measurement text) = escapeCommas $ escapeSpaces text
 
 escapeStringField :: Text -> Text
 escapeStringField = escapeDoubleQuotes
-
-escapeCommas, escapeEqualSigns, escapeSpaces, escapeDoubleQuotes :: Text -> Text
-escapeCommas = T.replace "," "\\,"
-escapeEqualSigns = T.replace "=" "\\="
-escapeSpaces = T.replace " " "\\ "
-escapeDoubleQuotes = T.replace "\"" "\\\""
 
 buildFieldValue :: LineField -> B.Builder
 buildFieldValue = \case

@@ -7,6 +7,10 @@
 language: c
 sudo: false
 
+env:
+  global:
+    - INFLUXDB_VERSION=1.5.0
+
 git:
   submodules: false  # whether to recursively clone submodules
 
@@ -54,8 +58,8 @@ before_install:
   - "PATH=/opt/ghc/bin:/opt/ghc-ppa-tools/bin:$HOME/local/bin:$PATH"
   - HCNUMVER=$(( $(${HC} --numeric-version|sed -E 's/([0-9]+)\.([0-9]+)\.([0-9]+).*/\1 * 10000 + \2 * 100 + \3/') ))
   - echo $HCNUMVER
-  - wget https://dl.influxdata.com/influxdb/releases/influxdb_1.4.3_amd64.deb
-  - dpkg -x influxdb_1.4.3_amd64.deb influxdb
+  - wget https://dl.influxdata.com/influxdb/releases/influxdb_${INFLUXDB_VERSION}_amd64.deb
+  - dpkg -x influxdb_${INFLUXDB_VERSION}_amd64.deb influxdb
   - ./influxdb/usr/bin/influxd &
 
 install:

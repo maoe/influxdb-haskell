@@ -116,7 +116,7 @@ password :: Lens' Credentials Text
 newtype Database = Database { databaseName :: Text } deriving (Eq, Ord)
 
 instance IsString Database where
-  fromString xs = Database $ fromNonEmptyString "Database" xs
+  fromString xs = Database $ identifier "Database" xs
 
 instance Show Database where
   show (Database name) = show name
@@ -128,7 +128,7 @@ instance Show Database where
 newtype Measurement = Measurement Text deriving (Eq, Ord)
 
 instance IsString Measurement where
-  fromString xs = Measurement $ fromNonEmptyString "Measurement" xs
+  fromString xs = Measurement $ identifier "Measurement" xs
 
 instance Show Measurement where
   show (Measurement name) = show name
@@ -139,14 +139,15 @@ instance Show Measurement where
 newtype Key = Key Text deriving (Eq, Ord)
 
 instance IsString Key where
-  fromString xs = Key $ fromNonEmptyString "Key" xs
+  fromString xs = Key $ identifier "Key" xs
 
 instance Show Key where
   show (Key name) = show name
 
-fromNonEmptyString :: String -> String -> Text
-fromNonEmptyString ty xs
+identifier :: String -> String -> Text
+identifier ty xs
   | null xs = error $ ty ++ " should never be empty"
+  | elem '\n' xs = error $ ty ++ " should not contain a new line"
   | otherwise = fromString xs
 
 data Nullability = Nullable | NonNullable deriving Typeable

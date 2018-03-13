@@ -1,5 +1,11 @@
 # Revision history for influxdb
 
+## v1.4.0 - 2018-03-13
+
+* Implement proper escaping/quoting for queries ([#54](https://github.com/maoe/influxdb-haskell/pull/54))
+* Relax upper version bound for aeson
+* Test against InfluxDB 1.5
+
 ## v1.3.0.1 - 2018-03-06
 
 * Relax upper version bounds for doctest and QuickCheck
