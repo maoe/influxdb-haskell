@@ -267,12 +267,13 @@ data InfluxException
   -- ^ Client side error.
   --
   -- You need to fix your query to get a successful response.
-  | UnexpectedResponse String BL.ByteString
+  | UnexpectedResponse String Request BL.ByteString
   -- ^ Received an unexpected response. The 'String' field is a message and the
-  -- 'BL.ByteString' field is a possibly-empty relevant payload.
+  -- 'BL.ByteString' field is a possibly-empty relevant payload of the response.
   --
   -- This can happen e.g. when the response from InfluxDB is incompatible with
-  -- what this library expects due to an upstream format change etc.
+  -- what this library expects due to an upstream format change or when the JSON
+  -- response doesn't have expected fields etc.
   | HTTPException HC.HttpException
   -- ^ HTTP communication error.
   --

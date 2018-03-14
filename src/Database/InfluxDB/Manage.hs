@@ -73,7 +73,7 @@ manage params q = do
   let body = HC.responseBody response
   case eitherDecode' body of
     Left message ->
-      throwIO $ UnexpectedResponse message body
+      throwIO $ UnexpectedResponse message request body
     Right val -> case A.parse (parseResults (params^.precision)) val of
       A.Success (_ :: V.Vector Void) -> return ()
       A.Error message -> do
@@ -82,7 +82,11 @@ manage params q = do
           throwIO $ ServerError message
         when (HT.statusIsClientError status) $
           throwIO $ ClientError message request
-        fail $ "BUG: " ++ message ++ " in Database.InfluxDB.Manage.manage"
+        throwIO $ UnexpectedResponse
+          ("BUG: " ++ message ++ " in Database.InfluxDB.Manage.manage")
+          request
+          (encode val)
+
   where
     request = HC.setQueryString qs $ manageRequest params
     qs =
