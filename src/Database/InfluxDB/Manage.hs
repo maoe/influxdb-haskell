@@ -160,37 +160,37 @@ makeLensesWith
 
 -- | Query ID
 --
--- >> v <- query (queryParams "_internal") "SHOW QUERIES" :: IO (V.Vector ShowQuery)
--- >> v ^.. each.qid
--- >[149250]
+-- >>> v <- query (queryParams "_internal") "SHOW QUERIES" :: IO (V.Vector ShowQuery)
+-- >>> v ^.. each.qid
+-- ...
 qid :: Lens' ShowQuery Int
 
 -- | Query text
 --
--- >> v <- query (queryParams "_internal") "SHOW QUERIES" :: IO (V.Vector ShowQuery)
--- >> v ^.. each.queryText
--- >["SHOW QUERIES"]
+-- >>> v <- query (queryParams "_internal") "SHOW QUERIES" :: IO (V.Vector ShowQuery)
+-- >>> v ^.. each.queryText
+-- ...
 queryText :: Lens' ShowQuery Query
 
 -- |
--- >> v <- query (queryParams "_internal") "SHOW QUERIES" :: IO (V.Vector ShowQuery)
--- >> v ^.. each.database
--- >["_internal"]
+-- >>> v <- query (queryParams "_internal") "SHOW QUERIES" :: IO (V.Vector ShowQuery)
+-- >>> v ^.. each.database
+-- ...
 instance HasDatabase ShowQuery where
   database = _database
 
 -- | Duration of the query
 --
--- >> v <- query (queryParams "_internal") "SHOW QUERIES" :: IO (V.Vector ShowQuery)
--- >> v ^.. each.duration
--- >[0.06062s]
+-- >>> v <- query (queryParams "_internal") "SHOW QUERIES" :: IO (V.Vector ShowQuery)
+-- >>> v ^.. each.duration
+-- ...
 duration :: Lens' ShowQuery NominalDiffTime
 
 makeLensesWith (lensRules & generateSignatures .~ False) ''ShowSeries
 
 -- | Series name
 --
--- >> v <- query (queryParams "_internal") "SHOW SERIES" :: IO (V.Vector ShowSeries)
--- >> length $ v ^.. each.key
--- >755
+-- >>> v <- query (queryParams "_internal") "SHOW SERIES" :: IO (V.Vector ShowSeries)
+-- >>> length $ v ^.. each.key
+-- ...
 key :: Lens' ShowSeries Key
