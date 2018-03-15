@@ -129,6 +129,7 @@ ping params = do
       Nothing ->
         throwIO $ UnexpectedResponse
           "The X-Influxdb-Version header was missing in the response."
+          request
           ""
   `catch` (throwIO . HTTPException)
   where

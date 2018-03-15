@@ -217,11 +217,10 @@ query params q = withQueryResponse params Nothing q go
       chunks <- HC.brConsume $ HC.responseBody response
       let body = BL.fromChunks chunks
       case eitherDecode' body of
-        Left message -> throwIO $ UnexpectedResponse message body
+        Left message -> throwIO $ UnexpectedResponse message request body
         Right val -> case A.parse (parseResults (queryPrecision params)) val of
           A.Success vec -> return vec
-          A.Error message ->
-            errorQuery request response message
+          A.Error message -> errorQuery message request response val
 
 setPrecision
   :: Precision 'QueryRequest
@@ -271,7 +270,8 @@ queryChunked params chunkSize q (L.FoldM step initialize extract) =
           | B.null chunk = return x
           | otherwise = case k chunk of
             AB.Fail unconsumed _contexts message ->
-              throwIO $ UnexpectedResponse message $ BL.fromStrict unconsumed
+              throwIO $ UnexpectedResponse message request $
+                BL.fromStrict unconsumed
             AB.Partial k' -> do
               chunk' <- HC.responseBody response
               loop x k' chunk'
@@ -280,8 +280,7 @@ queryChunked params chunkSize q (L.FoldM step initialize extract) =
                 A.Success vec -> do
                   x' <- step x vec
                   loop x' k0 leftover
-                A.Error message ->
-                  errorQuery request response message
+                A.Error message -> errorQuery message request response val
 
 withQueryResponse
   :: QueryParams
@@ -329,15 +328,17 @@ queryRequest QueryParams {..} = HC.defaultRequest
   where
     Server {..} = queryServer
 
-errorQuery :: HC.Request -> HC.Response body -> String -> IO a
-errorQuery request response message = do
+errorQuery :: String -> HC.Request -> HC.Response body -> A.Value -> IO a
+errorQuery message request response val = do
   let status = HC.responseStatus response
   when (HT.statusIsServerError status) $
     throwIO $ ServerError message
   when (HT.statusIsClientError status) $
     throwIO $ ClientError message request
-  fail $ "BUG: " ++ message ++ " in Database.InfluxDB.Query.query - "
-    ++ show request
+  throwIO $ UnexpectedResponse
+    ("BUG: " ++ message ++ " in Database.InfluxDB.Query.query")
+    request
+    (encode val)
 
 makeLensesWith
   ( lensRules
