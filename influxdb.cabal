@@ -1,5 +1,5 @@
 name: influxdb
-version: 1.4.0
+version: 1.5.0
 synopsis: Haskell client library for InfluxDB
 description:
   @influxdb@ is a Haskell client library for InfluxDB.
@@ -116,7 +116,7 @@ test-suite doctests
   main-is:             doctests.hs
   build-depends:
       base
-    , doctest >= 0.11.3 && < 0.15
+    , doctest >= 0.11.3 && < 0.16
     , QuickCheck >= 2.10 && < 2.12
     , influxdb
     , template-haskell

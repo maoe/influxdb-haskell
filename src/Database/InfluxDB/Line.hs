@@ -5,17 +5,22 @@
 {-# LANGUAGE ScopedTypeVariables #-}
 {-# LANGUAGE TemplateHaskell #-}
 module Database.InfluxDB.Line
-  ( Line(Line)
+  ( -- $setup
+
+  -- * Types and accessors
+    Line(Line)
   , measurement
   , tagSet
   , fieldSet
   , timestamp
 
+  -- * Serializers
   , buildLine
   , buildLines
   , encodeLine
   , encodeLines
 
+  -- * Other types
   , LineField
   , Field(..)
   , Precision(..)
@@ -35,6 +40,28 @@ import qualified Data.Text.Encoding as TE
 import Database.InfluxDB.Internal.Text
 import Database.InfluxDB.Types
 
+{- $setup
+The Line protocol implementation.
+
+>>> :set -XOverloadedStrings
+>>> import Database.InfluxDB
+>>> import Data.Time
+>>> import qualified Data.ByteString.Lazy.Char8 as BL8
+>>> import System.IO (stdout)
+>>> :{
+let l1 = Line "cpu_usage"
+      (Map.singleton "cpu" "cpu-total")
+      (Map.fromList
+        [ ("idle",   FieldFloat 10.1)
+        , ("system", FieldFloat 53.3)
+        , ("user",   FieldFloat 46.6)
+        ])
+      (Just $ parseTimeOrError False defaultTimeLocale
+        "%F %T%Q %Z"
+        "2017-06-17 15:41:40.42659044 UTC") :: Line UTCTime
+:}
+-}
+
 -- | Placeholder for the Line Protocol
 --
 -- See https://docs.influxdata.com/influxdb/v1.2/write_protocols/line_protocol_tutorial/ for the
@@ -52,19 +79,39 @@ data Line time = Line
   -- ^ Timestamp (optional)
   }
 
+-- | Serialize a 'Line' to a lazy bytestring
+--
+-- >>> BL8.putStrLn $ encodeLine (scaleTo Second) l1
+-- cpu_usage,cpu=cpu-total idle=10.1,system=53.3,user=46.6 1497714100
 encodeLine
   :: (time -> Int64)
+  -- ^ Function to convert time to an InfluxDB timestamp
+  --
+  -- Use 'scaleTo' for HTTP writes and 'roundTo' for UDP writes.
   -> Line time
   -> L.ByteString
 encodeLine toTimestamp = B.toLazyByteString . buildLine toTimestamp
 
+-- | Serialize 'Line's to a lazy bytestring
+--
+-- >>> BL8.putStr $ encodeLines (scaleTo Second) [l1, l1]
+-- cpu_usage,cpu=cpu-total idle=10.1,system=53.3,user=46.6 1497714100
+-- cpu_usage,cpu=cpu-total idle=10.1,system=53.3,user=46.6 1497714100
+--
 encodeLines
   :: Foldable f
   => (time -> Int64)
+  -- ^ Function to convert time to an InfluxDB timestamp
+  --
+  -- Use 'scaleTo' for HTTP writes and 'roundTo' for UDP writes.
   -> f (Line time)
   -> L.ByteString
 encodeLines toTimestamp = B.toLazyByteString . buildLines toTimestamp
 
+-- | Serialize a 'Line' to a bytestring 'B.Buider'
+--
+-- >>> B.hPutBuilder stdout $ buildLine (scaleTo Second) l1
+-- cpu_usage,cpu=cpu-total idle=10.1,system=53.3,user=46.6 1497714100
 buildLine
   :: (time -> Int64)
   -> Line time
@@ -104,6 +151,12 @@ buildFieldValue = \case
   FieldString t -> "\"" <> TE.encodeUtf8Builder (escapeStringField t) <> "\""
   FieldBool b -> if b then "true" else "false"
 
+-- | Serialize 'Line's to a bytestring 'B.Builder'
+--
+-- >>> B.hPutBuilder stdout $ buildLines (scaleTo Second) [l1, l1]
+-- cpu_usage,cpu=cpu-total idle=10.1,system=53.3,user=46.6 1497714100
+-- cpu_usage,cpu=cpu-total idle=10.1,system=53.3,user=46.6 1497714100
+--
 buildLines
   :: Foldable f
   => (time -> Int64)
