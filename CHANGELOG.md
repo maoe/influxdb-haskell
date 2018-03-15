@@ -1,5 +1,13 @@
 # Revision history for influxdb
 
+## v1.5.0 - 2018-03-15
+
+* Change UnexpectedResponse constructor to include the request and throw it in place of UserError in query/write/manage
+* Relax upper version bound for doctest
+* Extend Haddock comments in Database.InfluxDB.Line
+
+The first item is a breaking change.
+
 ## v1.4.0 - 2018-03-13
 
 * Implement proper escaping/quoting for queries ([#54](https://github.com/maoe/influxdb-haskell/pull/54))
