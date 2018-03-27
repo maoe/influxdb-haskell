@@ -318,7 +318,7 @@ withQueryResponse params chunkSize q f = do
 
 
 queryRequest :: QueryParams -> HC.Request
-queryRequest QueryParams {..} = HC.defaultRequest
+queryRequest QueryParams {..} = applyBasicAuth $ HC.defaultRequest
   { HC.host = TE.encodeUtf8 _host
   , HC.port = fromIntegral _port
   , HC.secure = _ssl
@@ -327,6 +327,11 @@ queryRequest QueryParams {..} = HC.defaultRequest
   }
   where
     Server {..} = queryServer
+    applyBasicAuth =
+      case queryAuthentication of
+        Nothing -> id
+        Just (Credentials {..}) ->
+          HC.applyBasicAuth (TE.encodeUtf8 _user) (TE.encodeUtf8 _password)
 
 errorQuery :: String -> HC.Request -> HC.Response body -> A.Value -> IO a
 errorQuery message request response val = do
