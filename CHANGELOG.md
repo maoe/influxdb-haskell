@@ -1,5 +1,9 @@
 # Revision history for influxdb
 
+## v1.5.1 - 2018-03-29
+
+* Add basic auth support for query (#58)
+
 ## v1.5.0 - 2018-03-15
 
 * Change UnexpectedResponse constructor to include the request and throw it in place of UserError in query/write/manage
