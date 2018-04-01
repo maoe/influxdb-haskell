@@ -8,6 +8,7 @@
 {-# LANGUAGE KindSignatures #-}
 {-# LANGUAGE LambdaCase #-}
 {-# LANGUAGE MultiParamTypeClasses #-}
+{-# LANGUAGE NamedFieldPuns #-}
 {-# LANGUAGE OverloadedStrings #-}
 {-# LANGUAGE StandaloneDeriving #-}
 {-# LANGUAGE TemplateHaskell #-}
@@ -23,6 +24,7 @@ import Data.Text (Text)
 import Data.Time.Clock
 import Data.Time.Clock.POSIX
 import Network.HTTP.Client (Manager, ManagerSettings, Request)
+import System.Clock (TimeSpec(..))
 import qualified Data.ByteString.Lazy as BL
 import qualified Data.Text as T
 import qualified Network.HTTP.Client as HC
@@ -252,6 +254,41 @@ instance Timestamp NominalDiffTime where
   roundTo prec time =
     round $ 10^(9 :: Int) * roundAt (precisionScale prec) time
   scaleTo prec time = round $ time / precisionScale prec
+
+-- |
+-- >>> let timespec = TimeSpec 123 123456789
+-- >>> roundTo Nanosecond timespec
+-- 123123456789
+-- >>> roundTo Microsecond timespec
+-- 123123457000
+-- >>> roundTo Millisecond timespec
+-- 123123000000
+-- >>> roundTo Second timespec
+-- 123000000000
+-- >>> roundTo Minute timespec
+-- 120000000000
+-- >>> roundTo Hour timespec
+-- 0
+-- >>> scaleTo Nanosecond timespec
+-- 123123456789
+-- >>> scaleTo Microsecond timespec
+-- 123123457
+-- >>> scaleTo Millisecond timespec
+-- 123123
+-- >>> scaleTo Second timespec
+-- 123
+-- >>> scaleTo Minute timespec
+-- 2
+-- >>> scaleTo Hour timespec
+-- 0
+instance Timestamp TimeSpec where
+  roundTo prec t =
+    round $ 10^(9 :: Int) * roundAt (precisionScale prec) (timeSpecToSeconds t)
+  scaleTo prec t = round $ timeSpecToSeconds t / precisionScale prec
+
+timeSpecToSeconds :: TimeSpec -> Double
+timeSpecToSeconds TimeSpec { sec, nsec } =
+  fromIntegral sec + fromIntegral nsec * 10^^(-9 :: Int)
 
 -- | Exceptions used in this library.
 --
