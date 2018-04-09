@@ -50,6 +50,10 @@ module Database.InfluxDB
   -- $parsing-results
   , QueryResults(..)
   , parseResultsWith
+  , parseResultsWithDecoder
+  , Decoder(..)
+  , lenientDecoder
+  , strictDecoder
   , getField
   , getTag
   , parseUTCTime
