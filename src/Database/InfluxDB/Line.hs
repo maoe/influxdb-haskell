@@ -28,6 +28,7 @@ module Database.InfluxDB.Line
 import Data.List (intersperse)
 import Data.Int (Int64)
 import Data.Monoid
+import Prelude
 
 import Control.Lens
 import Data.Map (Map)
