@@ -34,7 +34,7 @@ import qualified Network.HTTP.Client as HC
 -- | An InfluxDB query.
 --
 -- A spec of the format is available at
--- <https://docs.influxdata.com/influxdb/v1.2/query_language/spec/>.
+-- <https://docs.influxdata.com/influxdb/v1.5/query_language/spec/>.
 --
 -- A 'Query' can be constructed using either
 --

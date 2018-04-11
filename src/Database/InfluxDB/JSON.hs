@@ -50,8 +50,8 @@ import qualified Data.Vector as V
 
 import Database.InfluxDB.Types
 
--- | A helper function to parse a JSON response in
--- 'Database.InfluxDB.Query.parseResults'.
+-- | Parse a JSON response with the 'lenientDecoder'. This can be useful to
+-- implement the 'Database.InfluxDB.Query.parseResults' method.
 parseResultsWith
   :: (Maybe Text -> HashMap Text Text -> Vector Text -> Array -> A.Parser a)
   -- ^ A parser that takes
@@ -66,7 +66,7 @@ parseResultsWith
   -> A.Parser (Vector a)
 parseResultsWith = parseResultsWithDecoder lenientDecoder
 
--- | Parse a JSON response with specified decoder settings.
+-- | Parse a JSON response with the specified decoder settings.
 parseResultsWithDecoder
   :: Decoder a
   -> (Maybe Text -> HashMap Text Text -> Vector Text -> Array -> A.Parser a)
@@ -97,20 +97,20 @@ parseResultsWithDecoder Decoder {..} row val0 = success
 -- | Decoder settings
 data Decoder a = forall b. Decoder
   { decodeEach :: A.Parser a -> A.Parser b
-  -- ^ How to turn a parser for each element into another. For example, a
-  -- failure can be turned into 'Nothing'.
+  -- ^ How to decode each row. For example 'optional' can be used to turn parse
+  -- failrues into 'Nothing's.
   , decodeFold :: A.Parser (Vector b) -> A.Parser (Vector a)
-  -- ^ How to aggregate all results from 'decodeEach' into a vector of results.
+  -- ^ How to aggregate rows into the resulting vector.
   }
 
--- | Fail immediately if there's any parse failure.
+-- | A decoder that fails immediately if there's any parse failure.
 strictDecoder :: Decoder a
 strictDecoder = Decoder
   { decodeEach = id
   , decodeFold = id
   }
 
--- | Ignore parse failures and return successful results.
+-- | A decoder that ignores parse failures and returns only successful results.
 lenientDecoder :: Decoder a
 lenientDecoder = Decoder
   { decodeEach = optional

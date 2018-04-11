@@ -28,6 +28,7 @@ module Database.InfluxDB.Line
 import Data.List (intersperse)
 import Data.Int (Int64)
 import Data.Monoid
+import Prelude
 
 import Control.Lens
 import Data.Map (Map)
@@ -64,7 +65,7 @@ let l1 = Line "cpu_usage"
 
 -- | Placeholder for the Line Protocol
 --
--- See https://docs.influxdata.com/influxdb/v1.2/write_protocols/line_protocol_tutorial/ for the
+-- See https://docs.influxdata.com/influxdb/v1.5/write_protocols/line_protocol_tutorial/ for the
 -- concrete syntax.
 data Line time = Line
   { _measurement :: !Measurement
