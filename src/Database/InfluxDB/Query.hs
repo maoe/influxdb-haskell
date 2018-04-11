@@ -210,6 +210,9 @@ queryParams queryDatabase = QueryParams
 -- | Query data from InfluxDB.
 --
 -- It may throw 'InfluxException'.
+--
+-- If you need a lower-level interface (e.g. to bypass the 'QueryResults'
+-- constraint etc), see 'withQueryResponse'.
 query :: QueryResults a => QueryParams -> Query -> IO (Vector a)
 query params q = withQueryResponse params Nothing q go
   where
@@ -244,6 +247,9 @@ precisionParam = \case
 -- 'query' if the result is huge.
 --
 -- It may throw 'InfluxException'.
+--
+-- If you need a lower-level interface (e.g. to bypass the 'QueryResults'
+-- constraint etc), see 'withQueryResponse'.
 queryChunked
   :: QueryResults a
   => QueryParams
@@ -282,6 +288,7 @@ queryChunked params chunkSize q (L.FoldM step initialize extract) =
                   loop x' k0 leftover
                 A.Error message -> errorQuery message request response val
 
+-- | Lower-level interface to query data.
 withQueryResponse
   :: QueryParams
   -> Maybe (Optional Int)

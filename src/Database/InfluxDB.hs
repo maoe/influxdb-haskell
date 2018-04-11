@@ -5,7 +5,7 @@ portability: GHC
 module Database.InfluxDB
   ( -- $intro
 
-  -- * Writing data
+  -- * Writing data via HTTP
   -- $write
     write
   , writeBatch
@@ -124,7 +124,7 @@ This library assumes the [lens](https://hackage.haskell.org/package/lens)
 package in some APIs. Here we use 'Control.Lens.?~' to set the authentication
 parameters of type @Maybe 'Credentials'@.
 
-Also note that in order to construct a 'Query', we use 'formatQuery' with the
+Also note that in order to construct a 'Query', we use 'F.formatQuery' with the
 'F.database' formatter. There are many other formatters defined in
 "Database.InfluxDB.Format".
 
