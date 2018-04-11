@@ -1,5 +1,10 @@
 # Revision history for influxdb
 
+## v1.5.2 - 2018-04-11
+
+* Export parseResultsWithDecoder, Decoder, lenientDecoder and strictDecoder from Database.InfluxDB
+* Extend haddock comments
+
 ## v1.5.1 - 2018-03-29
 
 * Add basic auth support for query (#58)
