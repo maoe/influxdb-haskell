@@ -20,6 +20,7 @@ module Database.InfluxDB.JSON
   , getTag
 
   -- * Common JSON object parsers
+  , A.parseJSON
   , parseUTCTime
   , parsePOSIXTime
   , parseRFC3339
@@ -219,3 +220,6 @@ parseQueryField val = case val of
     return FieldNull
   _ -> fail $ "parseQueryField: expected a flat data structure, but got "
     ++ show val
+{-# DEPRECATED parseQueryField
+  "This function parses numbers in a misleading way. Use 'parseJSON' instead."
+  #-}

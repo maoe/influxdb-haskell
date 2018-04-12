@@ -79,10 +79,9 @@ import qualified Database.InfluxDB.Format as F
 -- instance QueryResults H2OFeet where
 --   parseResults prec = parseResultsWith $ \_ _ columns fields -> do
 --     time <- getField "time" columns fields >>= parseUTCTime prec
---     String levelDesc <- getField "level_description" columns fields
---     String location <- getField "location" columns fields
---     FieldFloat waterLevel <-
---       getField "water_level" columns fields >>= parseQueryField
+--     levelDesc <- getField "level_description" columns fields >>= parseJSON
+--     location <- getField "location" columns fields >>= parseJSON
+--     waterLevel <- getField "water_level" columns fields >>= parseJSON
 --     return H2OFeet {..}
 -- :}
 class QueryResults a where

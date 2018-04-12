@@ -56,6 +56,7 @@ module Database.InfluxDB
   , strictDecoder
   , getField
   , getTag
+  , parseJSON
   , parseUTCTime
   , parsePOSIXTime
   , parseQueryField
@@ -172,9 +173,9 @@ data CPUUsage = CPUUsage
 instance QueryResults CPUUsage where
   parseResults prec = parseResultsWithDecoder strictDecoder $ \_ _ columns fields -> do
     time <- getField "time" columns fields >>= parseUTCTime prec
-    FieldFloat cpuIdle <- getField "idle" columns fields >>= parseQueryField
-    FieldFloat cpuSystem <- getField "system" columns fields >>= parseQueryField
-    FieldFloat cpuUser <- getField "user" columns fields >>= parseQueryField
+    cpuIdle <- getField "idle" columns fields >>= parseJSON
+    cpuSystem <- getField "system" columns fields >>= parseJSON
+    cpuUser <- getField "user" columns fields >>= parseJSON
     return CPUUsage {..}
 :}
 
