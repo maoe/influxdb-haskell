@@ -1,5 +1,14 @@
 # Revision history for influxdb
 
+## v1.6.0 - 2018-04-14
+
+This release includes a few significant breaking changes.
+
+* Deprecate the confusing parseQueryField and re-export parseJSON instead
+* Rewrite the QueryResults instances for tuples
+* Add Timestamp instance for TimeSpec (#59)
+* Extend haddock comments
+
 ## v1.5.2 - 2018-04-11
 
 * Export parseResultsWithDecoder, Decoder, lenientDecoder and strictDecoder from Database.InfluxDB
