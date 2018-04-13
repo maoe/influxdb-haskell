@@ -7,9 +7,26 @@
 language: c
 sudo: false
 
+compiler:
+  - ghc-7.10.3
+  - ghc-8.0.2
+  - ghc-8.2.2
+  - ghc-8.4.1
+
+addons:
+  apt:
+    sources:
+      - hvr-ghc
+    packages:
+      - ghc-ppa-tools
+      - cabal-install-head
+      - $compiler
+
 env:
-  global:
-    - INFLUXDB_VERSION=1.5.0
+  matrix:
+    - INFLUXDB_VERSION=1.4.3
+    - INLFUXDB_VERSION=1.3.9
+    - INFLUXDB_VERSION=1.2.4
 
 git:
   submodules: false  # whether to recursively clone submodules
@@ -31,20 +48,6 @@ before_cache:
   - rm -rfv $HOME/.cabal/packages/head.hackage
 
 matrix:
-  include:
-    - compiler: "ghc-7.10.3"
-    # env: TEST=--disable-tests BENCH=--disable-benchmarks
-      addons: {apt: {packages: [ghc-ppa-tools,cabal-install-head,ghc-7.10.3], sources: [hvr-ghc]}}
-    - compiler: "ghc-8.0.2"
-    # env: TEST=--disable-tests BENCH=--disable-benchmarks
-      addons: {apt: {packages: [ghc-ppa-tools,cabal-install-head,ghc-8.0.2], sources: [hvr-ghc]}}
-    - compiler: "ghc-8.2.2"
-    # env: TEST=--disable-tests BENCH=--disable-benchmarks
-      addons: {apt: {packages: [ghc-ppa-tools,cabal-install-head,ghc-8.2.2], sources: [hvr-ghc]}}
-    - compiler: "ghc-8.4.1"
-    # env: TEST=--disable-tests BENCH=--disable-benchmarks
-      addons: {apt: {packages: [ghc-ppa-tools,cabal-install-head,ghc-8.4.1], sources: [hvr-ghc]}}
-
   allow_failures:
     - compiler: "ghc-7.10.3"
 
