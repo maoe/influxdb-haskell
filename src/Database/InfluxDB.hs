@@ -61,6 +61,10 @@ module Database.InfluxDB
   , parsePOSIXTime
   , parseQueryField
 
+  -- *** Re-exports from tagged
+  , Tagged(..)
+  , untag
+
   -- * Database management
   , manage
 
@@ -161,9 +165,34 @@ type check.
 
 == Querying data
 
-First we define a placeholder data type called 'CPUUsage' and a 'QueryResults'
-instance. 'getField', 'parseUTCTime' and 'parseQueryField' etc are avilable to
-make JSON decoding easier.
+=== Using an one-off tuple
+
+If all the field types are an instance of 'FromJSON', we can use a tuple to store
+the results.
+
+>>> :set -XDataKinds -XOverloadedStrings
+>>> type CPUUsage = (Tagged "time" UTCTime, Tagged "idle" Double, Tagged "system" Double, Tagged "user" Double)
+>>> v <- query p $ formatQuery ("SELECT * FROM "%F.measurement) cpuUsage :: IO (V.Vector CPUUsage)
+>>> v
+[(Tagged 2017-06-17 15:41:40 UTC,Tagged 10.1,Tagged 53.3,Tagged 46.6)]
+
+Note that the type signature on query here is also necessary to type check.
+We can remove the tags using 'untag':
+
+>>> V.map (\(a, b, c, d) -> (untag a, untag b, untag c, untag d)) v :: V.Vector (UTCTime, Double, Double, Double)
+[(2017-06-17 15:41:40 UTC,10.1,53.3,46.6)]
+
+Or even using 'Data.Coerce.coerce':
+
+>>> import Data.Coerce
+>>> coerce v :: V.Vector (UTCTime, Double, Double, Double)
+[(2017-06-17 15:41:40 UTC,10.1,53.3,46.6)]
+
+=== Using a custom data type
+
+We can define our custom data type and write a 'QueryResults' instance
+instead. 'getField', 'parseUTCTime' and 'parseQueryField' etc are avilable to
+make it easier to write a JSON decoder.
 
 >>> :{
 data CPUUsage = CPUUsage
@@ -181,8 +210,6 @@ instance QueryResults CPUUsage where
 
 >>> query p $ formatQuery ("SELECT * FROM "%F.measurement) cpuUsage :: IO (V.Vector CPUUsage)
 [CPUUsage {time = 2017-06-17 15:41:40 UTC, cpuIdle = 10.1, cpuSystem = 53.3, cpuUser = 46.6}]
-
-Note that the type signature on query here is also necessary to type check.
 -}
 
 {- $write
