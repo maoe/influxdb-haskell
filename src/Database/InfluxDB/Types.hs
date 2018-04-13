@@ -246,10 +246,65 @@ precisionScale = \case
   Minute -> 60
   Hour ->   60 * 60
 
+-- |
+-- >>> import Data.Time.Calendar
+-- >>> let t = UTCTime (fromGregorian 2018 04 14) 123.123456789
+-- >>> t
+-- 2018-04-14 00:02:03.123456789 UTC
+-- >>> roundTo Nanosecond t
+-- 1523664123123456789
+-- >>> roundTo Microsecond t
+-- 1523664123123457000
+-- >>> roundTo Millisecond t
+-- 1523664123123000000
+-- >>> roundTo Second t
+-- 1523664123000000000
+-- >>> roundTo Minute t
+-- 1523664120000000000
+-- >>> roundTo Hour t
+-- 1523664000000000000
+-- >>> scaleTo Nanosecond t
+-- 1523664123123456789
+-- >>> scaleTo Microsecond t
+-- 1523664123123457
+-- >>> scaleTo Millisecond t
+-- 1523664123123
+-- >>> scaleTo Second t
+-- 1523664123
+-- >>> scaleTo Minute t
+-- 25394402
+-- >>> scaleTo Hour t
+-- 423240
 instance Timestamp UTCTime where
   roundTo prec = roundTo prec . utcTimeToPOSIXSeconds
   scaleTo prec = scaleTo prec . utcTimeToPOSIXSeconds
 
+-- |
+-- >>> let dt = 123.123456789 :: NominalDiffTime
+-- >>> roundTo Nanosecond dt
+-- 123123456789
+-- >>> roundTo Microsecond dt
+-- 123123457000
+-- >>> roundTo Millisecond dt
+-- 123123000000
+-- >>> roundTo Second dt
+-- 123000000000
+-- >>> roundTo Minute dt
+-- 120000000000
+-- >>> roundTo Hour dt
+-- 0
+-- >>> scaleTo Nanosecond dt
+-- 123123456789
+-- >>> scaleTo Microsecond dt
+-- 123123457
+-- >>> scaleTo Millisecond dt
+-- 123123
+-- >>> scaleTo Second dt
+-- 123
+-- >>> scaleTo Minute dt
+-- 2
+-- >>> scaleTo Hour dt
+-- 0
 instance Timestamp NominalDiffTime where
   roundTo prec time =
     round $ 10^(9 :: Int) * roundAt (precisionScale prec) time
