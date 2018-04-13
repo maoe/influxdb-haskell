@@ -228,7 +228,7 @@ class Timestamp time where
   scaleTo :: Precision 'WriteRequest -> time -> Int64
 
 roundAt :: RealFrac a => a -> a -> a
-roundAt scale x = fromIntegral (round (x / scale) :: Int) * scale
+roundAt scale x = fromIntegral (round (x / scale) :: Int64) * scale
 
 -- | Scale of the type precision.
 --
