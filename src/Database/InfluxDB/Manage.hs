@@ -51,7 +51,7 @@ import qualified Data.Vector as V
 import qualified Network.HTTP.Client as HC
 import qualified Network.HTTP.Types as HT
 
-import Database.InfluxDB.JSON (getField, parseQueryField)
+import Database.InfluxDB.JSON (getField)
 import Database.InfluxDB.Types as Types
 import Database.InfluxDB.Query hiding (query)
 import qualified Database.InfluxDB.Format as F
@@ -148,7 +148,7 @@ newtype ShowSeries = ShowSeries
 
 instance QueryResults ShowSeries where
   parseResults _ = parseResultsWith $ \_ _ columns fields -> do
-    FieldString name <- getField "key" columns fields >>= parseQueryField
+    name <- getField "key" columns fields >>= parseJSON
     return $ ShowSeries $ F.formatKey F.text name
 
 makeLensesWith

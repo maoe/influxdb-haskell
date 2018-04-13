@@ -7,6 +7,7 @@
 {-# LANGUAGE MultiParamTypeClasses #-}
 {-# LANGUAGE OverloadedStrings #-}
 {-# LANGUAGE RecordWildCards #-}
+{-# LANGUAGE ScopedTypeVariables #-}
 {-# LANGUAGE TemplateHaskell #-}
 {-# LANGUAGE ViewPatterns #-}
 module Database.InfluxDB.Query
@@ -30,15 +31,22 @@ module Database.InfluxDB.Query
 
   -- * Low-level functions
   , withQueryResponse
+
+  -- * Re-exports from tagged
+  , Tagged(..)
+  , untag
   ) where
 import Control.Exception
 import Control.Monad
 import Data.Char
 import Data.List
+import Data.Proxy
+import GHC.TypeLits
 
 import Control.Lens
 import Data.Aeson
 import Data.Optional (Optional(..), optional)
+import Data.Tagged
 import Data.Vector (Vector)
 import Data.Void
 import qualified Control.Foldl as L
@@ -79,10 +87,9 @@ import qualified Database.InfluxDB.Format as F
 -- instance QueryResults H2OFeet where
 --   parseResults prec = parseResultsWith $ \_ _ columns fields -> do
 --     time <- getField "time" columns fields >>= parseUTCTime prec
---     String levelDesc <- getField "level_description" columns fields
---     String location <- getField "location" columns fields
---     FieldFloat waterLevel <-
---       getField "water_level" columns fields >>= parseQueryField
+--     levelDesc <- getField "level_description" columns fields >>= parseJSON
+--     location <- getField "location" columns fields >>= parseJSON
+--     waterLevel <- getField "water_level" columns fields >>= parseJSON
 --     return H2OFeet {..}
 -- :}
 class QueryResults a where
@@ -96,85 +103,177 @@ instance QueryResults Void where
   parseResults _ = A.withObject "error" $ \obj -> obj .:? "error"
     >>= maybe (pure V.empty) (withText "error" $ fail . T.unpack)
 
-instance (a ~ Value, b ~ Value) => QueryResults (a, b) where
-  parseResults _ = parseResultsWith $ \_ _ _ fields ->
-    maybe (fail $ "invalid fields: " ++ show fields) return $ do
-      a <- fields V.!? 0
-      b <- fields V.!? 1
-      return (a, b)
+fieldName :: KnownSymbol k => proxy k -> T.Text
+fieldName = T.pack . symbolVal
 
-instance (a ~ Value, b ~ Value, c ~ Value)
-  => QueryResults (a, b, c) where
-    parseResults _ = parseResultsWith $ \_ _ _ fields ->
-      maybe (fail $ "invalid fields: " ++ show fields) return $ do
-        a <- fields V.!? 0
-        b <- fields V.!? 1
-        c <- fields V.!? 2
-        return (a, b, c)
+-- | One-off type for non-timestamped measurements
+--
+-- >>> let p = queryParams "_internal"
+-- >>> dbs <- query p "SHOW DATABASES" :: IO (V.Vector (Tagged "name" T.Text))
+-- >>> find ((== "_internal") . untag) dbs
+-- Just (Tagged "_internal")
+instance (KnownSymbol k, FromJSON v) => QueryResults (Tagged k v) where
+  parseResults _ = parseResultsWith $ \_ _ columns fields ->
+    getField (fieldName (Proxy :: Proxy k)) columns fields >>= parseJSON
 
-instance (a ~ Value, b ~ Value, c ~ Value, d ~ Value)
-  => QueryResults (a, b, c, d) where
-    parseResults _ = parseResultsWith $ \_ _ _ fields ->
-      maybe (fail $ "invalid fields: " ++ show fields) return $ do
-        a <- fields V.!? 0
-        b <- fields V.!? 1
-        c <- fields V.!? 2
-        d <- fields V.!? 3
-        return (a, b, c, d)
-
-instance (a ~ Value, b ~ Value, c ~ Value, d ~ Value, e ~ Value)
-  => QueryResults (a, b, c, d, e) where
-    parseResults _ = parseResultsWith $ \_ _ _ fields ->
-      maybe (fail $ "invalid fields: " ++ show fields) return $ do
-        a <- fields V.!? 0
-        b <- fields V.!? 1
-        c <- fields V.!? 2
-        d <- fields V.!? 3
-        e <- fields V.!? 4
-        return (a, b, c, d, e)
-
-instance (a ~ Value, b ~ Value, c ~ Value, d ~ Value, e ~ Value, f ~ Value)
-  => QueryResults (a, b, c, d, e, f) where
-    parseResults _ = parseResultsWith $ \_ _ _ fields ->
-      maybe (fail $ "invalid fields: " ++ show fields) return $ do
-        a <- fields V.!? 0
-        b <- fields V.!? 1
-        c <- fields V.!? 2
-        d <- fields V.!? 3
-        e <- fields V.!? 4
-        f <- fields V.!? 5
-        return (a, b, c, d, e, f)
-
+-- | One-off tuple for sigle-field measurements
 instance
-  ( a ~ Value, b ~ Value, c ~ Value, d ~ Value, e ~ Value, f ~ Value
-  , g ~ Value )
-  => QueryResults (a, b, c, d, e, f, g) where
-    parseResults _ = parseResultsWith $ \_ _ _ fields ->
-      maybe (fail $ "invalid fields: " ++ show fields) return $ do
-        a <- fields V.!? 0
-        b <- fields V.!? 1
-        c <- fields V.!? 2
-        d <- fields V.!? 3
-        e <- fields V.!? 4
-        f <- fields V.!? 5
-        g <- fields V.!? 6
-        return (a, b, c, d, e, f, g)
+  ( KnownSymbol k1, FromJSON v1
+  , KnownSymbol k2, FromJSON v2 )
+  => QueryResults (Tagged k1 v1, Tagged k2 v2) where
+    parseResults _ = parseResultsWith $ \_ _ columns fields -> do
+      v1 <- parseJSON
+        =<< getField (fieldName (Proxy :: Proxy k1)) columns fields
+      v2 <- parseJSON
+        =<< getField (fieldName (Proxy :: Proxy k2)) columns fields
+      return (v1, v2)
 
+-- | One-off tuple for two-field measurements
 instance
-  ( a ~ Value, b ~ Value, c ~ Value, d ~ Value, e ~ Value, f ~ Value
-  , g ~ Value, h ~ Value )
-  => QueryResults (a, b, c, d, e, f, g, h) where
-    parseResults _ = parseResultsWith $ \_ _ _ fields ->
-      maybe (fail $ "invalid fields: " ++ show fields) return $ do
-        a <- fields V.!? 0
-        b <- fields V.!? 1
-        c <- fields V.!? 2
-        d <- fields V.!? 3
-        e <- fields V.!? 4
-        f <- fields V.!? 5
-        g <- fields V.!? 6
-        h <- fields V.!? 7
-        return (a, b, c, d, e, f, g, h)
+  ( KnownSymbol k1, FromJSON v1
+  , KnownSymbol k2, FromJSON v2
+  , KnownSymbol k3, FromJSON v3 )
+  => QueryResults (Tagged k1 v1, Tagged k2 v2, Tagged k3 v3) where
+    parseResults _ = parseResultsWith $ \_ _ columns fields -> do
+      v1 <- parseJSON
+        =<< getField (fieldName (Proxy :: Proxy k1)) columns fields
+      v2 <- parseJSON
+        =<< getField (fieldName (Proxy :: Proxy k2)) columns fields
+      v3 <- parseJSON
+        =<< getField (fieldName (Proxy :: Proxy k3)) columns fields
+      return (v1, v2, v3)
+
+-- | One-off tuple for three-field measurements
+instance
+  ( KnownSymbol k1, FromJSON v1
+  , KnownSymbol k2, FromJSON v2
+  , KnownSymbol k3, FromJSON v3
+  , KnownSymbol k4, FromJSON v4 )
+  => QueryResults (Tagged k1 v1, Tagged k2 v2, Tagged k3 v3, Tagged k4 v4) where
+    parseResults _ = parseResultsWith $ \_ _ columns fields -> do
+      v1 <- parseJSON
+        =<< getField (fieldName (Proxy :: Proxy k1)) columns fields
+      v2 <- parseJSON
+        =<< getField (fieldName (Proxy :: Proxy k2)) columns fields
+      v3 <- parseJSON
+        =<< getField (fieldName (Proxy :: Proxy k3)) columns fields
+      v4 <- parseJSON
+        =<< getField (fieldName (Proxy :: Proxy k4)) columns fields
+      return (v1, v2, v3, v4)
+
+-- | One-off tuple for four-field measurements
+instance
+  ( KnownSymbol k1, FromJSON v1
+  , KnownSymbol k2, FromJSON v2
+  , KnownSymbol k3, FromJSON v3
+  , KnownSymbol k4, FromJSON v4
+  , KnownSymbol k5, FromJSON v5 )
+  => QueryResults
+    ( Tagged k1 v1, Tagged k2 v2, Tagged k3 v3, Tagged k4 v4
+    , Tagged k5 v5
+    ) where
+    parseResults _ = parseResultsWith $ \_ _ columns fields -> do
+      v1 <- parseJSON
+        =<< getField (fieldName (Proxy :: Proxy k1)) columns fields
+      v2 <- parseJSON
+        =<< getField (fieldName (Proxy :: Proxy k2)) columns fields
+      v3 <- parseJSON
+        =<< getField (fieldName (Proxy :: Proxy k3)) columns fields
+      v4 <- parseJSON
+        =<< getField (fieldName (Proxy :: Proxy k4)) columns fields
+      v5 <- parseJSON
+        =<< getField (fieldName (Proxy :: Proxy k5)) columns fields
+      return (v1, v2, v3, v4, v5)
+
+-- | One-off tuple for five-field measurements
+instance
+  ( KnownSymbol k1, FromJSON v1
+  , KnownSymbol k2, FromJSON v2
+  , KnownSymbol k3, FromJSON v3
+  , KnownSymbol k4, FromJSON v4
+  , KnownSymbol k5, FromJSON v5
+  , KnownSymbol k6, FromJSON v6 )
+  => QueryResults
+    ( Tagged k1 v1, Tagged k2 v2, Tagged k3 v3, Tagged k4 v4
+    , Tagged k5 v5, Tagged k6 v6
+    ) where
+    parseResults _ = parseResultsWith $ \_ _ columns fields -> do
+      v1 <- parseJSON
+        =<< getField (fieldName (Proxy :: Proxy k1)) columns fields
+      v2 <- parseJSON
+        =<< getField (fieldName (Proxy :: Proxy k2)) columns fields
+      v3 <- parseJSON
+        =<< getField (fieldName (Proxy :: Proxy k3)) columns fields
+      v4 <- parseJSON
+        =<< getField (fieldName (Proxy :: Proxy k4)) columns fields
+      v5 <- parseJSON
+        =<< getField (fieldName (Proxy :: Proxy k5)) columns fields
+      v6 <- parseJSON
+        =<< getField (fieldName (Proxy :: Proxy k6)) columns fields
+      return (v1, v2, v3, v4, v5, v6)
+
+-- | One-off tuple for six-field measurement
+instance
+  ( KnownSymbol k1, FromJSON v1
+  , KnownSymbol k2, FromJSON v2
+  , KnownSymbol k3, FromJSON v3
+  , KnownSymbol k4, FromJSON v4
+  , KnownSymbol k5, FromJSON v5
+  , KnownSymbol k6, FromJSON v6
+  , KnownSymbol k7, FromJSON v7 )
+  => QueryResults
+    ( Tagged k1 v1, Tagged k2 v2, Tagged k3 v3, Tagged k4 v4
+    , Tagged k5 v5, Tagged k6 v6, Tagged k7 v7
+    ) where
+    parseResults _ = parseResultsWith $ \_ _ columns fields -> do
+      v1 <- parseJSON
+        =<< getField (fieldName (Proxy :: Proxy k1)) columns fields
+      v2 <- parseJSON
+        =<< getField (fieldName (Proxy :: Proxy k2)) columns fields
+      v3 <- parseJSON
+        =<< getField (fieldName (Proxy :: Proxy k3)) columns fields
+      v4 <- parseJSON
+        =<< getField (fieldName (Proxy :: Proxy k4)) columns fields
+      v5 <- parseJSON
+        =<< getField (fieldName (Proxy :: Proxy k5)) columns fields
+      v6 <- parseJSON
+        =<< getField (fieldName (Proxy :: Proxy k6)) columns fields
+      v7 <- parseJSON
+        =<< getField (fieldName (Proxy :: Proxy k7)) columns fields
+      return (v1, v2, v3, v4, v5, v6, v7)
+
+-- | One-off tuple for seven-field measurements
+instance
+  ( KnownSymbol k1, FromJSON v1
+  , KnownSymbol k2, FromJSON v2
+  , KnownSymbol k3, FromJSON v3
+  , KnownSymbol k4, FromJSON v4
+  , KnownSymbol k5, FromJSON v5
+  , KnownSymbol k6, FromJSON v6
+  , KnownSymbol k7, FromJSON v7
+  , KnownSymbol k8, FromJSON v8 )
+  => QueryResults
+    ( Tagged k1 v1, Tagged k2 v2, Tagged k3 v3, Tagged k4 v4
+    , Tagged k5 v5, Tagged k6 v6, Tagged k7 v7, Tagged k8 v8
+    ) where
+    parseResults _ = parseResultsWith $ \_ _ columns fields -> do
+      v1 <- parseJSON
+        =<< getField (fieldName (Proxy :: Proxy k1)) columns fields
+      v2 <- parseJSON
+        =<< getField (fieldName (Proxy :: Proxy k2)) columns fields
+      v3 <- parseJSON
+        =<< getField (fieldName (Proxy :: Proxy k3)) columns fields
+      v4 <- parseJSON
+        =<< getField (fieldName (Proxy :: Proxy k4)) columns fields
+      v5 <- parseJSON
+        =<< getField (fieldName (Proxy :: Proxy k5)) columns fields
+      v6 <- parseJSON
+        =<< getField (fieldName (Proxy :: Proxy k6)) columns fields
+      v7 <- parseJSON
+        =<< getField (fieldName (Proxy :: Proxy k7)) columns fields
+      v8 <- parseJSON
+        =<< getField (fieldName (Proxy :: Proxy k8)) columns fields
+      return (v1, v2, v3, v4, v5, v6, v7, v8)
 
 -- | The full set of parameters for the query API
 data QueryParams = QueryParams
