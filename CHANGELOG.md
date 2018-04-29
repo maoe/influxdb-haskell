@@ -1,5 +1,9 @@
 # Revision history for influxdb
 
+## v1.6.0.2 - 2018-04-29
+
+* Relax upper version bound for network
+
 ## v1.6.0.1 - 2018-04-20
 
 * Relax upper version bound for foldl
