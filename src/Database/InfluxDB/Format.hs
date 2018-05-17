@@ -192,8 +192,7 @@ measurements = makeFormat $
   mconcat . L.intersperse ","
     . map (\(Measurement name) -> identifierBuilder name)
 
--- | This formats a field value. Useful in a query. String literals are
--- surrounded with a single quote.
+-- | Format an InfluxDB value. Good for field and tag values.
 --
 -- >>> formatQuery ("SELECT * FROM series WHERE "%key%" = "%field) "location" "tokyo"
 -- "SELECT * FROM series WHERE \"location\" = 'tokyo'"
