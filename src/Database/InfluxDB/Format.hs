@@ -157,7 +157,9 @@ stringBuilder = singleQuote . escapeSingleQuotes
 database :: Format r (Database -> r)
 database = makeFormat $ \(Database name) -> identifierBuilder name
 
--- | Format a key (e.g. field names, tag names, tag values etc).
+-- | Format an identifier (e.g. field names, tag names, etc).
+--
+-- Identifiers in InfluxDB protocol are surrounded with double quotes.
 --
 -- >>> formatQuery ("SELECT "%key%" FROM series") "field"
 -- "SELECT \"field\" FROM series"
@@ -190,7 +192,8 @@ measurements = makeFormat $
   mconcat . L.intersperse ","
     . map (\(Measurement name) -> identifierBuilder name)
 
--- | Format 'QueryField'.
+-- | This formats a field value. Useful in a query. String literals are
+-- surrounded with a single quote.
 --
 -- >>> formatQuery ("SELECT * FROM series WHERE "%key%" = "%field) "location" "tokyo"
 -- "SELECT * FROM series WHERE \"location\" = 'tokyo'"
