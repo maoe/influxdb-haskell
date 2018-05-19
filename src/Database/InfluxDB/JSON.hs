@@ -54,7 +54,7 @@ import qualified Data.Vector as V
 
 import Database.InfluxDB.Types
 
--- | Parse a JSON response with the 'lenientDecoder'. This can be useful to
+-- | Parse a JSON response with the 'strictDecoder'. This can be useful to
 -- implement the 'Database.InfluxDB.Query.parseResults' method.
 parseResultsWith
   :: (Maybe Text -> HashMap Text Text -> Vector Text -> Array -> A.Parser a)
@@ -68,7 +68,7 @@ parseResultsWith
   -- to construct a value.
   -> Value
   -> A.Parser (Vector a)
-parseResultsWith = parseResultsWithDecoder lenientDecoder
+parseResultsWith = parseResultsWithDecoder strictDecoder
 
 -- | Parse a JSON response with the specified decoder settings.
 parseResultsWithDecoder
