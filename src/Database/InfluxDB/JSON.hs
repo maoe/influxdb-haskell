@@ -34,8 +34,10 @@ module Database.InfluxDB.JSON
 import Control.Applicative
 import Control.Exception
 import Control.Monad
-import qualified Control.Monad.Fail as Fail
+import Data.Foldable
 import Data.Maybe
+import Prelude
+import qualified Control.Monad.Fail as Fail
 
 import Data.Aeson
 import Data.HashMap.Strict (HashMap)
@@ -82,13 +84,26 @@ parseResultsWithDecoder
   -- to construct a value.
   -> Value
   -> A.Parser (Vector a)
-parseResultsWithDecoder Decoder {..} row val0 = success
+parseResultsWithDecoder Decoder {..} row val0 = do
+  r <- foldr1 (<|>)
+    [ Left <$> parseErrorObject val0
+    , Right <$> success
+    ]
+  case r of
+    Left err -> fail err
+    Right vec -> return vec
   where
     success = do
       results <- parseResultsObject val0
 
-      (join -> series) <- V.forM results $ \val ->
-        parseSeriesObject val <|> parseErrorObject val
+      (join -> series) <- V.forM results $ \val -> do
+        r <- foldr1 (<|>)
+          [ Left <$> parseErrorObject val
+          , Right <$> parseSeriesObject val
+          ]
+        case r of
+          Left err -> fail err
+          Right vec -> return vec
       values <- V.forM series $ \val -> do
         (name, tags, columns, values) <- parseSeriesBody val
         decodeFold $ V.forM values $ A.withArray "values" $ \fields -> do
@@ -166,10 +181,8 @@ parseSeriesBody = A.withObject "series" $ \obj -> do
   return (name, tags, columns, values)
 
 -- | Parse the common JSON structure used in failure response.
-parseErrorObject :: A.Value -> A.Parser a
-parseErrorObject = A.withObject "error" $ \obj -> do
-  message <- obj .: "error"
-  fail $ T.unpack message
+parseErrorObject :: A.Value -> A.Parser String
+parseErrorObject = A.withObject "error" $ \obj -> obj .: "error"
 
 -- | Parse either a POSIX timestamp or RFC3339 formatted timestamp as 'UTCTime'.
 parseUTCTime :: Precision ty -> A.Value -> A.Parser UTCTime
