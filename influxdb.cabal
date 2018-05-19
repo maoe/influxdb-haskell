@@ -115,10 +115,12 @@ test-suite regressions
       base
     , containers
     , influxdb
+    , lens
     , tasty
     , tasty-hunit
     , time
     , raw-strings-qq >= 1.1 && < 1.2
+    , vector
   ghc-options: -Wall -threaded
   hs-source-dirs: tests
   default-language: Haskell2010
