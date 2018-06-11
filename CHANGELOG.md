@@ -1,5 +1,9 @@
 # Revision history for influxdb
 
+## v1.6.0.3 - 2018-06-11
+
+* Relax upper version bound for aeson
+
 ## v1.6.0.2 - 2018-04-29
 
 * Relax upper version bound for network
