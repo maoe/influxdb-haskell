@@ -4,7 +4,7 @@ synopsis: Haskell client library for InfluxDB
 description:
   @influxdb@ is a Haskell client library for InfluxDB.
   .
-  Read "Database.InfluxDB" for a quick start guide.
+  See "Database.InfluxDB" for a quick start guide.
 homepage: https://github.com/maoe/influxdb-haskell
 license: BSD3
 license-file: LICENSE
