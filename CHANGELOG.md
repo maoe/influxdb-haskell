@@ -1,5 +1,9 @@
 # Revision history for influxdb
 
+## v1.6.0.6 - 2018-07-07
+
+* Relax upper version bound for lens
+
 ## v1.6.0.5 - 2018-06-25
 
 * Relax upper version bound for doctest
