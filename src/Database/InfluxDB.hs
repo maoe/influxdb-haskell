@@ -191,7 +191,7 @@ Or even using 'Data.Coerce.coerce':
 === Using a custom data type
 
 We can define our custom data type and write a 'QueryResults' instance
-instead. 'getField', 'parseUTCTime' and 'parseQueryField' etc are avilable to
+instead. 'getField', 'parseUTCTime' and 'parseJSON' etc are avilable to
 make it easier to write a JSON decoder.
 
 >>> :{
