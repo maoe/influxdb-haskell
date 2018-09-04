@@ -1,5 +1,9 @@
 # Revision history for influxdb
 
+## v1.6.0.8 - 2018-09-04
+
+* Relax upper version bound for QuickCheck
+
 ## v1.6.0.7 - 2018-07-23
 
 * Relax upper version bound for base to support GHC 8.6 (#69)
