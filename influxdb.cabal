@@ -99,7 +99,7 @@ test-suite doctests
   build-depends:
       base
     , doctest >= 0.11.3 && < 0.17
-    , QuickCheck >= 2.10 && < 2.12
+    , QuickCheck >= 2.10 && < 2.13
     , influxdb
     , template-haskell
   ghc-options: -Wall -threaded
