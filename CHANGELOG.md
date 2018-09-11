@@ -1,5 +1,9 @@
 # Revision history for influxdb
 
+## v1.6.0.9 - 2018-09-11
+
+* Relax upper version bound for network
+
 ## v1.6.0.8 - 2018-09-04
 
 * Relax upper version bound for QuickCheck
