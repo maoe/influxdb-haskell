@@ -56,6 +56,13 @@ newtype Query = Query T.Text deriving IsString
 instance Show Query where
   show (Query q) = show q
 
+-- | InfluxDB server to connect to.
+--
+-- Following lenses are available to access its fields:
+--
+-- * 'host': FQDN or IP address of the InfluxDB server
+-- * 'port': Port number of the InfluxDB server
+-- * 'ssl': Whether or not to use SSL
 data Server = Server
   { _host :: !Text
   , _port :: !Int
@@ -87,12 +94,18 @@ port :: Lens' Server Int
 -- | If SSL is enabled
 ssl :: Lens' Server Bool
 
--- | User credentials
+-- | User credentials.
+--
+-- Following lenses are available to access its fields:
+--
+-- * 'user'
+-- * 'password'
 data Credentials = Credentials
   { _user :: !Text
   , _password :: !Text
   } deriving Show
 
+-- | Smart constructor for 'Credentials'
 credentials
     :: Text -- ^ User name
     -> Text -- ^ Password
@@ -109,6 +122,10 @@ makeLensesWith (lensRules & generateSignatures .~ False) ''Credentials
 user :: Lens' Credentials Text
 
 -- | Password to access InfluxDB
+--
+-- >>> let creds = credentials "john" "passw0rd"
+-- >>> creds ^. password
+-- "passw0rd"
 password :: Lens' Credentials Text
 
 -- | Database name.
@@ -152,6 +169,9 @@ identifier ty xs
   | elem '\n' xs = error $ ty ++ " should not contain a new line"
   | otherwise = fromString xs
 
+-- | Nullability of fields.
+--
+-- Queries can contain nulls but the line protocol cannot.
 data Nullability = Nullable | NonNullable deriving Typeable
 
 -- | Field type for queries. Queries can contain null values.
@@ -162,10 +182,21 @@ type QueryField = Field 'Nullable
 type LineField = Field 'NonNullable
 
 data Field (n :: Nullability) where
+  -- | Signed 64-bit integers (@-9,223,372,036,854,775,808@ to
+  -- @9,223,372,036,854,775,807@).
   FieldInt :: !Int64 -> Field n
+  -- | IEEE-754 64-bit floating-point numbers. This is the default numerical
+  -- type.
   FieldFloat :: !Double -> Field n
+  -- | String field. Its length is limited to 64KB, which is not enforced by
+  -- this library.
   FieldString :: !Text -> Field n
+  -- | Boolean field.
   FieldBool :: !Bool -> Field n
+  -- | Null field.
+  --
+  -- Note that a field can be null only in queries. The line protocol doesn't
+  -- allow null values.
   FieldNull :: Field 'Nullable
   deriving Typeable
 
@@ -204,11 +235,24 @@ data Precision (ty :: RequestType) where
   RFC3339 :: Precision 'QueryRequest
 
 deriving instance Show (Precision a)
+deriving instance Eq (Precision a)
 
 -- | Name of the time precision.
 --
 -- >>> precisionName Nanosecond
 -- "n"
+-- >>> precisionName Microsecond
+-- "u"
+-- >>> precisionName Millisecond
+-- "ms"
+-- >>> precisionName Second
+-- "s"
+-- >>> precisionName Minute
+-- "m"
+-- >>> precisionName Hour
+-- "h"
+-- >>> precisionName RFC3339
+-- "rfc3339"
 precisionName :: Precision ty -> Text
 precisionName = \case
   Nanosecond -> "n"

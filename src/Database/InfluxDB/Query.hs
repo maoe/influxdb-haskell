@@ -276,6 +276,14 @@ instance
       return (v1, v2, v3, v4, v5, v6, v7, v8)
 
 -- | The full set of parameters for the query API
+--
+-- Following lenses are available to access its fields:
+--
+-- * 'server'
+-- * 'database'
+-- * 'precision'
+-- * 'authentication'
+-- * 'manager'
 data QueryParams = QueryParams
   { queryServer :: !Server
   , queryDatabase :: !Database
@@ -293,10 +301,10 @@ data QueryParams = QueryParams
 --
 -- Default parameters:
 --
---   ['L.server'] 'defaultServer'
---   ['L.precision'] 'RFC3339'
---   ['L.authentication'] 'Nothing'
---   ['L.manager'] @'Left' 'HC.defaultManagerSettings'@
+--   ['server'] 'defaultServer'
+--   ['precision'] 'RFC3339'
+--   ['authentication'] 'Nothing'
+--   ['manager'] @'Left' 'HC.defaultManagerSettings'@
 queryParams :: Database -> QueryParams
 queryParams queryDatabase = QueryParams
   { queryServer = defaultServer
