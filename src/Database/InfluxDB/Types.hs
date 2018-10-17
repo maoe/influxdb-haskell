@@ -69,20 +69,6 @@ data Server = Server
   , _ssl :: !Bool
   } deriving (Show, Generic, Eq, Ord)
 
--- | Default server settings.
---
--- Default parameters:
---
---  * 'host': @"localhost"@
---  * 'port': @8086@
---  * 'ssl': 'False'
-defaultServer :: Server
-defaultServer = Server
-  { _host = "localhost"
-  , _port = 8086
-  , _ssl = False
-  }
-
 makeLensesWith (lensRules & generateSignatures .~ False) ''Server
 
 -- | Host name of the server
@@ -93,6 +79,27 @@ port :: Lens' Server Int
 
 -- | If SSL is enabled
 ssl :: Lens' Server Bool
+
+-- | Default InfluxDB server settings
+--
+-- Default parameters:
+--
+-- >>> defaultServer ^. host
+-- "localhost"
+-- >>> defaultServer ^. port
+-- 8086
+-- >>> defaultServer ^. ssl
+-- False
+defaultServer :: Server
+defaultServer = Server
+  { _host = "localhost"
+  , _port = 8086
+  , _ssl = False
+  }
+
+-- | HTTPS-enabled InfluxDB server settings
+secureServer :: Server
+secureServer = defaultServer & ssl .~ True
 
 -- | User credentials.
 --

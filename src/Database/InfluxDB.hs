@@ -79,6 +79,7 @@ module Database.InfluxDB
 
   , Server
   , defaultServer
+  , secureServer
   , host
   , port
   , ssl
