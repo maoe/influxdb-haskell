@@ -78,6 +78,11 @@ host :: Lens' Server Text
 port :: Lens' Server Int
 
 -- | If SSL is enabled
+--
+-- For secure connections (HTTPS), consider using one of the following packages:
+--
+--  * [http-client-tls](https://hackage.haskell.org/package/http-client-tls)
+--  * [http-client-openssl](https://hackage.haskell.org/package/http-client-openssl)
 ssl :: Lens' Server Bool
 
 -- | Default InfluxDB server settings
