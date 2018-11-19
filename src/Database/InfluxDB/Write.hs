@@ -46,7 +46,7 @@ import Database.InfluxDB.Types as Types
 import Database.InfluxDB.JSON
 
 -- $setup
--- >>> :set -XOverloadedStrings
+-- >>> :set -XOverloadedStrings -XNoOverloadedLists
 -- >>> import qualified Data.Map as Map
 -- >>> import Data.Time
 -- >>> import Database.InfluxDB
