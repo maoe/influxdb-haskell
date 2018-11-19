@@ -4,7 +4,7 @@
 [![Hackage-Deps](https://img.shields.io/hackage-deps/v/influxdb.svg)](http://packdeps.haskellers.com/feed?needle=influxdb)
 [![Gitter](https://badges.gitter.im/maoe/influxdb-haskell.svg)](https://gitter.im/maoe/influxdb-haskell?utm_source=badge&utm_medium=badge&utm_campaign=pr-badge)
 
-Currently this library is tested against InfluxDB 1.5.
+Currently this library is tested against InfluxDB 1.7.
 
 ## Getting started
 

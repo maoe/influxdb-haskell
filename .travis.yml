@@ -9,7 +9,7 @@ sudo: false
 
 env:
   global:
-    - INFLUXDB_VERSION=1.5.0
+    - INFLUXDB_VERSION=1.7.1
 
 git:
   submodules: false  # whether to recursively clone submodules

@@ -65,7 +65,7 @@ let l1 = Line "cpu_usage"
 
 -- | Placeholder for the Line Protocol
 --
--- See https://docs.influxdata.com/influxdb/v1.5/write_protocols/line_protocol_tutorial/ for the
+-- See https://docs.influxdata.com/influxdb/v1.7/write_protocols/line_protocol_tutorial/ for the
 -- concrete syntax.
 data Line time = Line
   { _measurement :: !Measurement
