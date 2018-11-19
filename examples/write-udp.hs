@@ -8,8 +8,7 @@ import Control.Lens
 import Data.Time.Clock
 import Network.Socket
 
-import Database.InfluxDB.Types
-import Database.InfluxDB.Line
+import Database.InfluxDB
 import qualified Database.InfluxDB.Write.UDP as UDP
 
 main :: IO ()
