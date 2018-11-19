@@ -429,18 +429,22 @@ data InfluxException
 
 instance Exception InfluxException
 
+-- | Class of data types that have a server field
 class HasServer a where
   -- | InfluxDB server address and port that to interact with.
   server :: Lens' a Server
 
+-- | Class of data types that have a database field
 class HasDatabase a where
   -- | Database name to work on.
   database :: Lens' a Database
 
+-- | Class of data types that have a precision field
 class HasPrecision (ty :: RequestType) a | a -> ty where
   -- | Time precision parameter.
   precision :: Lens' a (Precision ty)
 
+-- | Class of data types that have a manager field
 class HasManager a where
   -- | HTTP manager settings or a manager itself.
   --
@@ -448,6 +452,7 @@ class HasManager a where
   -- the settings for you.
   manager :: Lens' a (Either ManagerSettings Manager)
 
+-- | Class of data types that has an authentication field
 class HasCredentials a where
   -- | User name and password to be used when sending requests to InfluxDB.
   authentication :: Lens' a (Maybe Credentials)
