@@ -56,25 +56,18 @@ newtype Query = Query T.Text deriving IsString
 instance Show Query where
   show (Query q) = show q
 
+-- | InfluxDB server to connect to.
+--
+-- Following lenses are available to access its fields:
+--
+-- * 'host': FQDN or IP address of the InfluxDB server
+-- * 'port': Port number of the InfluxDB server
+-- * 'ssl': Whether or not to use SSL
 data Server = Server
   { _host :: !Text
   , _port :: !Int
   , _ssl :: !Bool
   } deriving (Show, Generic, Eq, Ord)
-
--- | Default server settings.
---
--- Default parameters:
---
---  * 'host': @"localhost"@
---  * 'port': @8086@
---  * 'ssl': 'False'
-defaultServer :: Server
-defaultServer = Server
-  { _host = "localhost"
-  , _port = 8086
-  , _ssl = False
-  }
 
 makeLensesWith (lensRules & generateSignatures .~ False) ''Server
 
@@ -85,14 +78,46 @@ host :: Lens' Server Text
 port :: Lens' Server Int
 
 -- | If SSL is enabled
+--
+-- For secure connections (HTTPS), consider using one of the following packages:
+--
+--  * [http-client-tls](https://hackage.haskell.org/package/http-client-tls)
+--  * [http-client-openssl](https://hackage.haskell.org/package/http-client-openssl)
 ssl :: Lens' Server Bool
 
--- | User credentials
+-- | Default InfluxDB server settings
+--
+-- Default parameters:
+--
+-- >>> defaultServer ^. host
+-- "localhost"
+-- >>> defaultServer ^. port
+-- 8086
+-- >>> defaultServer ^. ssl
+-- False
+defaultServer :: Server
+defaultServer = Server
+  { _host = "localhost"
+  , _port = 8086
+  , _ssl = False
+  }
+
+-- | HTTPS-enabled InfluxDB server settings
+secureServer :: Server
+secureServer = defaultServer & ssl .~ True
+
+-- | User credentials.
+--
+-- Following lenses are available to access its fields:
+--
+-- * 'user'
+-- * 'password'
 data Credentials = Credentials
   { _user :: !Text
   , _password :: !Text
   } deriving Show
 
+-- | Smart constructor for 'Credentials'
 credentials
     :: Text -- ^ User name
     -> Text -- ^ Password
@@ -109,6 +134,10 @@ makeLensesWith (lensRules & generateSignatures .~ False) ''Credentials
 user :: Lens' Credentials Text
 
 -- | Password to access InfluxDB
+--
+-- >>> let creds = credentials "john" "passw0rd"
+-- >>> creds ^. password
+-- "passw0rd"
 password :: Lens' Credentials Text
 
 -- | Database name.
@@ -152,6 +181,9 @@ identifier ty xs
   | elem '\n' xs = error $ ty ++ " should not contain a new line"
   | otherwise = fromString xs
 
+-- | Nullability of fields.
+--
+-- Queries can contain nulls but the line protocol cannot.
 data Nullability = Nullable | NonNullable deriving Typeable
 
 -- | Field type for queries. Queries can contain null values.
@@ -162,10 +194,21 @@ type QueryField = Field 'Nullable
 type LineField = Field 'NonNullable
 
 data Field (n :: Nullability) where
+  -- | Signed 64-bit integers (@-9,223,372,036,854,775,808@ to
+  -- @9,223,372,036,854,775,807@).
   FieldInt :: !Int64 -> Field n
+  -- | IEEE-754 64-bit floating-point numbers. This is the default numerical
+  -- type.
   FieldFloat :: !Double -> Field n
+  -- | String field. Its length is limited to 64KB, which is not enforced by
+  -- this library.
   FieldString :: !Text -> Field n
+  -- | Boolean field.
   FieldBool :: !Bool -> Field n
+  -- | Null field.
+  --
+  -- Note that a field can be null only in queries. The line protocol doesn't
+  -- allow null values.
   FieldNull :: Field 'Nullable
   deriving Typeable
 
@@ -204,11 +247,24 @@ data Precision (ty :: RequestType) where
   RFC3339 :: Precision 'QueryRequest
 
 deriving instance Show (Precision a)
+deriving instance Eq (Precision a)
 
 -- | Name of the time precision.
 --
 -- >>> precisionName Nanosecond
 -- "n"
+-- >>> precisionName Microsecond
+-- "u"
+-- >>> precisionName Millisecond
+-- "ms"
+-- >>> precisionName Second
+-- "s"
+-- >>> precisionName Minute
+-- "m"
+-- >>> precisionName Hour
+-- "h"
+-- >>> precisionName RFC3339
+-- "rfc3339"
 precisionName :: Precision ty -> Text
 precisionName = \case
   Nanosecond -> "n"
@@ -378,18 +434,22 @@ data InfluxException
 
 instance Exception InfluxException
 
+-- | Class of data types that have a server field
 class HasServer a where
   -- | InfluxDB server address and port that to interact with.
   server :: Lens' a Server
 
+-- | Class of data types that have a database field
 class HasDatabase a where
   -- | Database name to work on.
   database :: Lens' a Database
 
+-- | Class of data types that have a precision field
 class HasPrecision (ty :: RequestType) a | a -> ty where
   -- | Time precision parameter.
   precision :: Lens' a (Precision ty)
 
+-- | Class of data types that have a manager field
 class HasManager a where
   -- | HTTP manager settings or a manager itself.
   --
@@ -397,6 +457,7 @@ class HasManager a where
   -- the settings for you.
   manager :: Lens' a (Either ManagerSettings Manager)
 
+-- | Class of data types that has an authentication field
 class HasCredentials a where
   -- | User name and password to be used when sending requests to InfluxDB.
   authentication :: Lens' a (Maybe Credentials)
