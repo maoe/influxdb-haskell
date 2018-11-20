@@ -8,13 +8,12 @@ import Control.Lens
 import Data.Time.Clock
 import Network.Socket
 
-import Database.InfluxDB.Types
-import Database.InfluxDB.Line
+import Database.InfluxDB
 import qualified Database.InfluxDB.Write.UDP as UDP
 
 main :: IO ()
 main = bracket (socket AF_INET Datagram defaultProtocol) close $ \sock -> do
-  localhost <- inet_addr "127.0.0.1"
+  let localhost = tupleToHostAddress (127, 0, 0, 1)
   let params = UDP.writeParams sock $ SockAddrInet 8089 localhost
       tags1 =
           [ ("tag1", "A")

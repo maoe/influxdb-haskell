@@ -46,7 +46,7 @@ import Database.InfluxDB.Types as Types
 import Database.InfluxDB.JSON
 
 -- $setup
--- >>> :set -XOverloadedStrings
+-- >>> :set -XOverloadedStrings -XNoOverloadedLists
 -- >>> import qualified Data.Map as Map
 -- >>> import Data.Time
 -- >>> import Database.InfluxDB
@@ -62,6 +62,15 @@ import Data.Time
 -}
 
 -- | The full set of parameters for the HTTP writer.
+--
+-- Following lenses are available to access its fields:
+--
+-- * 'server'
+-- * 'database'
+-- * 'retentionPolicy'
+-- * 'precision'
+-- * 'authentication'
+-- * 'manager'
 data WriteParams = WriteParams
   { writeServer :: !Server
   , writeDatabase :: !Database
@@ -82,10 +91,11 @@ data WriteParams = WriteParams
 --
 -- Default parameters:
 --
---   ['L.server'] 'defaultServer'
---   ['L.precision'] 'Nanosecond'
+--   ['server'] 'defaultServer'
 --   ['retentionPolicy'] 'Nothing'
---   ['L.manager'] @'Left' 'HC.defaultManagerSettings'@
+--   ['precision'] 'Nanosecond'
+--   ['authentication'] 'Nothing'
+--   ['manager'] @'Left' 'HC.defaultManagerSettings'@
 writeParams :: Database -> WriteParams
 writeParams writeDatabase = WriteParams
   { writeServer = defaultServer

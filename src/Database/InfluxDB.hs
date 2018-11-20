@@ -79,6 +79,7 @@ module Database.InfluxDB
 
   , Server
   , defaultServer
+  , secureServer
   , host
   , port
   , ssl
@@ -214,12 +215,8 @@ instance QueryResults CPUUsage where
 
 {- $write
 InfluxDB has two ways to write data into it, via HTTP and UDP. This module
-only exports functions for the HTTP API. For UDP, you can use a qualified
-import:
-
-@
-import qualified "Database.InfluxDB.Write.UDP" as UDP
-@
+only exports functions for the HTTP API. For UDP, see
+"Database.InfluxDB.Write.UDP".
 -}
 
 {- $query

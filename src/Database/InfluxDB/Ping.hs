@@ -36,6 +36,12 @@ import Database.InfluxDB.Types as Types
 
 -- Ping requests do not require authentication
 -- | The full set of parameters for the ping API
+--
+-- Following lenses are available to access its fields:
+--
+-- * 'server'
+-- * 'manager'
+-- * 'timeout'
 data PingParams = PingParams
   { pingServer :: !Server
   , pingManager :: !(Either HC.ManagerSettings HC.Manager)
@@ -48,9 +54,9 @@ data PingParams = PingParams
 --
 -- Default parameters:
 --
---   ['L.server'] 'defaultServer'
---   ['L.manager'] @'Left' 'HC.defaultManagerSettings'@
---   ['L.timeout'] 'Nothing'
+--   ['server'] 'defaultServer'
+--   ['manager'] @'Left' 'HC.defaultManagerSettings'@
+--   ['timeout'] 'Nothing'
 pingParams :: PingParams
 pingParams = PingParams
   { pingServer = defaultServer

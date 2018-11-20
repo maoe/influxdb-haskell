@@ -4,7 +4,9 @@
 {-# LANGUAGE RecordWildCards #-}
 {-# LANGUAGE TemplateHaskell #-}
 module Database.InfluxDB.Write.UDP
-  ( -- * Writers
+  ( -- $intro
+
+  -- * Writers
     write
   , writeBatch
   , writeByteString
@@ -24,6 +26,27 @@ import qualified Data.ByteString.Lazy as BL
 
 import Database.InfluxDB.Line
 import Database.InfluxDB.Types as Types
+
+{- $intro
+This module is desined to be used with the [network]
+(https://hackage.haskell.org/package/network) package and be imported qualified.
+
+>>> :set -XOverloadedStrings -XOverloadedLists
+>>> import Data.Time
+>>> import Network.Socket
+>>> import Database.InfluxDB
+>>> import qualified Database.InfluxDB.Write.UDP as UDP
+>>> sock <- Network.Socket.socket AF_INET Datagram defaultProtocol
+>>> let localhost = tupleToHostAddress (127, 0, 0, 1)
+>>> let params = UDP.writeParams sock $ SockAddrInet 8089 localhost
+>>> UDP.write params $ Line "measurement1" [] [("value", FieldInt 42)] (Nothing :: Maybe UTCTime)
+>>> close sock
+
+Make sure that the UDP service is enabled in the InfluxDB config. This API
+doesn't tell you if any error occurs. See [the official doc]
+(https://docs.influxdata.com/influxdb/v1.6/supported_protocols/udp/) for
+details.
+-}
 
 -- | The full set of parameters for the UDP writer.
 data WriteParams = WriteParams
@@ -63,7 +86,7 @@ writeBatch
 writeBatch p@WriteParams {_precision} =
   writeByteString p . encodeLines (roundTo _precision)
 
--- | Write a raw 'L.ByteString'
+-- | Write a lazy 'L.ByteString'
 writeByteString :: WriteParams -> BL.ByteString -> IO ()
 writeByteString WriteParams {..} payload =
   sendManyTo _socket (BL.toChunks payload) _sockAddr
