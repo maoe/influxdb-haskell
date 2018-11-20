@@ -1,5 +1,11 @@
 # Revision history for influxdb
 
+## v1.6.1 - 2018-11-20
+
+* Add secureServer smart constructor for Server
+* Test with InfluxDB 1.7.1 and newer GHCs including 8.6.2
+* Enhace Haddock comments
+
 ## v1.6.0.9 - 2018-09-11
 
 * Relax upper version bound for network
