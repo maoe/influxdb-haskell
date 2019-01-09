@@ -1,5 +1,9 @@
 # Revision history for influxdb
 
+## v1.6.1.1 - 2019-01-10
+
+* Relax upper version bound for http-client
+
 ## v1.6.1 - 2018-11-20
 
 * Add secureServer smart constructor for Server
