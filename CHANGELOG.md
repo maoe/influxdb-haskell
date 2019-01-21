@@ -1,5 +1,9 @@
 # Revision history for influxdb
 
+## v1.6.1.2 - 2019-01-21
+
+* Relax upper version bound for network
+
 ## v1.6.1.1 - 2019-01-10
 
 * Relax upper version bound for http-client
