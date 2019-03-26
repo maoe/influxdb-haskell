@@ -1,5 +1,9 @@
 # Revision history for influxdb
 
+## v1.6.1.3 - 2019-03-26
+
+* Drop unused dependency on QuickCheck
+
 ## v1.6.1.2 - 2019-01-21
 
 * Relax upper version bound for network
