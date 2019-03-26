@@ -1,5 +1,5 @@
 name: influxdb
-version: 1.6.1.2
+version: 1.6.1.3
 synopsis: Haskell client library for InfluxDB
 description:
   @influxdb@ is a Haskell client library for InfluxDB.
@@ -19,7 +19,7 @@ tested-with:
   GHC == 8.0.2
   GHC == 8.2.2
   GHC == 8.4.4
-  GHC == 8.6.3
+  GHC == 8.6.4
 
 extra-source-files:
   README.md
@@ -100,7 +100,6 @@ test-suite doctests
   build-depends:
       base
     , doctest >= 0.11.3 && < 0.17
-    , QuickCheck >= 2.10 && < 2.13
     , influxdb
     , template-haskell
   ghc-options: -Wall -threaded
