@@ -1,0 +1,32 @@
+diff --git a/.travis.yml b/.travis.yml
+index 3471e73..f52d323 100644
+--- a/.travis.yml
++++ b/.travis.yml
+@@ -8,6 +8,9 @@
+ #
+ language: c
+ dist: xenial
++env:
++  global:
++    - INFLUXDB_VERSION=1.7.4
+ git:
+   # whether to recursively clone submodules
+   submodules: false
+@@ -41,6 +44,7 @@ matrix:
+       env: GHCHEAD=true
+   allow_failures:
+     - compiler: ghc-head
++    - compiler: ghc-7.10.3
+ before_install:
+   - HC=$(echo "/opt/$CC/bin/ghc" | sed 's/-/\//')
+   - HCPKG="$HC-pkg"
+@@ -71,6 +75,9 @@ before_install:
+       awk -f $TOP/.colorful.awk
+     }
+   - echo text | color_cabal_output
++  - wget https://dl.influxdata.com/influxdb/releases/influxdb_${INFLUXDB_VERSION}_amd64.deb
++  - dpkg -x influxdb_${INFLUXDB_VERSION}_amd64.deb influxdb
++  - ./influxdb/usr/bin/influxd &
+ install:
+   - ${CABAL} --version
+   - echo "$(${HC} --version) [$(${HC} --print-project-git-commit-id 2> /dev/null || echo '?')]"

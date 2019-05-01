@@ -19,7 +19,7 @@ tested-with:
   GHC == 8.0.2
   GHC == 8.2.2
   GHC == 8.4.4
-  GHC == 8.6.4
+  GHC == 8.6.5
 
 extra-source-files:
   README.md
@@ -73,7 +73,7 @@ library
     ViewPatterns
   ghc-options: -Wall
   build-depends:
-      base >= 4.8 && < 4.13
+      base >= 4.8 && < 4.14
     , aeson >= 0.7 && < 1.5
     , attoparsec < 0.14
     , bytestring >= 0.10 && < 0.11
