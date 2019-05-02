@@ -12,14 +12,6 @@ index 3a61e7d..acae14a 100644
  git:
    # whether to recursively clone submodules
    submodules: false
-@@ -43,6 +46,7 @@ matrix:
-       addons: {"apt":{"sources":["hvr-ghc"],"packages":["ghc-head","cabal-install-head"]}}
-       env: GHCHEAD=true
-   allow_failures:
-+    - compiler: ghc-7.10.3
-     - compiler: ghc-head
-     - compiler: ghc-8.8.1
- before_install:
 @@ -75,6 +79,9 @@ before_install:
        awk -f $TOP/.colorful.awk
      }

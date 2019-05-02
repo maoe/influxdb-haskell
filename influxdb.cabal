@@ -15,7 +15,6 @@ category: Database
 build-type: Custom
 cabal-version: 1.24
 tested-with:
-  GHC == 7.10.3
   GHC == 8.0.2
   GHC == 8.2.2
   GHC == 8.4.4
@@ -74,7 +73,7 @@ library
     ViewPatterns
   ghc-options: -Wall
   build-depends:
-      base >= 4.8 && < 4.14
+      base >= 4.9 && < 4.14
     , aeson >= 0.7 && < 1.5
     , attoparsec < 0.14
     , bytestring >= 0.10 && < 0.11
