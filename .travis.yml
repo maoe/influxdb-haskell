@@ -10,7 +10,7 @@ language: c
 dist: xenial
 env:
   global:
-    - INFLUXDB_VERSION=1.7.4
+    - INFLUXDB_VERSION=1.7.6
 git:
   # whether to recursively clone submodules
   submodules: false
