@@ -94,7 +94,7 @@ The first item is a breaking change.
 
 * Relax upper version bound for base ([#51](https://github.com/maoe/influxdb-haskell/pull/51))
 * Implement proper escaping and quoting for special characters ([#51](https://github.com/maoe/influxdb-haskell/pull/51), [#52](https://github.com/maoe/influxdb-haskell/pull/52))
-    * Introduce the Measurement type and accompanying functions
+  * Introduce the Measurement type and accompanying functions
 * Fix a bug in the HTTP writer where the precision parameter is ignored when constructing requests
 * Some minor doctest fixes
 
@@ -127,8 +127,8 @@ and a lot of Haddock comments are added extensively.
 * The `FieldVal` has been renamed to `Field` which takes `Nullability` as a type parameter.
 * `localServer` has been renamed to `defaultServer`
 * Some constructors in `InfluxException` have been renamed
-    * `BadRequest` to `ClientError`
-    * `IllformedJSON` to `UnexpectedResponse`
+  * `BadRequest` to `ClientError`
+  * `IllformedJSON` to `UnexpectedResponse`
 * Added a smart constructor `credentials` for `Credentials`
 * Dropped `parseTimestamp` and added `parseUTCTime`
 * `ping` handles timeout proerply and throws `InfluxException` on failure
@@ -189,7 +189,7 @@ The library was completely rewritten and support for older InfluxDB has been dro
 * Add `writeSeriesData`
 * Relax upper version bound for exceptions
 * Drop support for old retry package
-    * retry < 0.6 had an unexpected behavior wrt exception masking state (https://github.com/Soostone/retry/pull/12)
+  * retry < 0.6 had an unexpected behavior wrt exception masking state (https://github.com/Soostone/retry/pull/12)
 
 ## v0.9.0.1 - 2015-01-06
 
@@ -204,7 +204,7 @@ The library was completely rewritten and support for older InfluxDB has been dro
 ## v0.8.0 - 2014-11-07
 
 * Retry on connection failure and response timeout in addition to IOException
-    * Note that this may break existing code silently
+  * Note that this may break existing code silently
 
 ## v0.7.1.1 - 2014-09-19
 
@@ -218,15 +218,15 @@ The library was completely rewritten and support for older InfluxDB has been dro
 ## v0.7.0 - 2014-09-12
 
 * Support for influxdb v0.8 (#15)
-    * Add shard spaces API
-    * Add `configureDatabase`
+  * Add shard spaces API
+  * Add `configureDatabase`
 * Add Typeable and Generic instances where missing
 * Remove unused `ScheduledDelete` type
 
 ## v0.6.0 - 2014-08-19
 
 * Support for retry-0.5 (#16)
-    * `newServerPoolWithRetrySettings` has been renamed to `newServerPoolWithRetryPolicy`
+  * `newServerPoolWithRetrySettings` has been renamed to `newServerPoolWithRetryPolicy`
     * `serverRetrySettings` field in `ServerPool` has been renamed to `serverRetryPolicy`
 * Support for network-uri (#17)
 
@@ -238,9 +238,9 @@ The library was completely rewritten and support for older InfluxDB has been dro
 
 * Add `InfluxException` type and use it when decoding JSON or SeriesData (#12)
 * New API
-    * `ping`
-    * `listInterfaces`
-    * `isInSync`
+  * `ping`
+  * `listInterfaces`
+  * `isInSync`
 * BUGFIX: Fix `when expecting a Float, encountered Int instead` error (#14)
 
 ## v0.4.2 - 2014-06-06
@@ -262,8 +262,8 @@ The library was completely rewritten and support for older InfluxDB has been dro
 ## v0.3.0 - 2014-06-03
 
 * Support for InfluxDB v0.7
-    * Renamed `username` field for `/cluster_admins` to `user`
-    * No support for the old field name
+  * Renamed `username` field for `/cluster_admins` to `user`
+  * No support for the old field name
 
 ## v0.2.2 - 2014-05-08
 
