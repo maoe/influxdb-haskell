@@ -1,5 +1,11 @@
 # Revision history for influxdb
 
+## v1.7.0 - 2019-05-03
+
+* Support GHC 8.8.1-alpha1
+  * The types of `getField` and `getTag` have changed
+* Relax upper version bounds for clock and network
+
 ## v1.6.1.3 - 2019-03-26
 
 * Drop unused dependency on QuickCheck
