@@ -1,0 +1,24 @@
+diff --git b/.travis.yml a/.travis.yml
+index 3a61e7d..acae14a 100644
+--- b/.travis.yml
++++ a/.travis.yml
+@@ -8,6 +8,9 @@
+ #
+ language: c
+ dist: xenial
++env:
++  global:
++    - INFLUXDB_VERSION=1.7.6
+ git:
+   # whether to recursively clone submodules
+   submodules: false
+@@ -75,6 +79,9 @@ before_install:
+       awk -f $TOP/.colorful.awk
+     }
+   - echo text | color_cabal_output
++  - wget https://dl.influxdata.com/influxdb/releases/influxdb_${INFLUXDB_VERSION}_amd64.deb
++  - dpkg -x influxdb_${INFLUXDB_VERSION}_amd64.deb influxdb
++  - ./influxdb/usr/bin/influxd &
+ install:
+   - ${CABAL} --version
+   - echo "$(${HC} --version) [$(${HC} --print-project-git-commit-id 2> /dev/null || echo '?')]"

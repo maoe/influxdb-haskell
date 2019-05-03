@@ -444,7 +444,7 @@ queryRequest QueryParams {..} = applyBasicAuth $ HC.defaultRequest
     applyBasicAuth =
       case queryAuthentication of
         Nothing -> id
-        Just (Credentials {..}) ->
+        Just Credentials {..} ->
           HC.applyBasicAuth (TE.encodeUtf8 _user) (TE.encodeUtf8 _password)
 
 errorQuery :: String -> HC.Request -> HC.Response body -> A.Value -> IO a
