@@ -34,6 +34,7 @@ module Database.InfluxDB.JSON
 import Control.Applicative
 import Control.Exception
 import Control.Monad
+import qualified Control.Monad.Fail as Fail
 import Data.Maybe
 
 import Data.Aeson
@@ -122,26 +123,26 @@ lenientDecoder = Decoder
 
 -- | Get a field value from a column name
 getField
-  :: Monad m
+  :: Fail.MonadFail m
   => Text -- ^ Column name
   -> Vector Text -- ^ Columns
   -> Vector Value -- ^ Field values
   -> m Value
 getField column columns fields =
   case V.elemIndex column columns of
-    Nothing -> fail $ "getField: no such column " ++ show column
+    Nothing -> Fail.fail $ "getField: no such column " ++ show column
     Just idx -> case V.indexM fields idx of
-      Nothing -> fail $ "getField: index out of bound for " ++ show column
+      Nothing -> Fail.fail $ "getField: index out of bound for " ++ show column
       Just field -> return field
 
 -- | Get a tag value from a tag name
 getTag
-  :: Monad m
+  :: Fail.MonadFail m
   => Text -- ^ Tag name
   -> HashMap Text Value -- ^ Tags
   -> m Value
 getTag tag tags = case HashMap.lookup tag tags of
-  Nothing -> fail $ "getTag: no such tag " ++ show tag
+  Nothing -> Fail.fail $ "getTag: no such tag " ++ show tag
   Just val -> return val
 
 -- | Parse a result response.
