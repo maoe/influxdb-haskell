@@ -1,5 +1,9 @@
 # Revision history for influxdb
 
+## v1.7.1 - 2019-07-19
+
+* Escape backslashes when encoding `Line`s (#75)
+
 ## v1.7.0 - 2019-05-03
 
 * Support GHC 8.8.1-alpha1
