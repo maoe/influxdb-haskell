@@ -1,5 +1,5 @@
 name: influxdb
-version: 1.7.0
+version: 1.7.1
 synopsis: Haskell client library for InfluxDB
 description:
   @influxdb@ is a Haskell client library for InfluxDB.
@@ -102,6 +102,21 @@ test-suite doctests
     , doctest >= 0.11.3 && < 0.17
     , influxdb
     , template-haskell
+  ghc-options: -Wall -threaded
+  hs-source-dirs: tests
+  default-language: Haskell2010
+
+test-suite regressions
+  type: exitcode-stdio-1.0
+  main-is: regressions.hs
+  build-depends:
+      base
+    , containers
+    , influxdb
+    , tasty
+    , tasty-hunit
+    , time
+    , raw-strings-qq >= 1.1 && < 1.2
   ghc-options: -Wall -threaded
   hs-source-dirs: tests
   default-language: Haskell2010

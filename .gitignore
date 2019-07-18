@@ -8,3 +8,4 @@
 /dist/
 cabal.project.local
 cabal.sandbox.config
+stack.yaml.lock
