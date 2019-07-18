@@ -143,7 +143,7 @@ escapeMeasurement :: Measurement -> Text
 escapeMeasurement (Measurement text) = escapeCommas $ escapeSpaces text
 
 escapeStringField :: Text -> Text
-escapeStringField = escapeDoubleQuotes
+escapeStringField = escapeDoubleQuotes . escapeBackslashes
 
 buildFieldValue :: LineField -> B.Builder
 buildFieldValue = \case
