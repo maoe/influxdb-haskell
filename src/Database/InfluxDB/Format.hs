@@ -220,7 +220,7 @@ realFloat = makeFormat TL.realFloat
 
 -- | Format a text.
 --
--- Note that this doesn't escape the string. Use 'fieldKey' to format field
+-- Note that this doesn't escape the string. Use 'formatKey' to format field
 -- values in a query.
 --
 -- >>> :t formatKey text
@@ -230,7 +230,7 @@ text = makeFormat TL.fromText
 
 -- | Format a string.
 --
--- Note that this doesn't escape the string. Use 'fieldKey' to format field
+-- Note that this doesn't escape the string. Use 'formatKey' to format field
 -- values in a query.
 --
 -- >>> :t formatKey string
@@ -240,7 +240,7 @@ string = makeFormat TL.fromString
 
 -- | Format a UTF-8 encoded byte string.
 --
--- Note that this doesn't escape the string. Use 'fieldKey' to format field
+-- Note that this doesn't escape the string. Use 'formatKey' to format field
 -- values in a query.
 --
 -- >>> :t formatKey byteString8
