@@ -82,7 +82,7 @@ library
     , foldl < 1.5
     , http-client >= 0.5 && < 0.7
     , http-types >= 0.8.6 && < 0.13
-    , lens >= 4.9 && < 4.19
+    , lens >= 4.9 && < 4.20
     , network >= 2.6 && < 3.2
     , optional-args >= 1.0 && < 1.1
     , scientific >= 0.3.3 && < 0.4
