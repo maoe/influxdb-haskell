@@ -10,7 +10,7 @@ license: BSD3
 license-file: LICENSE
 author: Mitsutoshi Aoe
 maintainer: Mitsutoshi Aoe <me@maoe.name>
-copyright: Copyright (C) 2014-2019 Mitsutoshi Aoe
+copyright: Copyright (C) 2014-2020 Mitsutoshi Aoe
 category: Database
 build-type: Custom
 cabal-version: 1.24
