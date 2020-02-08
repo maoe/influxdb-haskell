@@ -1,0 +1,4 @@
+packages: .
+
+package *
+  test-show-details: direct

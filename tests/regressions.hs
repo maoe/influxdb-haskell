@@ -8,7 +8,6 @@ import qualified Data.Map as M
 
 import Database.InfluxDB
 import Database.InfluxDB.Line
-import Database.InfluxDB.Write (writeByteString)
 import qualified Database.InfluxDB.Format as F
 
 main :: IO ()

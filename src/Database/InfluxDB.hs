@@ -47,7 +47,6 @@ module Database.InfluxDB
   , authentication
 
   -- ** Parsing results
-  -- $parsing-results
   , QueryResults(..)
   , parseResultsWith
   , parseResultsWithDecoder
@@ -168,8 +167,8 @@ type check.
 
 === Using an one-off tuple
 
-If all the field types are an instance of 'FromJSON', we can use a tuple to store
-the results.
+If all the field types are an instance of 'Data.Aeson.FromJSON', we can use a
+tuple to store the results.
 
 >>> :set -XDataKinds -XOverloadedStrings
 >>> type CPUUsage = (Tagged "time" UTCTime, Tagged "idle" Double, Tagged "system" Double, Tagged "user" Double)

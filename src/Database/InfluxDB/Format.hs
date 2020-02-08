@@ -117,6 +117,8 @@ formatQuery = runFormatWith Query
 --
 -- >>> formatDatabase "test-db"
 -- "test-db"
+-- >>> formatDatabase ("test-db-"%decimal) 0
+-- "test-db-0"
 formatDatabase :: Format Database r -> r
 formatDatabase = runFormatWith Database
 
@@ -124,6 +126,8 @@ formatDatabase = runFormatWith Database
 --
 -- >>> formatMeasurement "test-series"
 -- "test-series"
+-- >>> formatMeasurement ("test-series-"%decimal) 0
+-- "test-series-0"
 formatMeasurement :: Format Measurement r -> r
 formatMeasurement = runFormatWith Measurement
 
@@ -131,6 +135,8 @@ formatMeasurement = runFormatWith Measurement
 --
 -- >>> formatKey "test-key"
 -- "test-key"
+-- >>> formatKey ("test-key-"%decimal) 0
+-- "test-key-0"
 formatKey :: Format Key r -> r
 formatKey fmt = runFormat fmt (Key . TL.toStrict . TL.toLazyText)
 
@@ -220,7 +226,7 @@ realFloat = makeFormat TL.realFloat
 
 -- | Format a text.
 --
--- Note that this doesn't escape the string. Use 'fieldKey' to format field
+-- Note that this doesn't escape the string. Use 'formatKey' to format field
 -- values in a query.
 --
 -- >>> :t formatKey text
@@ -230,7 +236,7 @@ text = makeFormat TL.fromText
 
 -- | Format a string.
 --
--- Note that this doesn't escape the string. Use 'fieldKey' to format field
+-- Note that this doesn't escape the string. Use 'formatKey' to format field
 -- values in a query.
 --
 -- >>> :t formatKey string
@@ -240,7 +246,7 @@ string = makeFormat TL.fromString
 
 -- | Format a UTF-8 encoded byte string.
 --
--- Note that this doesn't escape the string. Use 'fieldKey' to format field
+-- Note that this doesn't escape the string. Use 'formatKey' to format field
 -- values in a query.
 --
 -- >>> :t formatKey byteString8
