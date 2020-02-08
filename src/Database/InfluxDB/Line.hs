@@ -171,11 +171,11 @@ makeLensesWith (lensRules & generateSignatures .~ False) ''Line
 measurement :: Lens' (Line time) Measurement
 
 -- | Tag(s) that you want to include with your data point. Tags are optional in
--- the Line Protocol, so you can set it 'empty'.
+-- the Line Protocol, so you can set it 'Control.Applicative.empty'.
 tagSet :: Lens' (Line time) (Map Key Key)
 
 -- | Field(s) for your data point. Every data point requires at least one field
--- in the Line Protocol, so it shouldn't be 'empty'.
+-- in the Line Protocol, so it shouldn't be 'Control.Applicative.empty'.
 fieldSet :: Lens' (Line time) (Map Key LineField)
 
 -- | Timestamp for your data point. You can put whatever type of timestamp that

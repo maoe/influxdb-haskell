@@ -31,6 +31,7 @@ import qualified Network.HTTP.Client as HC
 -- $setup
 -- >>> :set -XOverloadedStrings
 -- >>> import Database.InfluxDB
+-- >>> import qualified Database.InfluxDB.Format as F
 
 -- | An InfluxDB query.
 --
@@ -143,6 +144,13 @@ password :: Lens' Credentials Text
 --
 -- 'Database.InfluxDB.formatDatabase' can be used to construct a
 -- 'Database'.
+--
+-- >>> "test-db" :: Database
+-- "test-db"
+-- >>> formatDatabase "test-db"
+-- "test-db"
+-- >>> formatDatabase ("test-db-"%F.decimal) 0
+-- "test-db-0"
 newtype Database = Database { databaseName :: Text } deriving (Eq, Ord)
 
 instance IsString Database where
@@ -155,6 +163,13 @@ instance Show Database where
 --
 -- 'Database.InfluxDB.formatMeasurement' can be used to construct a
 -- 'Measurement'.
+--
+-- >>> "test-series" :: Measurement
+-- "test-series"
+-- >>> formatMeasurement "test-series"
+-- "test-series"
+-- >>> formatMeasurement ("test-series-"%F.decimal) 0
+-- "test-series-0"
 newtype Measurement = Measurement Text deriving (Eq, Ord)
 
 instance IsString Measurement where
@@ -166,6 +181,13 @@ instance Show Measurement where
 -- | String type that is used for tag keys/values and field keys.
 --
 -- 'Database.InfluxDB.formatKey' can be used to construct a 'Key'.
+--
+-- >>> "test-key" :: Key
+-- "test-key"
+-- >>> formatKey "test-key"
+-- "test-key"
+-- >>> formatKey ("test-key-"%F.decimal) 0
+-- "test-key-0"
 newtype Key = Key Text deriving (Eq, Ord)
 
 instance IsString Key where

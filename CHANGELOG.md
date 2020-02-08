@@ -1,5 +1,12 @@
 # Revision history for influxdb
 
+## v1.7.1.2 - 2020-02-08
+
+* Relax upper version bound for lens
+* Fix documentation bugs
+* Extend doctests
+* Test with GHC 8.8.2
+
 ## v1.7.1.1 - 2019-09-09
 
 * Relax upper version bound for lens

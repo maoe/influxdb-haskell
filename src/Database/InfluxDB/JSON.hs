@@ -195,8 +195,8 @@ parsePOSIXTime prec val = case prec of
 
 -- | Parse a RFC3339-formatted timestamp.
 --
--- Note that this parser is slow as it converts a 'T.Text' input to a 'String'
--- before parsing.
+-- Note that this parser is slow as it converts a 'T.Text' input to a
+-- 'Prelude.String' before parsing.
 parseRFC3339 :: ParseTime time => A.Value -> A.Parser time
 parseRFC3339 val = A.withText err
   (maybe (A.typeMismatch err val) (return $!)
