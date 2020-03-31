@@ -2,7 +2,7 @@ name: influxdb
 version: 1.7.1.2
 synopsis: Haskell client library for InfluxDB
 description:
-  @influxdb@ is a Haskell client library for InfluxDB.
+  @influxdb@ is an InfluxDB client library for Haskell.
   .
   See "Database.InfluxDB" for a quick start guide.
 homepage: https://github.com/maoe/influxdb-haskell
@@ -10,7 +10,7 @@ license: BSD3
 license-file: LICENSE
 author: Mitsutoshi Aoe
 maintainer: Mitsutoshi Aoe <me@maoe.name>
-copyright: Copyright (C) 2014-2019 Mitsutoshi Aoe
+copyright: Copyright (C) 2014-2020 Mitsutoshi Aoe
 category: Database
 build-type: Custom
 cabal-version: 1.24
