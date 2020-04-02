@@ -1,5 +1,9 @@
 # Revision history for influxdb
 
+## v1.7.1.3 - 2020-04-03
+
+* Relax upper version bound for base to support GHC 8.10.1
+
 ## v1.7.1.2 - 2020-02-08
 
 * Relax upper version bound for lens
