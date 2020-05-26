@@ -95,9 +95,9 @@ manage params q = do
 
 manageRequest :: QueryParams -> HC.Request
 manageRequest params = HC.defaultRequest
-  { HC.host = TE.encodeUtf8 $ params^.server.host
-  , HC.port = fromIntegral $ params^.server.port
-  , HC.secure = params^.server.ssl
+  { HC.host = TE.encodeUtf8 _host
+  , HC.port = fromIntegral _port
+  , HC.secure = _ssl
   , HC.method = "POST"
   , HC.path = "/query"
   }
