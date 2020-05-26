@@ -1,5 +1,5 @@
 name: influxdb
-version: 1.7.1.3
+version: 1.7.1.4
 synopsis: Haskell client library for InfluxDB
 description:
   @influxdb@ is an InfluxDB client library for Haskell.
@@ -76,7 +76,7 @@ library
   ghc-options: -Wall
   build-depends:
       base >= 4.9 && < 4.15
-    , aeson >= 0.7 && < 1.5
+    , aeson >= 0.7 && < 1.6
     , attoparsec < 0.14
     , bytestring >= 0.10 && < 0.11
     , clock >= 0.7 && < 0.9

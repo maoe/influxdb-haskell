@@ -1,5 +1,10 @@
 # Revision history for influxdb
 
+## v1.7.1.4 - 2020-05-27
+
+* Relax upper version bound for aeson
+* Fix a GHC warning
+
 ## v1.7.1.3 - 2020-04-03
 
 * Relax upper version bound for base to support GHC 8.10.1
