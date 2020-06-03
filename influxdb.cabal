@@ -101,7 +101,7 @@ test-suite doctests
   main-is:             doctests.hs
   build-depends:
       base
-    , doctest >= 0.11.3 && < 0.17
+    , doctest >= 0.11.3 && < 0.18
     , influxdb
     , template-haskell
   ghc-options: -Wall -threaded
