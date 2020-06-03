@@ -1,5 +1,6 @@
+cabal-version: 1.24
 name: influxdb
-version: 1.7.1.5
+version: 1.7.1.6
 synopsis: Haskell client library for InfluxDB
 description:
   @influxdb@ is an InfluxDB client library for Haskell.
@@ -13,7 +14,6 @@ maintainer: Mitsutoshi Aoe <me@maoe.name>
 copyright: Copyright (C) 2014-2020 Mitsutoshi Aoe
 category: Database
 build-type: Custom
-cabal-version: 1.24
 tested-with:
   GHC == 8.0.2
   GHC == 8.2.2
@@ -101,7 +101,7 @@ test-suite doctests
   main-is:             doctests.hs
   build-depends:
       base
-    , doctest >= 0.11.3 && < 0.17
+    , doctest >= 0.11.3 && < 0.18
     , influxdb
     , template-haskell
   ghc-options: -Wall -threaded
