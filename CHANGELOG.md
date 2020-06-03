@@ -1,5 +1,9 @@
 # Revision history for influxdb
 
+## v1.7.1.6 - 2020-06-03
+
+* Relax upper version bound for doctest
+
 ## v1.7.1.5 - 2020-05-27
 
 * Relax upper version bound for http-client
