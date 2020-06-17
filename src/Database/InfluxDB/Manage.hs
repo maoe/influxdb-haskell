@@ -1,6 +1,8 @@
+{-# LANGUAGE BangPatterns #-}
 {-# LANGUAGE CPP #-}
 {-# LANGUAGE OverloadedStrings #-}
 {-# LANGUAGE TemplateHaskell #-}
+{-# LANGUAGE TypeApplications #-}
 {-# LANGUAGE ViewPatterns #-}
 {-# LANGUAGE RecordWildCards #-}
 {-# LANGUAGE ScopedTypeVariables #-}
@@ -33,7 +35,6 @@ module Database.InfluxDB.Manage
   , ShowSeries
   , key
   ) where
-import Control.Applicative
 import Control.Exception
 import Control.Monad
 
@@ -117,26 +118,23 @@ instance QueryResults ShowQuery where
   parseResults _ = parseResultsWith $ \_ _ columns fields ->
     maybe (fail "parseResults: parse error") return $ do
       Number (toBoundedInteger -> Just showQueryQid) <-
-        V.elemIndex "qid" columns >>= V.indexM fields
+        getField "qid" columns fields
       String (F.formatQuery F.text -> showQueryText) <-
-        V.elemIndex "query" columns >>= V.indexM fields
+        getField "query" columns fields
       String (F.formatDatabase F.text -> showQueryDatabase) <-
-        V.elemIndex "database" columns >>= V.indexM fields
+        getField "database" columns fields
       String (parseDuration -> Right showQueryDuration) <-
-        V.elemIndex "duration" columns >>= V.indexM fields
+        getField "duration" columns fields
       return ShowQuery {..}
 
 parseDuration :: Text -> Either String NominalDiffTime
-parseDuration = AT.parseOnly $ sum <$!> durations
+parseDuration = AT.parseOnly duration
   where
-    durations = some $ (*)
-      <$> fmap fromIntegral int
+    duration = (*)
+      <$> fmap (fromIntegral @Int) AT.decimal
       <*> unit
-      where
-        int :: AT.Parser Int
-        int = AT.decimal
     unit = AC.choice
-      [ 10^^(-6 :: Int) <$ AT.char 'u'
+      [ 10^^(-6 :: Int) <$ AT.string "µs"
       , 1 <$ AT.char 's'
       , 60 <$ AT.char 'm'
       , 3600 <$ AT.char 'h'
