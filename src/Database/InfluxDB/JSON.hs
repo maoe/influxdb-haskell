@@ -27,7 +27,6 @@ module Database.InfluxDB.JSON
   , parseUTCTime
   , parsePOSIXTime
   , parseRFC3339
-  , parseQueryField
   -- ** Utility functions
   , parseResultsObject
   , parseSeriesObject
@@ -241,20 +240,3 @@ parseRFC3339 val = A.withText err
     fmt, err :: String
     fmt = "%FT%X%QZ"
     err = "RFC3339-formatted timestamp"
-
--- | Parse a 'QueryField'.
-parseQueryField :: A.Value -> A.Parser QueryField
-parseQueryField val = case val of
-  A.Number sci ->
-    return $! either FieldFloat FieldInt $ Sci.floatingOrInteger sci
-  A.String txt ->
-    return $! FieldString txt
-  A.Bool b ->
-    return $! FieldBool b
-  A.Null ->
-    return FieldNull
-  _ -> fail $ "parseQueryField: expected a flat data structure, but got "
-    ++ show val
-{-# DEPRECATED parseQueryField
-  "This function parses numbers in a misleading way. Use 'parseJSON' instead."
-  #-}

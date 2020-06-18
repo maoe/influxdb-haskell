@@ -59,7 +59,6 @@ module Database.InfluxDB
   , parseJSON
   , parseUTCTime
   , parsePOSIXTime
-  , parseQueryField
 
   -- *** Re-exports from tagged
   , Tagged(..)
