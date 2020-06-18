@@ -45,6 +45,7 @@ module Database.InfluxDB
   , QueryParams
   , queryParams
   , authentication
+  , decoder
 
   -- ** Parsing results
   , QueryResults(..)
@@ -200,7 +201,7 @@ data CPUUsage = CPUUsage
   , cpuIdle, cpuSystem, cpuUser :: Double
   } deriving Show
 instance QueryResults CPUUsage where
-  parseResults prec = parseResultsWithDecoder strictDecoder $ \_ _ columns fields -> do
+  parseMeasurement prec _name _tags columns fields = do
     time <- getField "time" columns fields >>= parseUTCTime prec
     cpuIdle <- getField "idle" columns fields >>= parseJSON
     cpuSystem <- getField "system" columns fields >>= parseJSON

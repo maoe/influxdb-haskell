@@ -6,6 +6,7 @@
 {-# LANGUAGE LambdaCase #-}
 {-# LANGUAGE MultiParamTypeClasses #-}
 {-# LANGUAGE OverloadedStrings #-}
+{-# LANGUAGE RankNTypes #-}
 {-# LANGUAGE RecordWildCards #-}
 {-# LANGUAGE ScopedTypeVariables #-}
 {-# LANGUAGE TemplateHaskell #-}
@@ -24,10 +25,13 @@ module Database.InfluxDB.Query
   , database
   , precision
   , manager
+  , authentication
+  , decoder
 
   -- * Parsing results
   , QueryResults(..)
-  , parseResultsWith
+  , parseQueryResults
+  , parseQueryResultsWith
 
   -- * Low-level functions
   , withQueryResponse
@@ -45,8 +49,10 @@ import GHC.TypeLits
 
 import Control.Lens
 import Data.Aeson
+import Data.HashMap.Strict (HashMap)
 import Data.Optional (Optional(..), optional)
 import Data.Tagged
+import Data.Text (Text)
 import Data.Vector (Vector)
 import Data.Void
 import qualified Control.Foldl as L
@@ -58,7 +64,6 @@ import qualified Data.ByteString.Builder as BB
 import qualified Data.ByteString.Lazy as BL
 import qualified Data.Text.Encoding as TE
 import qualified Data.Text as T
-import qualified Data.Vector as V
 import qualified Network.HTTP.Client as HC
 import qualified Network.HTTP.Types as HT
 
@@ -70,6 +75,7 @@ import qualified Database.InfluxDB.Format as F
 -- >>> :set -XOverloadedStrings
 -- >>> :set -XRecordWildCards
 -- >>> import Data.Time (UTCTime)
+-- >>> import qualified Data.Vector as V
 
 -- | Types that can be converted from an JSON object returned by InfluxDB.
 --
@@ -85,7 +91,7 @@ import qualified Database.InfluxDB.Format as F
 --   , waterLevel :: Double
 --   }
 -- instance QueryResults H2OFeet where
---   parseResults prec = parseResultsWith $ \_ _ columns fields -> do
+--   parseMeasurement prec _name _tags columns fields = do
 --     time <- getField "time" columns fields >>= parseUTCTime prec
 --     levelDesc <- getField "level_description" columns fields >>= parseJSON
 --     location <- getField "location" columns fields >>= parseJSON
@@ -98,10 +104,46 @@ class QueryResults a where
     :: Precision 'QueryRequest
     -> Value
     -> A.Parser (Vector a)
+  parseResults = parseQueryResultsWith strictDecoder
 
+  -- | Parse a measurement in a JSON object.
+  parseMeasurement
+    :: Precision 'QueryRequest
+    -- ^ Timestamp precision
+    -> Maybe Text
+    -- ^ Optional series name
+    -> HashMap Text Text
+    -- ^ Tag set
+    -> Vector Text
+    -- ^ Field keys
+    -> Array
+    -- ^ Field values
+    -> A.Parser a
+
+{-# DEPRECATED parseResults
+  "Use 'parseQueryResults' or 'parseQueryResultsWith' " #-}
+
+-- | Parse a JSON object as an array of values of expected type.
+parseQueryResults
+  :: QueryResults a
+  => Precision 'QueryRequest
+  -> Value
+  -> A.Parser (Vector a)
+parseQueryResults = parseQueryResultsWith strictDecoder
+
+parseQueryResultsWith
+  :: QueryResults a
+  => Decoder
+  -> Precision 'QueryRequest
+  -> Value
+  -> A.Parser (Vector a)
+parseQueryResultsWith decoder prec =
+  parseResultsWithDecoder decoder (parseMeasurement prec)
+
+-- | 'QueryResults' instance for empty results. Used by
+-- 'Database.InfluxDB.Manage.manage'.
 instance QueryResults Void where
-  parseResults _ = A.withObject "error" $ \obj -> obj .:? "error"
-    >>= maybe (pure V.empty) (withText "error" $ fail . T.unpack)
+  parseMeasurement _ _ _ _ _ = parseJSON A.emptyArray
 
 fieldName :: KnownSymbol k => proxy k -> T.Text
 fieldName = T.pack . symbolVal
@@ -113,7 +155,7 @@ fieldName = T.pack . symbolVal
 -- >>> find ((== "_internal") . untag) dbs
 -- Just (Tagged "_internal")
 instance (KnownSymbol k, FromJSON v) => QueryResults (Tagged k v) where
-  parseResults _ = parseResultsWith $ \_ _ columns fields ->
+  parseMeasurement _ _name _ columns fields =
     getField (fieldName (Proxy :: Proxy k)) columns fields >>= parseJSON
 
 -- | One-off tuple for sigle-field measurements
@@ -121,7 +163,7 @@ instance
   ( KnownSymbol k1, FromJSON v1
   , KnownSymbol k2, FromJSON v2 )
   => QueryResults (Tagged k1 v1, Tagged k2 v2) where
-    parseResults _ = parseResultsWith $ \_ _ columns fields -> do
+    parseMeasurement _ _ _ columns fields = do
       v1 <- parseJSON
         =<< getField (fieldName (Proxy :: Proxy k1)) columns fields
       v2 <- parseJSON
@@ -134,7 +176,7 @@ instance
   , KnownSymbol k2, FromJSON v2
   , KnownSymbol k3, FromJSON v3 )
   => QueryResults (Tagged k1 v1, Tagged k2 v2, Tagged k3 v3) where
-    parseResults _ = parseResultsWith $ \_ _ columns fields -> do
+    parseMeasurement _ _ _ columns fields = do
       v1 <- parseJSON
         =<< getField (fieldName (Proxy :: Proxy k1)) columns fields
       v2 <- parseJSON
@@ -150,7 +192,7 @@ instance
   , KnownSymbol k3, FromJSON v3
   , KnownSymbol k4, FromJSON v4 )
   => QueryResults (Tagged k1 v1, Tagged k2 v2, Tagged k3 v3, Tagged k4 v4) where
-    parseResults _ = parseResultsWith $ \_ _ columns fields -> do
+    parseMeasurement _ _ _ columns fields = do
       v1 <- parseJSON
         =<< getField (fieldName (Proxy :: Proxy k1)) columns fields
       v2 <- parseJSON
@@ -172,7 +214,7 @@ instance
     ( Tagged k1 v1, Tagged k2 v2, Tagged k3 v3, Tagged k4 v4
     , Tagged k5 v5
     ) where
-    parseResults _ = parseResultsWith $ \_ _ columns fields -> do
+    parseMeasurement _ _ _ columns fields = do
       v1 <- parseJSON
         =<< getField (fieldName (Proxy :: Proxy k1)) columns fields
       v2 <- parseJSON
@@ -197,7 +239,7 @@ instance
     ( Tagged k1 v1, Tagged k2 v2, Tagged k3 v3, Tagged k4 v4
     , Tagged k5 v5, Tagged k6 v6
     ) where
-    parseResults _ = parseResultsWith $ \_ _ columns fields -> do
+    parseMeasurement _ _ _ columns fields = do
       v1 <- parseJSON
         =<< getField (fieldName (Proxy :: Proxy k1)) columns fields
       v2 <- parseJSON
@@ -225,7 +267,7 @@ instance
     ( Tagged k1 v1, Tagged k2 v2, Tagged k3 v3, Tagged k4 v4
     , Tagged k5 v5, Tagged k6 v6, Tagged k7 v7
     ) where
-    parseResults _ = parseResultsWith $ \_ _ columns fields -> do
+    parseMeasurement _ _ _ columns fields = do
       v1 <- parseJSON
         =<< getField (fieldName (Proxy :: Proxy k1)) columns fields
       v2 <- parseJSON
@@ -256,7 +298,7 @@ instance
     ( Tagged k1 v1, Tagged k2 v2, Tagged k3 v3, Tagged k4 v4
     , Tagged k5 v5, Tagged k6 v6, Tagged k7 v7, Tagged k8 v8
     ) where
-    parseResults _ = parseResultsWith $ \_ _ columns fields -> do
+    parseMeasurement _ _ _ columns fields = do
       v1 <- parseJSON
         =<< getField (fieldName (Proxy :: Proxy k1)) columns fields
       v2 <- parseJSON
@@ -282,8 +324,9 @@ instance
 -- * 'server'
 -- * 'database'
 -- * 'precision'
--- * 'authentication'
 -- * 'manager'
+-- * 'authentication'
+-- * 'decoder'
 data QueryParams = QueryParams
   { queryServer :: !Server
   , queryDatabase :: !Database
@@ -295,6 +338,9 @@ data QueryParams = QueryParams
   -- ^ No authentication by default
   , queryManager :: !(Either HC.ManagerSettings HC.Manager)
   -- ^ HTTP connection manager
+  , queryDecoder :: Decoder
+  -- ^ Decoder settings to configure how to parse a JSON resposne given a row
+  -- parser
   }
 
 -- | Smart constructor for 'QueryParams'
@@ -305,12 +351,14 @@ data QueryParams = QueryParams
 --   ['precision'] 'RFC3339'
 --   ['authentication'] 'Nothing'
 --   ['manager'] @'Left' 'HC.defaultManagerSettings'@
+--   ['decoder'] @'strictDecoder'@
 queryParams :: Database -> QueryParams
 queryParams queryDatabase = QueryParams
   { queryServer = defaultServer
   , queryPrecision = RFC3339
   , queryAuthentication = Nothing
   , queryManager = Left HC.defaultManagerSettings
+  , queryDecoder = strictDecoder
   , ..
   }
 
@@ -328,9 +376,13 @@ query params q = withQueryResponse params Nothing q go
       let body = BL.fromChunks chunks
       case eitherDecode' body of
         Left message -> throwIO $ UnexpectedResponse message request body
-        Right val -> case A.parse (parseResults (queryPrecision params)) val of
-          A.Success vec -> return vec
-          A.Error message -> errorQuery message request response val
+        Right val -> do
+          let parser = parseQueryResultsWith
+                (queryDecoder params)
+                (queryPrecision params)
+          case A.parse parser val of
+            A.Success vec -> return vec
+            A.Error message -> errorQuery message request response val
 
 setPrecision
   :: Precision 'QueryRequest
@@ -506,3 +558,11 @@ instance HasManager QueryParams where
 -- "john"
 instance HasCredentials QueryParams where
   authentication = _authentication
+
+-- | Decoder settings
+--
+-- >>> let p = queryParams "foo"
+-- >>> let _ = p & decoder .~ strictDecoder
+-- >>> let _ = p & decoder .~ lenientDecoder
+decoder :: Lens' QueryParams Decoder
+decoder = _decoder

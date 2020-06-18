@@ -75,19 +75,20 @@ manage params q = do
   case eitherDecode' body of
     Left message ->
       throwIO $ UnexpectedResponse message request body
-    Right val -> case A.parse (parseResults (params^.precision)) val of
-      A.Success (_ :: V.Vector Void) -> return ()
-      A.Error message -> do
-        let status = HC.responseStatus response
-        when (HT.statusIsServerError status) $
-          throwIO $ ServerError message
-        when (HT.statusIsClientError status) $
-          throwIO $ ClientError message request
-        throwIO $ UnexpectedResponse
-          ("BUG: " ++ message ++ " in Database.InfluxDB.Manage.manage")
-          request
-          (encode val)
-
+    Right val -> do
+      let parser = parseQueryResultsWith (params^.decoder) (params^.precision)
+      case A.parse parser val of
+        A.Success (_ :: V.Vector Void) -> return ()
+        A.Error message -> do
+          let status = HC.responseStatus response
+          when (HT.statusIsServerError status) $
+            throwIO $ ServerError message
+          when (HT.statusIsClientError status) $
+            throwIO $ ClientError message request
+          throwIO $ UnexpectedResponse
+            ("BUG: " ++ message ++ " in Database.InfluxDB.Manage.manage")
+            request
+            (encode val)
   where
     request = HC.setQueryString qs $ manageRequest params
     qs =
@@ -115,7 +116,7 @@ data ShowQuery = ShowQuery
   }
 
 instance QueryResults ShowQuery where
-  parseResults _ = parseResultsWith $ \_ _ columns fields ->
+  parseMeasurement _ _ _ columns fields =
     maybe (fail "parseResults: parse error") return $ do
       Number (toBoundedInteger -> Just showQueryQid) <-
         getField "qid" columns fields
@@ -145,7 +146,7 @@ newtype ShowSeries = ShowSeries
   }
 
 instance QueryResults ShowSeries where
-  parseResults _ = parseResultsWith $ \_ _ columns fields -> do
+  parseMeasurement _ _ _ columns fields = do
     name <- getField "key" columns fields >>= parseJSON
     return $ ShowSeries $ F.formatKey F.text name
 

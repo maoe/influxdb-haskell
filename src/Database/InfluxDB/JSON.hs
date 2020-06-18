@@ -3,7 +3,9 @@
 {-# LANGUAGE FlexibleInstances #-}
 {-# LANGUAGE GADTs #-}
 {-# LANGUAGE OverloadedStrings #-}
+{-# LANGUAGE RankNTypes #-}
 {-# LANGUAGE RecordWildCards #-}
+{-# LANGUAGE ScopedTypeVariables #-}
 {-# LANGUAGE ViewPatterns #-}
 module Database.InfluxDB.JSON
   ( -- * Result parsers
@@ -12,6 +14,7 @@ module Database.InfluxDB.JSON
 
   -- ** Decoder settings
   , Decoder(..)
+  , SomeDecoder(..)
   , strictDecoder
   , lenientDecoder
 
@@ -54,37 +57,32 @@ import qualified Data.Vector as V
 
 import Database.InfluxDB.Types
 
--- | Parse a JSON response with the 'strictDecoder'. This can be useful to
--- implement the 'Database.InfluxDB.Query.parseResults' method.
+-- | Parse a JSON response with the 'strictDecoder'.
 parseResultsWith
   :: (Maybe Text -> HashMap Text Text -> Vector Text -> Array -> A.Parser a)
-  -- ^ A parser that takes
+  -- ^ A parser that parses a measurement. A measurement consists of
   --
   -- 1. an optional name of the series
   -- 2. a map of tags
-  -- 3. an array of field names
-  -- 4. an array of values
-  --
-  -- to construct a value.
-  -> Value
+  -- 3. an array of field keys
+  -- 4. an array of field values
+  -> Value -- ^ JSON response
   -> A.Parser (Vector a)
 parseResultsWith = parseResultsWithDecoder strictDecoder
 
 -- | Parse a JSON response with the specified decoder settings.
 parseResultsWithDecoder
-  :: Decoder a
+  :: Decoder
   -> (Maybe Text -> HashMap Text Text -> Vector Text -> Array -> A.Parser a)
-  -- ^ A parser that takes
+  -- ^ A parser that parses a measurement. A measurement consists of
   --
   -- 1. an optional name of the series
   -- 2. a map of tags
-  -- 3. an array of field names
-  -- 4. an array of values
-  --
-  -- to construct a value.
-  -> Value
+  -- 3. an array of field keys
+  -- 4. an array of field values
+  -> Value -- ^ JSON response
   -> A.Parser (Vector a)
-parseResultsWithDecoder Decoder {..} row val0 = do
+parseResultsWithDecoder (Decoder SomeDecoder {..}) row val0 = do
   r <- foldr1 (<|>)
     [ Left <$> parseErrorObject val0
     , Right <$> success
@@ -111,25 +109,48 @@ parseResultsWithDecoder Decoder {..} row val0 = do
           decodeEach $ row name tags columns fields
       return $! join values
 
--- | Decoder settings
-data Decoder a = forall b. Decoder
+-- | A decoder to use when parsing a JSON response.
+--
+-- Use 'strictDecoder' if you want to fail the entire decoding process if
+-- there's any failure. Use 'lenientDecoder' if you want the decoding process
+-- to collect only successful results.
+newtype Decoder = Decoder (forall a. SomeDecoder a)
+
+-- | @'SomeDecoder' a@ represents how to decode a JSON response given a row
+-- parser of type @'A.Parser' a@.
+data SomeDecoder a = forall b. SomeDecoder
   { decodeEach :: A.Parser a -> A.Parser b
-  -- ^ How to decode each row. For example 'optional' can be used to turn parse
+  -- ^ How to decode each row.
+  --
+  -- For example 'optional' can be used to turn parse
   -- failrues into 'Nothing's.
   , decodeFold :: A.Parser (Vector b) -> A.Parser (Vector a)
   -- ^ How to aggregate rows into the resulting vector.
+  --
+  -- For example when @b ~ 'Maybe' a@, one way to aggregate the values is to
+  -- return only 'Just's.
   }
 
 -- | A decoder that fails immediately if there's any parse failure.
-strictDecoder :: Decoder a
-strictDecoder = Decoder
+--
+-- 'strictDecoder' is defined as follows:
+--
+-- @
+-- strictDecoder :: Decoder
+-- strictDecoder = Decoder $ SomeDecoder
+--  { decodeEach = id
+--  , decodeFold = id
+--  }
+-- @
+strictDecoder :: Decoder
+strictDecoder = Decoder $ SomeDecoder
   { decodeEach = id
   , decodeFold = id
   }
 
 -- | A decoder that ignores parse failures and returns only successful results.
-lenientDecoder :: Decoder a
-lenientDecoder = Decoder
+lenientDecoder :: Decoder
+lenientDecoder = Decoder $ SomeDecoder
   { decodeEach = optional
   , decodeFold = \p -> do
     bs <- p
