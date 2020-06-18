@@ -49,7 +49,7 @@ module Database.InfluxDB
 
   -- ** Parsing results
   , QueryResults(..)
-  , Decoder(..)
+  , Decoder
   , lenientDecoder
   , strictDecoder
   , getField
