@@ -49,8 +49,6 @@ module Database.InfluxDB
 
   -- ** Parsing results
   , QueryResults(..)
-  , parseResultsWith
-  , parseResultsWithDecoder
   , Decoder(..)
   , lenientDecoder
   , strictDecoder
