@@ -8,7 +8,7 @@
 #
 # For more information, see https://github.com/haskell-CI/haskell-ci
 #
-# version: 0.10.1
+# version: 0.10.2
 #
 version: ~> 1.0
 language: c
@@ -16,7 +16,7 @@ os: linux
 dist: xenial
 env:
   global:
-    - INFLUXDB_VERSION=1.7.10
+    - INFLUXDB_VERSION=1.8.0
 git:
   # whether to recursively clone submodules
   submodules: false
@@ -171,5 +171,5 @@ script:
   - rm -f cabal.project.local
   - ${CABAL} v2-build $WITHCOMPILER --disable-tests --disable-benchmarks all
 
-# REGENDATA ("0.10.1",["influxdb.cabal","--ghc-head","--travis-patches=.travis/influxdb.patch"])
+# REGENDATA ("0.10.2",["influxdb.cabal","--ghc-head","--travis-patches=.travis/influxdb.patch"])
 # EOF

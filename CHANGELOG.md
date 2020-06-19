@@ -1,5 +1,20 @@
 # Revision history for influxdb
 
+## v1.8.0 - 2020-06-19
+
+This release reworked the `QueryResuls` type class. There are some breaking changes:
+
+* `parseResults` has been deprecated. `QueryResults` has now `parseMeasurement` method.
+* `Decoder` has been monomorphized so that it can be used with lens. The original `Decoder` type has been renamed to `SomeDecoder`.
+* `QueryParams` has now `decoder` field.
+* `parseResults` and `parseResultsWith` had been using `lenientDecoder` and it caused some unintuitive behavior ([#64](https://github.com/maoe/influxdb-haskell/issues/64), [#66](https://github.com/maoe/influxdb-haskell/issues/66)). Now they use `strictDecoder` instead.
+* `parseErrorObject` now doesn't fail. It returns the error message of a response.
+* `parseQueryField` which has been deprecated is now deleted.
+* `QueryResults` instance for `ShowSeries` was broken. This is fixed.
+* The constructor of `Decoder`, `parseResultsWith`, and `parseResultsWithDecoder` have been hidden from the top-level module. They're still available from `Database.InfluxDB.JSON`.
+
+See [#68](https://github.com/maoe/influxdb-haskell/pull/68/files) for how to migrate your code from v1.7.x to v1.8.x.
+
 ## v1.7.1.6 - 2020-06-03
 
 * Relax upper version bound for doctest

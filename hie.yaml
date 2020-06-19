@@ -1,0 +1,16 @@
+cradle:
+  cabal:
+    - path: "./src"
+      component: "lib:influxdb"
+
+    - path: "./tests"
+      component: "influxdb:test:doctests"
+
+    - path: "./tests"
+      component: "influxdb:test:regressions"
+
+    - path: "./examples/random-points.hs"
+      component: "influxdb:exe:influx-random-points"
+
+    - path: "./examples/write-udp.hs"
+      component: "influxdb:exe:influx-write-udp"

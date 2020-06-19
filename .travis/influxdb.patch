@@ -8,7 +8,7 @@ index c9bac24..2fcb7ab 100644
  dist: xenial
 +env:
 +  global:
-+    - INFLUXDB_VERSION=1.7.10
++    - INFLUXDB_VERSION=1.8.0
  git:
    # whether to recursively clone submodules
    submodules: false

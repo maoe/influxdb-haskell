@@ -2,7 +2,6 @@
 {-# LANGUAGE OverloadedStrings #-}
 {-# LANGUAGE RecordWildCards #-}
 {-# LANGUAGE ScopedTypeVariables #-}
-{-# LANGUAGE TemplateHaskell #-}
 {-# LANGUAGE TypeSynonymInstances #-}
 {-# LANGUAGE ViewPatterns #-}
 import Data.Foldable
@@ -76,7 +75,7 @@ data Row = Row
   } deriving Show
 
 instance QueryResults Row where
-  parseResults prec = parseResultsWith $ \_ _ columns fields -> do
+  parseMeasurement prec _ _ columns fields = do
     rowTime <- getField "time" columns fields >>= parsePOSIXTime prec
     String name <- getField "value" columns fields
     rowValue <- case name of
