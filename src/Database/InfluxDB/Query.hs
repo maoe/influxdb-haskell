@@ -99,13 +99,6 @@ import qualified Database.InfluxDB.Format as F
 --     return H2OFeet {..}
 -- :}
 class QueryResults a where
-  -- | Parse a JSON object as an array of values of expected type.
-  parseResults
-    :: Precision 'QueryRequest
-    -> Value
-    -> A.Parser (Vector a)
-  parseResults = parseQueryResultsWith strictDecoder
-
   -- | Parse a measurement in a JSON object.
   parseMeasurement
     :: Precision 'QueryRequest
@@ -120,8 +113,6 @@ class QueryResults a where
     -- ^ Field values
     -> A.Parser a
 
-{-# DEPRECATED parseResults
-  "Use 'parseQueryResults' or 'parseQueryResultsWith' " #-}
 
 -- | Parse a JSON object as an array of values of expected type.
 parseQueryResults
@@ -441,7 +432,7 @@ queryChunked params chunkSize q (L.FoldM step initialize extract) =
               chunk' <- HC.responseBody response
               loop x k' chunk'
             AB.Done leftover val ->
-              case A.parse (parseResults (queryPrecision params)) val of
+              case A.parse (parseQueryResults (queryPrecision params)) val of
                 A.Success vec -> do
                   x' <- step x vec
                   loop x' k0 leftover
