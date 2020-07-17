@@ -1,3 +1,4 @@
+{-# LANGUAGE TypeApplications #-}
 {-# LANGUAGE DataKinds #-}
 {-# LANGUAGE OverloadedStrings #-}
 {-# LANGUAGE QuasiQuotes #-}
@@ -23,6 +24,7 @@ main = defaultMain $ testGroup "regression tests"
   [ testCase "issue #64" case_issue64
   , testCase "issue #66" case_issue66
   , testCaseSteps "issue #75" case_issue75
+  , testCaseSteps "issue #79" case_issue79
   ]
 
 -- https://github.com/maoe/influxdb-haskell/issues/64
@@ -84,6 +86,26 @@ case_issue75 step = do
   step "Checking server response"
   let wp = writeParams db
   writeByteString wp encoded
+
+case_issue79 :: (String -> IO ()) -> Assertion
+case_issue79 step = withDatabase db $ do
+  let w = writeParams db
+  let q = queryParams db
+  step "Querying an empty series with two fields expected"
+  _ <- query @(Tagged "time" UTCTime, Tagged "value" Int) q "SELECT * FROM foo"
+  step "Querying an empty series with the results ignored"
+  _ <- query @Ignored q "SELECT * FROM foo"
+  step "Querying an empty series expecting an empty result"
+  _ <- query @Empty q "SELECT * FROM foo"
+  step "Writing a data point"
+  write w $ Line "foo" mempty (Map.fromList [("value", FieldInt 42)]) (Nothing :: Maybe UTCTime)
+  step "Querying a non-empty series with two fields expected"
+  _ <- query @(Tagged "time" UTCTime, Tagged "value" Int) q "SELECT * FROM foo"
+  step "Querying a non-empty series with the results ignored"
+  _ <- query @Ignored q "SELECT * FROM foo"
+  return ()
+  where
+    db = "case_issue79"
 
 withDatabase :: Database -> IO a -> IO a
 withDatabase dbName f = bracket_

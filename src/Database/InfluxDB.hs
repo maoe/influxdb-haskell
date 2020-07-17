@@ -52,15 +52,19 @@ module Database.InfluxDB
   , Decoder
   , lenientDecoder
   , strictDecoder
+
+  -- ** Helper types and functions
+  , Ignored
+  , Empty
+  , Tagged(..)
+  , untag
+
   , getField
   , getTag
   , parseJSON
   , parseUTCTime
   , parsePOSIXTime
 
-  -- *** Re-exports from tagged
-  , Tagged(..)
-  , untag
 
   -- * Database management
   , manage
