@@ -5,7 +5,6 @@
 {-# LANGUAGE ScopedTypeVariables #-}
 {-# LANGUAGE TemplateHaskell #-}
 import Control.Exception (bracket_, try)
-import Data.Void
 
 import Control.Lens
 import Data.Time
@@ -95,13 +94,15 @@ case_issue79 step = withDatabase db $ do
   step "Querying an empty series with two fields expected"
   _ <- query @(Tagged "time" UTCTime, Tagged "value" Int) q "SELECT * FROM foo"
   step "Querying an empty series with the results ignored"
-  _ <- query @Void q "SELECT * FROM foo"
+  _ <- query @Ignored q "SELECT * FROM foo"
+  step "Querying an empty series expecting an empty result"
+  _ <- query @Empty q "SELECT * FROM foo"
   step "Writing a data point"
   write w $ Line "foo" mempty (Map.fromList [("value", FieldInt 42)]) (Nothing :: Maybe UTCTime)
   step "Querying a non-empty series with two fields expected"
   _ <- query @(Tagged "time" UTCTime, Tagged "value" Int) q "SELECT * FROM foo"
   step "Querying a non-empty series with the results ignored"
-  _ <- query @Void q "SELECT * FROM foo"
+  _ <- query @Ignored q "SELECT * FROM foo"
   return ()
   where
     db = "case_issue79"
