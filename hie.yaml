@@ -3,10 +3,10 @@ cradle:
     - path: "./src"
       component: "lib:influxdb"
 
-    - path: "./tests"
+    - path: "./tests/doctests.hs"
       component: "influxdb:test:doctests"
 
-    - path: "./tests"
+    - path: "./tests/regressions.hs"
       component: "influxdb:test:regressions"
 
     - path: "./examples/random-points.hs"
