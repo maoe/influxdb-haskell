@@ -44,6 +44,7 @@ import Control.Exception
 import Control.Monad
 import Data.Char
 import Data.List
+import Data.Maybe (fromMaybe)
 import Data.Proxy
 import GHC.TypeLits
 
@@ -62,8 +63,9 @@ import qualified Data.Attoparsec.ByteString as AB
 import qualified Data.ByteString as B
 import qualified Data.ByteString.Builder as BB
 import qualified Data.ByteString.Lazy as BL
-import qualified Data.Text.Encoding as TE
 import qualified Data.Text as T
+import qualified Data.Text.Encoding as TE
+import qualified Data.Vector as V
 import qualified Network.HTTP.Client as HC
 import qualified Network.HTTP.Types as HT
 
@@ -99,7 +101,7 @@ import qualified Database.InfluxDB.Format as F
 --     return H2OFeet {..}
 -- :}
 class QueryResults a where
-  -- | Parse a measurement in a JSON object.
+  -- | Parse a single measurement in a JSON object.
   parseMeasurement
     :: Precision 'QueryRequest
     -- ^ Timestamp precision
@@ -113,28 +115,43 @@ class QueryResults a where
     -- ^ Field values
     -> A.Parser a
 
+  -- | Always use this 'Decoder' when decoding this type.
+  --
+  -- @'Just' dec@ means 'decoder' in 'QueryParams' will be ignored and be
+  -- replaced with the @dec@. 'Nothing' means 'decoder' in 'QueryParams' will
+  -- be used.
+  coerceDecoder :: proxy a -> Maybe Decoder
+  coerceDecoder _ = Nothing
 
 -- | Parse a JSON object as an array of values of expected type.
 parseQueryResults
-  :: QueryResults a
+  :: forall a. QueryResults a
   => Precision 'QueryRequest
   -> Value
   -> A.Parser (Vector a)
-parseQueryResults = parseQueryResultsWith strictDecoder
+parseQueryResults =
+  parseQueryResultsWith $
+    fromMaybe strictDecoder (coerceDecoder (Proxy :: Proxy a))
 
 parseQueryResultsWith
-  :: QueryResults a
+  :: forall a. QueryResults a
   => Decoder
   -> Precision 'QueryRequest
   -> Value
   -> A.Parser (Vector a)
 parseQueryResultsWith decoder prec =
-  parseResultsWithDecoder decoder (parseMeasurement prec)
+  parseResultsWithDecoder
+    (fromMaybe decoder (coerceDecoder (Proxy :: Proxy a)))
+    (parseMeasurement prec)
 
 -- | 'QueryResults' instance for empty results. Used by
 -- 'Database.InfluxDB.Manage.manage'.
 instance QueryResults Void where
-  parseMeasurement _ _ _ _ _ = parseJSON A.emptyArray
+  parseMeasurement _ _ _ _ _ = fail "parseMeasurement for Void"
+  coerceDecoder _ = Just $ Decoder $ SomeDecoder
+    { decodeEach = id
+    , decodeFold = const $ pure V.empty
+    }
 
 fieldName :: KnownSymbol k => proxy k -> T.Text
 fieldName = T.pack . symbolVal
@@ -359,7 +376,7 @@ queryParams queryDatabase = QueryParams
 --
 -- If you need a lower-level interface (e.g. to bypass the 'QueryResults'
 -- constraint etc), see 'withQueryResponse'.
-query :: QueryResults a => QueryParams -> Query -> IO (Vector a)
+query :: forall a. QueryResults a => QueryParams -> Query -> IO (Vector a)
 query params q = withQueryResponse params Nothing q go
   where
     go request response = do
@@ -369,7 +386,9 @@ query params q = withQueryResponse params Nothing q go
         Left message -> throwIO $ UnexpectedResponse message request body
         Right val -> do
           let parser = parseQueryResultsWith
-                (queryDecoder params)
+                (fromMaybe
+                  (queryDecoder params)
+                  (coerceDecoder (Proxy :: Proxy a)))
                 (queryPrecision params)
           case A.parse parser val of
             A.Success vec -> return vec

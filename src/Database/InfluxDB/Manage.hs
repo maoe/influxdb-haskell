@@ -76,7 +76,9 @@ manage params q = do
     Left message ->
       throwIO $ UnexpectedResponse message request body
     Right val -> do
-      let parser = parseQueryResultsWith (params^.decoder) (params^.precision)
+      let parser = parseQueryResultsWith
+            (params ^. decoder)
+            (params ^. precision)
       case A.parse parser val of
         A.Success (_ :: V.Vector Void) -> return ()
         A.Error message -> do
