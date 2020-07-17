@@ -43,7 +43,6 @@ import Data.Aeson
 import Data.Scientific (toBoundedInteger)
 import Data.Text (Text)
 import Data.Time.Clock
-import Data.Void
 import qualified Data.Aeson.Types as A
 import qualified Data.Attoparsec.Combinator as AC
 import qualified Data.Attoparsec.Text as AT
@@ -80,7 +79,7 @@ manage params q = do
             (params ^. decoder)
             (params ^. precision)
       case A.parse parser val of
-        A.Success (_ :: V.Vector Void) -> return ()
+        A.Success (_ :: V.Vector Empty) -> return ()
         A.Error message -> do
           let status = HC.responseStatus response
           when (HT.statusIsServerError status) $

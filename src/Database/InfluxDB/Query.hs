@@ -1,3 +1,4 @@
+{-# LANGUAGE EmptyDataDeriving #-}
 {-# LANGUAGE BangPatterns #-}
 {-# LANGUAGE DataKinds #-}
 {-# LANGUAGE FlexibleInstances #-}
@@ -36,7 +37,9 @@ module Database.InfluxDB.Query
   -- * Low-level functions
   , withQueryResponse
 
-  -- * Re-exports from tagged
+  -- * Helper types
+  , Ignored
+  , Empty
   , Tagged(..)
   , untag
   ) where
@@ -74,8 +77,10 @@ import Database.InfluxDB.Types as Types
 import qualified Database.InfluxDB.Format as F
 
 -- $setup
+-- >>> :set -XDataKinds
 -- >>> :set -XOverloadedStrings
 -- >>> :set -XRecordWildCards
+-- >>> :set -XTypeApplications
 -- >>> import Data.Time (UTCTime)
 -- >>> import qualified Data.Vector as V
 
@@ -146,12 +151,49 @@ parseQueryResultsWith decoder prec =
 
 -- | 'QueryResults' instance for empty results. Used by
 -- 'Database.InfluxDB.Manage.manage'.
+--
+-- NOTE: This instance is deprecated because it's unclear from the name whether
+-- it can be used to ignore results. Use 'Empty' when expecting an empty result.
+-- Use 'Ignored' if you want to ignore any results.
 instance QueryResults Void where
   parseMeasurement _ _ _ _ _ = fail "parseMeasurement for Void"
   coerceDecoder _ = Just $ Decoder $ SomeDecoder
     { decodeEach = id
     , decodeFold = const $ pure V.empty
     }
+
+-- | 'Ignored' can be used in the result type of 'query' when the result values
+-- are not needed.
+--
+-- >>> v <- query @Ignored (queryParams "dummy") "SHOW DATABASES"
+-- >>> v
+-- []
+data Ignored deriving Show
+
+-- | 'QueryResults' instance for ignoring results.
+instance QueryResults Ignored where
+  parseMeasurement _ _ _ _ _ = fail "parseMeasurement for Ignored"
+  coerceDecoder _ = Just $ Decoder $ SomeDecoder
+    { decodeEach = id -- doesn't matter
+    , decodeFold = const $ pure V.empty -- always succeeds with an empty vector
+    }
+
+-- | 'Empty' can be used in the result type of 'query' when the expected results
+-- are always empty. Note that if the results are not empty, the decoding
+-- process will fail:
+--
+-- >>> let p = queryParams "empty"
+-- >>> Database.InfluxDB.Manage.manage p "CREATE DATABASE empty"
+-- >>> v <- query @Empty p "SELECT * FROM empty" -- query an empty series
+-- >>> v
+-- []
+data Empty deriving Show
+
+-- | 'QueryResults' instance for empty results. Used by
+-- 'Database.InfluxDB.Manage.manage'.
+instance QueryResults Empty where
+  parseMeasurement _ _ _ _ _ = fail "parseMeasurement for Empty"
+  coerceDecoder _ = Just strictDecoder -- fail when the results are not empty
 
 fieldName :: KnownSymbol k => proxy k -> T.Text
 fieldName = T.pack . symbolVal
