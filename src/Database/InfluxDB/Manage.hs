@@ -108,7 +108,7 @@ manageRequest params = HC.defaultRequest
     Server {..} = params^.server
 
 -- |
--- >>> v <- query (queryParams "_internal") "SHOW QUERIES" :: IO (V.Vector ShowQuery)
+-- >>> v <- query @ShowQuery (queryParams "_internal") "SHOW QUERIES"
 data ShowQuery = ShowQuery
   { showQueryQid :: !Int
   , showQueryText :: !Query
@@ -164,20 +164,20 @@ makeLensesWith
 
 -- | Query ID
 --
--- >>> v <- query (queryParams "_internal") "SHOW QUERIES" :: IO (V.Vector ShowQuery)
+-- >>> v <- query @ShowQuery (queryParams "_internal") "SHOW QUERIES"
 -- >>> v ^.. each.qid
 -- ...
 qid :: Lens' ShowQuery Int
 
 -- | Query text
 --
--- >>> v <- query (queryParams "_internal") "SHOW QUERIES" :: IO (V.Vector ShowQuery)
+-- >>> v <- query @ShowQuery (queryParams "_internal") "SHOW QUERIES"
 -- >>> v ^.. each.queryText
 -- ...
 queryText :: Lens' ShowQuery Query
 
 -- |
--- >>> v <- query (queryParams "_internal") "SHOW QUERIES" :: IO (V.Vector ShowQuery)
+-- >>> v <- query @ShowQuery (queryParams "_internal") "SHOW QUERIES"
 -- >>> v ^.. each.database
 -- ...
 instance HasDatabase ShowQuery where
@@ -185,7 +185,7 @@ instance HasDatabase ShowQuery where
 
 -- | Duration of the query
 --
--- >>> v <- query (queryParams "_internal") "SHOW QUERIES" :: IO (V.Vector ShowQuery)
+-- >>> v <- query @ShowQuery (queryParams "_internal") "SHOW QUERIES"
 -- >>> v ^.. each.duration
 -- ...
 duration :: Lens' ShowQuery NominalDiffTime
@@ -194,7 +194,7 @@ makeLensesWith (lensRules & generateSignatures .~ False) ''ShowSeries
 
 -- | Series name
 --
--- >>> v <- query (queryParams "_internal") "SHOW SERIES" :: IO (V.Vector ShowSeries)
+-- >>> v <- query @ShowSeries (queryParams "_internal") "SHOW SERIES"
 -- >>> length $ v ^.. each.key
 -- ...
 key :: Lens' ShowSeries Key

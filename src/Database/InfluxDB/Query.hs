@@ -201,7 +201,7 @@ fieldName = T.pack . symbolVal
 -- | One-off type for non-timestamped measurements
 --
 -- >>> let p = queryParams "_internal"
--- >>> dbs <- query p "SHOW DATABASES" :: IO (V.Vector (Tagged "name" T.Text))
+-- >>> dbs <- query @(Tagged "name" T.Text) p "SHOW DATABASES"
 -- >>> find ((== "_internal") . untag) dbs
 -- Just (Tagged "_internal")
 instance (KnownSymbol k, FromJSON v) => QueryResults (Tagged k v) where

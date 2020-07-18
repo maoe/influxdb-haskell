@@ -46,7 +46,7 @@ import Database.InfluxDB.Types as Types
 import Database.InfluxDB.JSON
 
 -- $setup
--- >>> :set -XOverloadedStrings -XNoOverloadedLists
+-- >>> :set -XOverloadedStrings -XNoOverloadedLists -XTypeApplications
 -- >>> import qualified Data.Map as Map
 -- >>> import Data.Time
 -- >>> import Database.InfluxDB
@@ -109,7 +109,7 @@ writeParams writeDatabase = WriteParams
 -- | Write a 'Line'.
 --
 -- >>> let p = writeParams "test-db"
--- >>> write p $ Line "room_temp" Map.empty (Map.fromList [("temp", FieldFloat 25.0)]) (Nothing :: Maybe UTCTime)
+-- >>> write p $ Line @UTCTime "room_temp" Map.empty (Map.fromList [("temp", FieldFloat 25.0)]) Nothing
 write
   :: Timestamp time
   => WriteParams
@@ -125,8 +125,8 @@ write p@WriteParams {writePrecision} =
 -- >>> let p = writeParams "test-db"
 -- >>> :{
 -- writeBatch p
---   [ Line "temp" (Map.singleton "city" "tokyo") (Map.fromList [("temp", FieldFloat 25.0)]) (Nothing :: Maybe UTCTime)
---   , Line "temp" (Map.singleton "city" "osaka") (Map.fromList [("temp", FieldFloat 25.2)]) (Nothing :: Maybe UTCTime)
+--   [ Line @UTCTime "temp" (Map.singleton "city" "tokyo") (Map.fromList [("temp", FieldFloat 25.0)]) Nothing
+--   , Line @UTCTime "temp" (Map.singleton "city" "osaka") (Map.fromList [("temp", FieldFloat 25.2)]) Nothing
 --   ]
 -- :}
 writeBatch
