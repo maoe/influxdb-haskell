@@ -43,7 +43,6 @@ import Data.Aeson
 import Data.Scientific (toBoundedInteger)
 import Data.Text (Text)
 import Data.Time.Clock
-import Data.Void
 import qualified Data.Aeson.Types as A
 import qualified Data.Attoparsec.Combinator as AC
 import qualified Data.Attoparsec.Text as AT
@@ -76,9 +75,11 @@ manage params q = do
     Left message ->
       throwIO $ UnexpectedResponse message request body
     Right val -> do
-      let parser = parseQueryResultsWith (params^.decoder) (params^.precision)
+      let parser = parseQueryResultsWith
+            (params ^. decoder)
+            (params ^. precision)
       case A.parse parser val of
-        A.Success (_ :: V.Vector Void) -> return ()
+        A.Success (_ :: V.Vector Empty) -> return ()
         A.Error message -> do
           let status = HC.responseStatus response
           when (HT.statusIsServerError status) $
@@ -107,7 +108,7 @@ manageRequest params = HC.defaultRequest
     Server {..} = params^.server
 
 -- |
--- >>> v <- query (queryParams "_internal") "SHOW QUERIES" :: IO (V.Vector ShowQuery)
+-- >>> v <- query @ShowQuery (queryParams "_internal") "SHOW QUERIES"
 data ShowQuery = ShowQuery
   { showQueryQid :: !Int
   , showQueryText :: !Query
@@ -163,20 +164,20 @@ makeLensesWith
 
 -- | Query ID
 --
--- >>> v <- query (queryParams "_internal") "SHOW QUERIES" :: IO (V.Vector ShowQuery)
+-- >>> v <- query @ShowQuery (queryParams "_internal") "SHOW QUERIES"
 -- >>> v ^.. each.qid
 -- ...
 qid :: Lens' ShowQuery Int
 
 -- | Query text
 --
--- >>> v <- query (queryParams "_internal") "SHOW QUERIES" :: IO (V.Vector ShowQuery)
+-- >>> v <- query @ShowQuery (queryParams "_internal") "SHOW QUERIES"
 -- >>> v ^.. each.queryText
 -- ...
 queryText :: Lens' ShowQuery Query
 
 -- |
--- >>> v <- query (queryParams "_internal") "SHOW QUERIES" :: IO (V.Vector ShowQuery)
+-- >>> v <- query @ShowQuery (queryParams "_internal") "SHOW QUERIES"
 -- >>> v ^.. each.database
 -- ...
 instance HasDatabase ShowQuery where
@@ -184,7 +185,7 @@ instance HasDatabase ShowQuery where
 
 -- | Duration of the query
 --
--- >>> v <- query (queryParams "_internal") "SHOW QUERIES" :: IO (V.Vector ShowQuery)
+-- >>> v <- query @ShowQuery (queryParams "_internal") "SHOW QUERIES"
 -- >>> v ^.. each.duration
 -- ...
 duration :: Lens' ShowQuery NominalDiffTime
@@ -193,7 +194,7 @@ makeLensesWith (lensRules & generateSignatures .~ False) ''ShowSeries
 
 -- | Series name
 --
--- >>> v <- query (queryParams "_internal") "SHOW SERIES" :: IO (V.Vector ShowSeries)
+-- >>> v <- query @ShowSeries (queryParams "_internal") "SHOW SERIES"
 -- >>> length $ v ^.. each.key
 -- ...
 key :: Lens' ShowSeries Key

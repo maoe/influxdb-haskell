@@ -52,15 +52,19 @@ module Database.InfluxDB
   , Decoder
   , lenientDecoder
   , strictDecoder
+
+  -- ** Helper types and functions
+  , Ignored
+  , Empty
+  , Tagged(..)
+  , untag
+
   , getField
   , getTag
   , parseJSON
   , parseUTCTime
   , parsePOSIXTime
 
-  -- *** Re-exports from tagged
-  , Tagged(..)
-  , untag
 
   -- * Database management
   , manage
@@ -110,6 +114,7 @@ This tutorial assumes the following language extensions and imports.
 
 >>> :set -XOverloadedStrings
 >>> :set -XRecordWildCards
+>>> :set -XTypeApplications
 >>> import Database.InfluxDB
 >>> import qualified Database.InfluxDB.Format as F
 >>> import Control.Lens
@@ -146,7 +151,7 @@ should be used for efficiency when writing multiple data points.
 >>> let cpuUsage = "cpu_usage"
 >>> :{
 writeBatch wp
-  [ Line cpuUsage (Map.singleton "cpu" "cpu-total")
+  [ Line @UTCTime cpuUsage (Map.singleton "cpu" "cpu-total")
     (Map.fromList
       [ ("idle",   FieldFloat 10.1)
       , ("system", FieldFloat 53.3)
@@ -154,7 +159,7 @@ writeBatch wp
       ])
     (Just $ parseTimeOrError False defaultTimeLocale
       "%F %T%Q %Z"
-      "2017-06-17 15:41:40.42659044 UTC") :: Line UTCTime
+      "2017-06-17 15:41:40.42659044 UTC")
   ]
 :}
 
@@ -168,9 +173,9 @@ type check.
 If all the field types are an instance of 'Data.Aeson.FromJSON', we can use a
 tuple to store the results.
 
->>> :set -XDataKinds -XOverloadedStrings
+>>> :set -XDataKinds -XOverloadedStrings -XTypeOperators
 >>> type CPUUsage = (Tagged "time" UTCTime, Tagged "idle" Double, Tagged "system" Double, Tagged "user" Double)
->>> v <- query p $ formatQuery ("SELECT * FROM "%F.measurement) cpuUsage :: IO (V.Vector CPUUsage)
+>>> v <- query @CPUUsage p $ formatQuery ("SELECT * FROM "%F.measurement) cpuUsage
 >>> v
 [(Tagged 2017-06-17 15:41:40 UTC,Tagged 10.1,Tagged 53.3,Tagged 46.6)]
 
@@ -206,7 +211,7 @@ instance QueryResults CPUUsage where
     return CPUUsage {..}
 :}
 
->>> query p $ formatQuery ("SELECT * FROM "%F.measurement) cpuUsage :: IO (V.Vector CPUUsage)
+>>> query @CPUUsage p $ formatQuery ("SELECT * FROM "%F.measurement) cpuUsage
 [CPUUsage {time = 2017-06-17 15:41:40 UTC, cpuIdle = 10.1, cpuSystem = 53.3, cpuUser = 46.6}]
 -}
 
