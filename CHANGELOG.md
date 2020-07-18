@@ -1,5 +1,13 @@
 # Revision history for influxdb
 
+## v1.9.0 - 2020-07-18
+
+* Fix `Ignore` and `Empty` to replace the `QueryResults` instance for `Void`. The instance has been deprecated.
+* Remove the deprecated `parseResults` method in `QueryResults`.
+* Add the `coerceDecoder` method in `QueryResults`.
+* Drop support for GHC 8.2 and older because of the use of `EmptyDataDeriving`.
+* Update doctest comments with `TypeApplications`.
+
 ## v1.8.0 - 2020-06-19
 
 This release reworked the `QueryResuls` type class. There are some breaking changes:
