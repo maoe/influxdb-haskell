@@ -1,4 +1,4 @@
-# Haskell client library for InfluxDB
+# InfluxDB client library for Haskell
 
 [![Hackage](https://img.shields.io/hackage/v/influxdb.svg)](https://hackage.haskell.org/package/influxdb)
 [![Hackage-Deps](https://img.shields.io/hackage-deps/v/influxdb.svg)](http://packdeps.haskellers.com/feed?needle=influxdb)
