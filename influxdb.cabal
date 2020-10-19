@@ -73,7 +73,7 @@ library
     ViewPatterns
   ghc-options: -Wall
   build-depends:
-      base >= 4.11 && < 4.15
+      base >= 4.11 && < 4.16
     , aeson >= 0.7 && < 1.6
     , attoparsec < 0.14
     , bytestring >= 0.10 && < 0.12
