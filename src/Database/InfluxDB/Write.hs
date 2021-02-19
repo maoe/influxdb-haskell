@@ -155,9 +155,10 @@ writeByteString params payload = do
       Left message ->
         throwIO $ UnexpectedResponse message request body
       Right val -> case A.parse parseErrorObject val of
-        A.Success _ ->
+        A.Success err ->
           fail $ "BUG: impossible code path in "
-            ++ "Database.InfluxDB.Write.writeByteString"
+            ++ "Database.InfluxDB.Write.writeByteString: "
+            ++ err
         A.Error message -> do
           when (HT.statusIsServerError status) $
             throwIO $ ServerError message
