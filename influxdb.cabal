@@ -1,6 +1,6 @@
 cabal-version: 1.24
 name: influxdb
-version: 1.9.0
+version: 1.9.1
 synopsis: InfluxDB client library for Haskell
 description:
   @influxdb@ is an InfluxDB client library for Haskell.
