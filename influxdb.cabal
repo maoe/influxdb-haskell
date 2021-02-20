@@ -11,14 +11,14 @@ license: BSD3
 license-file: LICENSE
 author: Mitsutoshi Aoe
 maintainer: Mitsutoshi Aoe <me@maoe.name>
-copyright: Copyright (C) 2014-2020 Mitsutoshi Aoe
+copyright: Copyright (C) 2014-2021 Mitsutoshi Aoe
 category: Database
 build-type: Custom
 tested-with:
   GHC == 8.4.4
   GHC == 8.6.5
   GHC == 8.8.4
-  GHC == 8.10.2
+  GHC == 8.10.4
 
 extra-source-files:
   README.md
