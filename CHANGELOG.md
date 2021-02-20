@@ -1,5 +1,11 @@
 # Revision history for influxdb
 
+## v1.9.1 - 2020-02-21
+
+* Show error on the "impossible" path in writeByteString ([#82](https://github.com/maoe/influxdb-haskell/pull/82))
+* Relax upper version bounds for lens, time, doctest, and bytestring
+* Switch from Travis CI to GitHub Actions ([#84](https://github.com/maoe/influxdb-haskell/pull/84))
+
 ## v1.9.0 - 2020-07-18
 
 * Fix `Ignore` and `Empty` to replace the `QueryResults` instance for `Void`. The instance has been deprecated.

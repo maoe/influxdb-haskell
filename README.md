@@ -1,8 +1,8 @@
-# Haskell client library for InfluxDB
+# InfluxDB client library for Haskell
 
 [![Hackage](https://img.shields.io/hackage/v/influxdb.svg)](https://hackage.haskell.org/package/influxdb)
 [![Hackage-Deps](https://img.shields.io/hackage-deps/v/influxdb.svg)](http://packdeps.haskellers.com/feed?needle=influxdb)
-[![Travis CI](https://travis-ci.org/maoe/influxdb-haskell.svg?branch=master)](https://travis-ci.org/maoe/influxdb-haskell)
+[![Haskell-CI](https://github.com/maoe/influxdb-haskell/actions/workflows/haskell-ci.yml/badge.svg?branch=master)](https://github.com/maoe/influxdb-haskell/actions/workflows/haskell-ci.yml)
 [![Hackage CI](https://matrix.hackage.haskell.org/api/v2/packages/influxdb/badge)](https://matrix.hackage.haskell.org/package/influxdb)
 [![Gitter](https://badges.gitter.im/maoe/influxdb-haskell.svg)](https://gitter.im/maoe/influxdb-haskell?utm_source=badge&utm_medium=badge&utm_campaign=pr-badge)
 

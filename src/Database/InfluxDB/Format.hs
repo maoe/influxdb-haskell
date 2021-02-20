@@ -38,7 +38,7 @@ import Prelude hiding ((.), id)
 import Data.Time
 import qualified Data.ByteString as B
 import qualified Data.ByteString.Lazy as BL
-import qualified Data.ByteString.Lazy.Builder as BL
+import qualified Data.ByteString.Builder as BB
 import qualified Data.List as L
 import qualified Data.Text as T
 import qualified Data.Text.Encoding as T
@@ -56,7 +56,7 @@ import Database.InfluxDB.Types hiding (database)
 -- | Serialize a 'Query' to a 'B.ByteString'.
 fromQuery :: Query -> B.ByteString
 fromQuery (Query q) =
-  BL.toStrict $ BL.toLazyByteString $ T.encodeUtf8Builder q
+  BL.toStrict $ BB.toLazyByteString $ T.encodeUtf8Builder q
 
 -- | A typed format string. @Format a r@ means that @a@ is the type of formatted
 -- string, and @r@ is the type of the formatter.
