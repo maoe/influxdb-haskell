@@ -83,6 +83,7 @@ import qualified Database.InfluxDB.Format as F
 -- >>> :set -XTypeApplications
 -- >>> import Data.Time (UTCTime)
 -- >>> import qualified Data.Vector as V
+-- >>> import qualified Data.Text as T
 
 -- | Types that can be converted from an JSON object returned by InfluxDB.
 --
@@ -202,7 +203,7 @@ fieldName = T.pack . symbolVal
 --
 -- >>> let p = queryParams "_internal"
 -- >>> dbs <- query @(Tagged "name" T.Text) p "SHOW DATABASES"
--- >>> find ((== "_internal") . untag) dbs
+-- >>> V.find ((== "_internal") . untag) dbs
 -- Just (Tagged "_internal")
 instance (KnownSymbol k, FromJSON v) => QueryResults (Tagged k v) where
   parseMeasurement _ _name _ columns fields =
