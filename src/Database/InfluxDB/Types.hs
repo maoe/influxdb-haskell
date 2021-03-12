@@ -30,6 +30,7 @@ import qualified Network.HTTP.Client as HC
 
 -- $setup
 -- >>> :set -XOverloadedStrings
+-- >>> import System.Clock (TimeSpec(..))
 -- >>> import Database.InfluxDB
 -- >>> import qualified Database.InfluxDB.Format as F
 

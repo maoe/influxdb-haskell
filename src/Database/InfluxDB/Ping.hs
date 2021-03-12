@@ -34,6 +34,9 @@ import qualified Network.HTTP.Client as HC
 
 import Database.InfluxDB.Types as Types
 
+-- $setup
+-- >>> import Database.InfluxDB.Ping
+
 -- Ping requests do not require authentication
 -- | The full set of parameters for the ping API
 --

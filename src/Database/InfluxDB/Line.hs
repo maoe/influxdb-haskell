@@ -45,10 +45,12 @@ import Database.InfluxDB.Types
 The Line protocol implementation.
 
 >>> :set -XOverloadedStrings
->>> import Database.InfluxDB
 >>> import Data.Time
->>> import qualified Data.ByteString.Lazy.Char8 as BL8
+>>> import Database.InfluxDB.Line
 >>> import System.IO (stdout)
+>>> import qualified Data.ByteString as B
+>>> import qualified Data.ByteString.Builder as B
+>>> import qualified Data.ByteString.Lazy.Char8 as BL8
 >>> :{
 let l1 = Line "cpu_usage"
       (Map.singleton "cpu" "cpu-total")

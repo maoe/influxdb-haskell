@@ -1,6 +1,6 @@
 cabal-version: 1.24
 name: influxdb
-version: 1.9.1
+version: 1.9.1.1
 synopsis: InfluxDB client library for Haskell
 description:
   @influxdb@ is an InfluxDB client library for Haskell.
@@ -19,6 +19,7 @@ tested-with:
   GHC == 8.6.5
   GHC == 8.8.4
   GHC == 8.10.4
+  GHC == 9.0.1
 
 extra-source-files:
   README.md
@@ -73,7 +74,7 @@ library
     ViewPatterns
   ghc-options: -Wall
   build-depends:
-      base >= 4.11 && < 4.15
+      base >= 4.11 && < 4.16
     , aeson >= 0.7 && < 1.6
     , attoparsec < 0.14
     , bytestring >= 0.10 && < 0.12
