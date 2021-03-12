@@ -50,7 +50,8 @@ import Database.InfluxDB.JSON
 -- >>> import qualified Data.Map as Map
 -- >>> import Data.Time
 -- >>> import Database.InfluxDB
--- >>> manage (queryParams "test-db") "CREATE DATABASE \"test-db\""
+-- >>> import qualified Network.HTTP.Client as HC
+-- >>> Database.InfluxDB.manage (queryParams "test-db") "CREATE DATABASE \"test-db\""
 
 {- $intro
 The code snippets in this module assume the following imports.

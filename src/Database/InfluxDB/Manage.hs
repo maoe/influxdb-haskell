@@ -60,6 +60,7 @@ import qualified Database.InfluxDB.Format as F
 -- >>> :set -XOverloadedStrings
 -- >>> import Database.InfluxDB.Query
 -- >>> import Database.InfluxDB.Format ((%))
+-- >>> import Database.InfluxDB.Manage
 
 -- | Send a database management query to InfluxDB.
 --
