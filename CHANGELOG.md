@@ -1,5 +1,9 @@
 # Revision history for influxdb
 
+## v1.9.1.2 - 2021-03-25
+
+* Relax upper version bound for attoparsec
+
 ## v1.9.1.1 - 2021-03-12
 
 * Support GHC 9.0.1 ([#85](https://github.com/maoe/influxdb-haskell/pull/85))

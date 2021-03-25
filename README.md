@@ -6,7 +6,7 @@
 [![Hackage CI](https://matrix.hackage.haskell.org/api/v2/packages/influxdb/badge)](https://matrix.hackage.haskell.org/package/influxdb)
 [![Gitter](https://badges.gitter.im/maoe/influxdb-haskell.svg)](https://gitter.im/maoe/influxdb-haskell?utm_source=badge&utm_medium=badge&utm_campaign=pr-badge)
 
-Currently this library is tested against InfluxDB 1.8.
+Currently this library is tested against InfluxDB 1.8. InfluxDB 2 isn't supported (yet).
 
 ## Getting started
 
