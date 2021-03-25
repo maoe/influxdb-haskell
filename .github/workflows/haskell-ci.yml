@@ -22,7 +22,7 @@ jobs:
     runs-on: ubuntu-18.04
     continue-on-error: ${{ matrix.allow-failure }}
     env:
-      INFLUXDB_VERSION: 1.8.0
+      INFLUXDB_VERSION: 1.8.4
     strategy:
       matrix:
         include:
