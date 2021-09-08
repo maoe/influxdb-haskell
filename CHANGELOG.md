@@ -1,5 +1,10 @@
 # Revision history for influxdb
 
+## v1.9.2 - 2021-09-08
+
+* Derive Show for Line ([#87](https://github.com/maoe/influxdb-haskell/pull/87))
+* Relax upper version bound for time ([#88](https://github.com/maoe/influxdb-haskell/pull/88))
+
 ## v1.9.1.2 - 2021-03-25
 
 * Relax upper version bound for attoparsec
