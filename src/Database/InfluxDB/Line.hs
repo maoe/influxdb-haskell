@@ -80,7 +80,7 @@ data Line time = Line
   -- It shouldn't be empty.
   , _timestamp :: !(Maybe time)
   -- ^ Timestamp (optional)
-  }
+  } deriving Show
 
 -- | Serialize a 'Line' to a lazy bytestring
 --
