@@ -75,7 +75,7 @@ library
   ghc-options: -Wall
   build-depends:
       base >= 4.11 && < 4.16
-    , aeson >= 0.7 && < 1.6
+    , aeson >= 0.7 && < 2.1
     , attoparsec < 0.15
     , bytestring >= 0.10 && < 0.12
     , clock >= 0.7 && < 0.9

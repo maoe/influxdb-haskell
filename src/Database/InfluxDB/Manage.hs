@@ -39,7 +39,7 @@ import Control.Exception
 import Control.Monad
 
 import Control.Lens
-import Data.Aeson
+import Data.Aeson (Value(..), eitherDecode', encode, parseJSON)
 import Data.Scientific (toBoundedInteger)
 import Data.Text (Text)
 import Data.Time.Clock
