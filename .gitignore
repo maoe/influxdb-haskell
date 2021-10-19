@@ -9,3 +9,4 @@
 cabal.project.local
 cabal.sandbox.config
 stack.yaml.lock
+*.hi
