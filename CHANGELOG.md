@@ -1,8 +1,13 @@
 # Revision history for influxdb
 
+## v1.9.2.2 - 2021-11-21
+
+* Update dependencies
+
 ## v1.9.2.1 - 2021-10-20
 
 * Add support for aeson 2.0 ([#89](https://github.com/maoe/influxdb-haskell/pull/89))
+
 ## v1.9.2 - 2021-09-08
 
 * Derive Show for Line ([#87](https://github.com/maoe/influxdb-haskell/pull/87))
