@@ -200,8 +200,12 @@ parseSeriesBody = A.withObject "series" $ \obj -> do
   return (name, tags, columns, values)
 
 -- | Parse the common JSON structure used in failure response.
+-- >>> A.parse parseErrorObject $ fromJust $ decode "{ \"error\": \"custom error\" }"
+-- Success "custom error"
+-- >>> A.parse parseErrorObject $ fromJust $ decode "{ \"message\": \"custom error\" }"
+-- Success "custom error"
 parseErrorObject :: A.Value -> A.Parser String
-parseErrorObject = A.withObject "error" $ \obj -> obj .: "error"
+parseErrorObject = A.withObject "error" $ \obj -> obj .: "error" <|> obj .: "message"
 
 -- | Parse either a POSIX timestamp or RFC3339 formatted timestamp as 'UTCTime'.
 parseUTCTime :: Precision ty -> A.Value -> A.Parser UTCTime
