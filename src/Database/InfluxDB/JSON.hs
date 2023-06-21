@@ -55,6 +55,12 @@ import qualified Data.Vector as V
 
 import Database.InfluxDB.Types
 
+-- $setup
+-- >>> import Data.Maybe
+-- >>> import Data.Aeson (decode)
+-- >>> import Database.InfluxDB.JSON
+-- >>> import qualified Data.Aeson.Types as A
+
 -- | Parse a JSON response with the 'strictDecoder'.
 parseResultsWith
   :: (Maybe Text -> HashMap Text Text -> Vector Text -> Array -> A.Parser a)
