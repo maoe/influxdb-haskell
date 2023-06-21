@@ -8,9 +8,9 @@
 #
 # For more information, see https://github.com/haskell-CI/haskell-ci
 #
-# version: 0.16.1
+# version: 0.16.5
 #
-# REGENDATA ("0.16.1",["github","influxdb.cabal"])
+# REGENDATA ("0.16.5",["github","influxdb.cabal"])
 #
 name: Haskell-CI
 on:
@@ -33,6 +33,11 @@ jobs:
     strategy:
       matrix:
         include:
+          - compiler: ghc-9.6.2
+            compilerKind: ghc
+            compilerVersion: 9.6.2
+            setup-method: ghcup
+            allow-failure: false
           - compiler: ghc-9.4.5
             compilerKind: ghc
             compilerVersion: 9.4.5
@@ -43,15 +48,15 @@ jobs:
             compilerVersion: 9.2.8
             setup-method: ghcup
             allow-failure: false
-          - compiler: ghc-9.0.1
+          - compiler: ghc-9.0.2
             compilerKind: ghc
-            compilerVersion: 9.0.1
-            setup-method: hvr-ppa
+            compilerVersion: 9.0.2
+            setup-method: ghcup
             allow-failure: false
-          - compiler: ghc-8.10.4
+          - compiler: ghc-8.10.7
             compilerKind: ghc
-            compilerVersion: 8.10.4
-            setup-method: hvr-ppa
+            compilerVersion: 8.10.7
+            setup-method: ghcup
             allow-failure: false
           - compiler: ghc-8.8.4
             compilerKind: ghc
