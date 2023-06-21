@@ -8,9 +8,9 @@
 #
 # For more information, see https://github.com/haskell-CI/haskell-ci
 #
-# version: 0.11.20210222
+# version: 0.16.1
 #
-# REGENDATA ("0.11.20210222",["github","influxdb.cabal"])
+# REGENDATA ("0.16.1",["github","influxdb.cabal"])
 #
 name: Haskell-CI
 on:
@@ -18,61 +18,89 @@ on:
   - pull_request
 jobs:
   linux:
-    name: Haskell-CI - Linux - GHC ${{ matrix.ghc }}
-    runs-on: ubuntu-18.04
+    name: Haskell-CI - Linux - ${{ matrix.compiler }}
+    runs-on: ubuntu-20.04
+    timeout-minutes:
+      60
+    container:
+      image: buildpack-deps:bionic
     continue-on-error: ${{ matrix.allow-failure }}
-    env:
-      INFLUXDB_VERSION: 1.8.4
+    services:
+      influxdb:
+        image: influxdb:1.8.10
+        env:
+          INFLUXDB_REPORTING_DISABLED: true
     strategy:
       matrix:
         include:
-          - ghc: 9.0.1
+          - compiler: ghc-9.0.1
+            compilerKind: ghc
+            compilerVersion: 9.0.1
+            setup-method: hvr-ppa
             allow-failure: false
-          - ghc: 8.10.4
+          - compiler: ghc-8.10.4
+            compilerKind: ghc
+            compilerVersion: 8.10.4
+            setup-method: hvr-ppa
             allow-failure: false
-          - ghc: 8.8.4
+          - compiler: ghc-8.8.4
+            compilerKind: ghc
+            compilerVersion: 8.8.4
+            setup-method: hvr-ppa
             allow-failure: false
-          - ghc: 8.6.5
+          - compiler: ghc-8.6.5
+            compilerKind: ghc
+            compilerVersion: 8.6.5
+            setup-method: hvr-ppa
             allow-failure: false
-          - ghc: 8.4.4
+          - compiler: ghc-8.4.4
+            compilerKind: ghc
+            compilerVersion: 8.4.4
+            setup-method: hvr-ppa
             allow-failure: false
       fail-fast: false
     steps:
       - name: apt
         run: |
-          sudo apt-get update
-          sudo apt-get install -y --no-install-recommends gnupg ca-certificates dirmngr curl git software-properties-common
-          sudo apt-add-repository -y 'ppa:hvr/ghc'
-          sudo apt-get update
-          sudo apt-get install -y ghc-$GHC_VERSION cabal-install-3.4
+          apt-get update
+          apt-get install -y --no-install-recommends gnupg ca-certificates dirmngr curl git socat software-properties-common libtinfo5
+          apt-add-repository -y 'ppa:hvr/ghc'
+          apt-get update
+          apt-get install -y "$HCNAME"
+          mkdir -p "$HOME/.ghcup/bin"
+          curl -sL https://downloads.haskell.org/ghcup/0.1.19.2/x86_64-linux-ghcup-0.1.19.2 > "$HOME/.ghcup/bin/ghcup"
+          chmod a+x "$HOME/.ghcup/bin/ghcup"
+          "$HOME/.ghcup/bin/ghcup" install cabal 3.10.1.0 || (cat "$HOME"/.ghcup/logs/*.* && false)
         env:
-          GHC_VERSION: ${{ matrix.ghc }}
+          HCKIND: ${{ matrix.compilerKind }}
+          HCNAME: ${{ matrix.compiler }}
+          HCVER: ${{ matrix.compilerVersion }}
+      - name: influxdb forward
+        run: |
+          socat TCP-LISTEN:8086,fork TCP:influxdb:8086 &
       - name: Set PATH and environment variables
         run: |
           echo "$HOME/.cabal/bin" >> $GITHUB_PATH
-          echo "LANG=C.UTF-8" >> $GITHUB_ENV
-          echo "CABAL_DIR=$HOME/.cabal" >> $GITHUB_ENV
-          echo "CABAL_CONFIG=$HOME/.cabal/config" >> $GITHUB_ENV
-          HC=/opt/ghc/$GHC_VERSION/bin/ghc
-          echo "HC=$HC" >> $GITHUB_ENV
-          echo "HCPKG=/opt/ghc/$GHC_VERSION/bin/ghc-pkg" >> $GITHUB_ENV
-          echo "HADDOCK=/opt/ghc/$GHC_VERSION/bin/haddock" >> $GITHUB_ENV
-          echo "CABAL=/opt/cabal/3.4/bin/cabal -vnormal+nowrap" >> $GITHUB_ENV
+          echo "LANG=C.UTF-8" >> "$GITHUB_ENV"
+          echo "CABAL_DIR=$HOME/.cabal" >> "$GITHUB_ENV"
+          echo "CABAL_CONFIG=$HOME/.cabal/config" >> "$GITHUB_ENV"
+          HCDIR=/opt/$HCKIND/$HCVER
+          HC=$HCDIR/bin/$HCKIND
+          echo "HC=$HC" >> "$GITHUB_ENV"
+          echo "HCPKG=$HCDIR/bin/$HCKIND-pkg" >> "$GITHUB_ENV"
+          echo "HADDOCK=$HCDIR/bin/haddock" >> "$GITHUB_ENV"
+          echo "CABAL=$HOME/.ghcup/bin/cabal-3.10.1.0 -vnormal+nowrap" >> "$GITHUB_ENV"
           HCNUMVER=$(${HC} --numeric-version|perl -ne '/^(\d+)\.(\d+)\.(\d+)(\.(\d+))?$/; print(10000 * $1 + 100 * $2 + ($3 == 0 ? $5 != 1 : $3))')
-          echo "HCNUMVER=$HCNUMVER" >> $GITHUB_ENV
-          echo "ARG_TESTS=--enable-tests" >> $GITHUB_ENV
-          echo "ARG_BENCH=--enable-benchmarks" >> $GITHUB_ENV
-          echo "HEADHACKAGE=false" >> $GITHUB_ENV
-          echo "ARG_COMPILER=--ghc --with-compiler=$HC" >> $GITHUB_ENV
-          echo "GHCJSARITH=0" >> $GITHUB_ENV
+          echo "HCNUMVER=$HCNUMVER" >> "$GITHUB_ENV"
+          echo "ARG_TESTS=--enable-tests" >> "$GITHUB_ENV"
+          echo "ARG_BENCH=--enable-benchmarks" >> "$GITHUB_ENV"
+          echo "HEADHACKAGE=false" >> "$GITHUB_ENV"
+          echo "ARG_COMPILER=--$HCKIND --with-compiler=$HC" >> "$GITHUB_ENV"
+          echo "GHCJSARITH=0" >> "$GITHUB_ENV"
         env:
-          GHC_VERSION: ${{ matrix.ghc }}
-      - name: Set up InfluxDB
-        run: |
-          wget -q https://dl.influxdata.com/influxdb/releases/influxdb_${INFLUXDB_VERSION}_amd64.deb
-          dpkg -x influxdb_${INFLUXDB_VERSION}_amd64.deb influxdb
-          ./influxdb/usr/bin/influxd config
-          ./influxdb/usr/bin/influxd &
+          HCKIND: ${{ matrix.compilerKind }}
+          HCNAME: ${{ matrix.compiler }}
+          HCVER: ${{ matrix.compilerVersion }}
       - name: env
         run: |
           env
@@ -95,6 +123,10 @@ jobs:
           repository hackage.haskell.org
             url: http://hackage.haskell.org/
           EOF
+          cat >> $CABAL_CONFIG <<EOF
+          program-default-options
+            ghc-options: $GHCJOBS +RTS -M3G -RTS
+          EOF
           cat $CABAL_CONFIG
       - name: versions
         run: |
@@ -107,14 +139,14 @@ jobs:
       - name: install cabal-plan
         run: |
           mkdir -p $HOME/.cabal/bin
-          curl -sL https://github.com/haskell-hvr/cabal-plan/releases/download/v0.6.2.0/cabal-plan-0.6.2.0-x86_64-linux.xz > cabal-plan.xz
-          echo 'de73600b1836d3f55e32d80385acc055fd97f60eaa0ab68a755302685f5d81bc  cabal-plan.xz' | sha256sum -c -
+          curl -sL https://github.com/haskell-hvr/cabal-plan/releases/download/v0.7.3.0/cabal-plan-0.7.3.0-x86_64-linux.xz > cabal-plan.xz
+          echo 'f62ccb2971567a5f638f2005ad3173dba14693a45154c1508645c52289714cb2  cabal-plan.xz' | sha256sum -c -
           xz -d < cabal-plan.xz > $HOME/.cabal/bin/cabal-plan
           rm -f cabal-plan.xz
           chmod a+x $HOME/.cabal/bin/cabal-plan
           cabal-plan --version
       - name: checkout
-        uses: actions/checkout@v2
+        uses: actions/checkout@v3
         with:
           path: source
       - name: initial cabal.project for sdist
@@ -133,7 +165,8 @@ jobs:
       - name: generate cabal.project
         run: |
           PKGDIR_influxdb="$(find "$GITHUB_WORKSPACE/unpacked" -maxdepth 1 -type d -regex '.*/influxdb-[0-9.]*')"
-          echo "PKGDIR_influxdb=${PKGDIR_influxdb}" >> $GITHUB_ENV
+          echo "PKGDIR_influxdb=${PKGDIR_influxdb}" >> "$GITHUB_ENV"
+          rm -f cabal.project cabal.project.local
           touch cabal.project
           touch cabal.project.local
           echo "packages: ${PKGDIR_influxdb}" >> cabal.project
@@ -148,12 +181,12 @@ jobs:
         run: |
           $CABAL v2-build $ARG_COMPILER $ARG_TESTS $ARG_BENCH --dry-run all
           cabal-plan
-      - name: cache
-        uses: actions/cache@v2
+      - name: restore cache
+        uses: actions/cache/restore@v3
         with:
-          key: ${{ runner.os }}-${{ matrix.ghc }}-${{ github.sha }}
+          key: ${{ runner.os }}-${{ matrix.compiler }}-${{ github.sha }}
           path: ~/.cabal/store
-          restore-keys: ${{ runner.os }}-${{ matrix.ghc }}-
+          restore-keys: ${{ runner.os }}-${{ matrix.compiler }}-
       - name: install dependencies
         run: |
           $CABAL v2-build $ARG_COMPILER --disable-tests --disable-benchmarks --dependencies-only -j2 all
@@ -178,3 +211,9 @@ jobs:
         run: |
           rm -f cabal.project.local
           $CABAL v2-build $ARG_COMPILER --disable-tests --disable-benchmarks all
+      - name: save cache
+        uses: actions/cache/save@v3
+        if: always()
+        with:
+          key: ${{ runner.os }}-${{ matrix.compiler }}-${{ github.sha }}
+          path: ~/.cabal/store
