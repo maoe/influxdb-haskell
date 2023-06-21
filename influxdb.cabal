@@ -15,7 +15,6 @@ copyright: Copyright (C) 2014-2023 Mitsutoshi Aoe
 category: Database
 build-type: Custom
 tested-with:
-  GHC == 8.4.4
   GHC == 8.6.5
   GHC == 8.8.4
   GHC == 8.10.4
