@@ -63,6 +63,11 @@ jobs:
             compilerVersion: 8.6.5
             setup-method: hvr-ppa
             allow-failure: false
+          - compiler: ghc-8.4.4
+            compilerKind: ghc
+            compilerVersion: 8.4.4
+            setup-method: hvr-ppa
+            allow-failure: false
       fail-fast: false
     steps:
       - name: apt
@@ -228,7 +233,7 @@ jobs:
           ${CABAL} -vnormal check
       - name: haddock
         run: |
-          $CABAL v2-haddock --haddock-options=--quickjump $ARG_COMPILER --with-haddock $HADDOCK $ARG_TESTS $ARG_BENCH all
+          $CABAL v2-haddock $ARG_COMPILER --with-haddock $HADDOCK $ARG_TESTS $ARG_BENCH all
       - name: unconstrained build
         run: |
           rm -f cabal.project.local
