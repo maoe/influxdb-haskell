@@ -1,0 +1,5 @@
+-- With GHC = 8.4.4 haddock fails due to a parse error in the vector.
+-- https://github.com/haskell/vector/issues/383
+-- And also avoid haddock: internal error: /github/home/.cabal/store/ghc-9.2.8/ghc-paths-0.1.0.12-10a0786baf4e4177a0f0c7bce1c1734610faf216f494e40079fc95c99b6f64e6/share/doc/html/doc-index.json
+-- https://github.com/haskell/cabal/issues/8104
+haddock: >= 9.4

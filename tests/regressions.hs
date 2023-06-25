@@ -37,8 +37,10 @@ case_issue64 = withDatabase dbName $ do
   case r of
     Left err -> case err of
       UnexpectedResponse message _ _ ->
-        message @?=
-          "BUG: parsing Int failed, expected Number, but encountered String in Database.InfluxDB.Query.query"
+        message `elem` [
+          "BUG: parsing Int failed, expected Number, but encountered String in Database.InfluxDB.Query.query",
+          "BUG: expected Int, encountered String in Database.InfluxDB.Query.query"
+        ] @? "Correct error message."
       _ ->
         assertFailure $ got ++ show err
     Right (v :: (V.Vector (Tagged "time" Int, Tagged "value" Int))) ->

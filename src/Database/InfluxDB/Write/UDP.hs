@@ -31,7 +31,8 @@ import Database.InfluxDB.Types as Types
 This module is desined to be used with the [network]
 (https://hackage.haskell.org/package/network) package and be imported qualified.
 
->>> :set -XOverloadedStrings -XOverloadedLists
+>>> :set -XOverloadedStrings -XNoOverloadedLists
+>>> import qualified Data.Map as Map
 >>> import Data.Time
 >>> import Network.Socket
 >>> import Database.InfluxDB
@@ -39,7 +40,7 @@ This module is desined to be used with the [network]
 >>> sock <- Network.Socket.socket AF_INET Datagram defaultProtocol
 >>> let localhost = tupleToHostAddress (127, 0, 0, 1)
 >>> let params = UDP.writeParams sock $ SockAddrInet 8089 localhost
->>> UDP.write params $ Line "measurement1" [] [("value", FieldInt 42)] (Nothing :: Maybe UTCTime)
+>>> UDP.write params $ Line "measurement1" Map.empty (Map.fromList [("value", FieldInt 42)]) (Nothing :: Maybe UTCTime)
 >>> close sock
 
 Make sure that the UDP service is enabled in the InfluxDB config. This API

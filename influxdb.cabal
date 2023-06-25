@@ -25,8 +25,10 @@ tested-with:
 
 extra-source-files:
   README.md
-  CHANGELOG.md
   cabal.project
+
+extra-doc-files:
+  CHANGELOG.md
 
 flag examples
   description: Build examples
@@ -36,7 +38,7 @@ flag examples
 custom-setup
  setup-depends:
       base >= 4 && < 5
-    , Cabal >= 1.24
+    , Cabal >= 1.24 && < 3.11
     , cabal-doctest >= 1 && < 1.1
 
 library
@@ -104,7 +106,7 @@ test-suite doctests
       base
     , doctest >= 0.11.3 && < 0.21
     , influxdb
-    , template-haskell
+    , template-haskell < 2.21
   ghc-options: -Wall -threaded
   hs-source-dirs: tests
   default-language: Haskell2010
@@ -117,8 +119,8 @@ test-suite regressions
     , containers
     , influxdb
     , lens
-    , tasty
-    , tasty-hunit
+    , tasty < 1.5
+    , tasty-hunit < 1.11
     , time
     , raw-strings-qq >= 1.1 && < 1.2
     , vector
