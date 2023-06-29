@@ -1,5 +1,11 @@
 # Revision history for influxdb
 
+## v1.9.3 - 2023-06-29
+
+* Mitigate InfluxDB compatibility problems ([#94](https://github.com/maoe/influxdb-haskell/pull/94))
+* Support GHC 9.4 and 9.6 ([#95](https://github.com/maoe/influxdb-haskell/pull/95) and [#97](https://github.com/maoe/influxdb-haskell/pull/97))
+* Revitalize CI ([#96](https://github.com/maoe/influxdb-haskell/pull/96))
+
 ## v1.9.2.2 - 2021-11-21
 
 * Update dependencies
