@@ -55,6 +55,12 @@ import qualified Data.Vector as V
 
 import Database.InfluxDB.Types
 
+-- $setup
+-- >>> import Data.Maybe
+-- >>> import Data.Aeson (decode)
+-- >>> import Database.InfluxDB.JSON
+-- >>> import qualified Data.Aeson.Types as A
+
 -- | Parse a JSON response with the 'strictDecoder'.
 parseResultsWith
   :: (Maybe Text -> HashMap Text Text -> Vector Text -> Array -> A.Parser a)
@@ -200,8 +206,12 @@ parseSeriesBody = A.withObject "series" $ \obj -> do
   return (name, tags, columns, values)
 
 -- | Parse the common JSON structure used in failure response.
+-- >>> A.parse parseErrorObject $ fromJust $ decode "{ \"error\": \"custom error\" }"
+-- Success "custom error"
+-- >>> A.parse parseErrorObject $ fromJust $ decode "{ \"message\": \"custom error\" }"
+-- Success "custom error"
 parseErrorObject :: A.Value -> A.Parser String
-parseErrorObject = A.withObject "error" $ \obj -> obj .: "error"
+parseErrorObject = A.withObject "error" $ \obj -> obj .: "error" <|> obj .: "message"
 
 -- | Parse either a POSIX timestamp or RFC3339 formatted timestamp as 'UTCTime'.
 parseUTCTime :: Precision ty -> A.Value -> A.Parser UTCTime
