@@ -96,7 +96,7 @@ library
     , scientific >= 0.3.3 && < 0.4
     , tagged >= 0.1 && < 0.9
     , text < 2.2
-    , time >= 1.5 && < 1.14
+    , time >= 1.5 && < 1.15
     , unordered-containers < 0.3
     , vector >= 0.10 && < 0.14
   hs-source-dirs: src
