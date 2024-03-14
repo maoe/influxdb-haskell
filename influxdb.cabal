@@ -1,6 +1,6 @@
 cabal-version: 1.24
 name: influxdb
-version: 1.9.3
+version: 1.9.3.1
 synopsis: InfluxDB client library for Haskell
 description:
   @influxdb@ is an InfluxDB client library for Haskell.
@@ -11,7 +11,7 @@ license: BSD3
 license-file: LICENSE
 author: Mitsutoshi Aoe
 maintainer: Mitsutoshi Aoe <me@maoe.name>
-copyright: Copyright (C) 2014-2023 Mitsutoshi Aoe
+copyright: Copyright (C) 2014-2024 Mitsutoshi Aoe
 category: Database
 build-type: Custom
 tested-with:
