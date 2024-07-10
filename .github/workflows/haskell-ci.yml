@@ -98,6 +98,9 @@ jobs:
           HCKIND: ${{ matrix.compilerKind }}
           HCNAME: ${{ matrix.compiler }}
           HCVER: ${{ matrix.compilerVersion }}
+      - name: influxdb forward
+        run: |
+          socat TCP-LISTEN:8086,fork TCP:influxdb:8086 &
       - name: Set PATH and environment variables
         run: |
           echo "$HOME/.cabal/bin" >> $GITHUB_PATH
