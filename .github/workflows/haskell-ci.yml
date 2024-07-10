@@ -24,6 +24,11 @@ jobs:
       60
     container:
       image: buildpack-deps:jammy
+    services:
+      influxdb:
+        image: influxdb:1.8.10
+        env:
+          INFLUXDB_REPORTING_DISABLED: true
     continue-on-error: ${{ matrix.allow-failure }}
     strategy:
       matrix:
